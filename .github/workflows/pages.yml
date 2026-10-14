@@ -1,0 +1,64 @@
+name: Website pruefen und GitHub Pages veroeffentlichen
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'daten/**'
+      - 'export_webdaten.py'
+      - 'tests/test_web_export.py'
+      - 'QUELLENABGLEICH.md'
+      - '.github/workflows/pages.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'daten/**'
+      - 'export_webdaten.py'
+      - 'tests/test_web_export.py'
+      - 'QUELLENABGLEICH.md'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pruefen:
+    name: Quellen-Snapshot und Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Webdaten und Sicherheitsregeln testen
+        run: python -m unittest discover -s tests -p 'test_web_export.py' -v
+      - name: Sicherstellen, dass JSON aus CSV generiert ist
+        run: python export_webdaten.py --check
+
+  veroeffentlichen:
+    name: Statische Website bereitstellen
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: pruefen
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./docs
+      - name: Veröffentlichen
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,136 @@
+ereignis_id,datum,wahlperiode,sitzung,person_id,person,fraktion_zur_sitzung,quell_url,beleg
+20-009-2461-01,16.12.2021,20,9,11004891,Thomas Seitz,AfD,https://dserver.bundestag.de/btp/20/20009.xml,https://dserver.bundestag.de/btp/20/20009.pdf#page=27
+20-010-5320-01,12.01.2022,20,10,11004605,Christian Petry,SPD,https://dserver.bundestag.de/btp/20/20010.xml,https://dserver.bundestag.de/btp/20/20010.pdf#page=73
+20-020-7812-01,16.03.2022,20,20,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20020.xml,https://dserver.bundestag.de/btp/20/20020.pdf#page=90
+20-022-7672-01,18.03.2022,20,22,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20022.xml,https://dserver.bundestag.de/btp/20/20022.pdf#page=98
+DIP20-287211-K01,28.04.2022,20,31,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20031.pdf#page=78,https://dserver.bundestag.de/btp/20/20031.pdf#page=78 | DIP: https://dip.bundestag.de/vorgang/287211
+20-032-1591-01,29.04.2022,20,32,11004605,Christian Petry,SPD,https://dserver.bundestag.de/btp/20/20032.xml,https://dserver.bundestag.de/btp/20/20032.pdf#page=14
+20-035-3790-01,13.05.2022,20,35,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20035.xml,https://dserver.bundestag.de/btp/20/20035.pdf#page=54
+20-040-4674-01,01.06.2022,20,40,11003573,Gunther Krichbaum,CDU/CSU,https://dserver.bundestag.de/btp/20/20040.xml,https://dserver.bundestag.de/btp/20/20040.pdf#page=73
+20-041-3228-01,02.06.2022,20,41,11005079,Matthias Helferich,fraktionslos,https://dserver.bundestag.de/btp/20/20041.xml,https://dserver.bundestag.de/btp/20/20041.pdf#page=26
+20-041-4807-01,02.06.2022,20,41,11004787,Enrico Komning,AfD,https://dserver.bundestag.de/btp/20/20041.xml,https://dserver.bundestag.de/btp/20/20041.pdf#page=69
+20-041-4807-01,02.06.2022,20,41,11004859,Martin Reichardt,AfD,https://dserver.bundestag.de/btp/20/20041.xml,https://dserver.bundestag.de/btp/20/20041.pdf#page=69
+20-044-6518-01,23.06.2022,20,44,11005031,Dirk Brandes,AfD,https://dserver.bundestag.de/btp/20/20044.xml,https://dserver.bundestag.de/btp/20/20044.pdf#page=69
+20-045-3356-01,24.06.2022,20,45,11004926,Christoph de Vries,CDU/CSU,https://dserver.bundestag.de/btp/20/20045.xml,https://dserver.bundestag.de/btp/20/20045.pdf#page=39
+20-047-14250-01,07.07.2022,20,47,11005079,Matthias Helferich,fraktionslos,https://dserver.bundestag.de/btp/20/20047.xml,https://dserver.bundestag.de/btp/20/20047.pdf#page=172
+20-055-4004-01,23.09.2022,20,55,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20055.xml,https://dserver.bundestag.de/btp/20/20055.pdf#page=57
+20-056-3753-01,28.09.2022,20,56,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20056.xml,https://dserver.bundestag.de/btp/20/20056.pdf#page=16
+20-056-6230-01,28.09.2022,20,56,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20056.xml,https://dserver.bundestag.de/btp/20/20056.pdf#page=51
+20-060-5739-01,13.10.2022,20,60,11005079,Matthias Helferich,fraktionslos,https://dserver.bundestag.de/btp/20/20060.xml,https://dserver.bundestag.de/btp/20/20060.pdf#page=57
+20-064-3333-01,21.10.2022,20,64,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20064.xml,https://dserver.bundestag.de/btp/20/20064.pdf#page=37
+20-068-4604-01,21.11.2022,20,68,11005086,Bruno Hönel,BÜNDNIS 90/DIE GRÜNEN,https://dserver.bundestag.de/btp/20/20068.xml,https://dserver.bundestag.de/btp/20/20068.pdf#page=67
+20-070-9534-01,24.11.2022,20,70,11005189,Frank Rinck,AfD,https://dserver.bundestag.de/btp/20/20070.xml,https://dserver.bundestag.de/btp/20/20070.pdf#page=137
+20-073-15029-01,01.12.2022,20,73,11005189,Frank Rinck,AfD,https://dserver.bundestag.de/btp/20/20073.xml,https://dserver.bundestag.de/btp/20/20073.pdf#page=205
+20-074-11861-01,02.12.2022,20,74,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20074.xml,https://dserver.bundestag.de/btp/20/20074.pdf#page=111
+20-076-9315-01,15.12.2022,20,76,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20076.xml,https://dserver.bundestag.de/btp/20/20076.pdf#page=122
+20-080-2254-01,20.01.2023,20,80,11003790,Jan Korte,Die Linke,https://dserver.bundestag.de/btp/20/20080.xml,https://dserver.bundestag.de/btp/20/20080.pdf#page=22
+20-082-5912-01,26.01.2023,20,82,11003199,Dietmar Nietan,SPD,https://dserver.bundestag.de/btp/20/20082.xml,https://dserver.bundestag.de/btp/20/20082.pdf#page=82
+DIP20-296009-N01,26.01.2023,20,82,11003199,Dietmar Nietan,SPD,https://dserver.bundestag.de/btp/20/20082.pdf#page=82,https://dserver.bundestag.de/btp/20/20082.pdf#page=82 | DIP: https://dip.bundestag.de/vorgang/296009
+20-083-2504-01,27.01.2023,20,83,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20083.xml,https://dserver.bundestag.de/btp/20/20083.pdf#page=40
+20-085-5217-01,09.02.2023,20,85,11005053,Robert Farle,fraktionslos,https://dserver.bundestag.de/btp/20/20085.xml,https://dserver.bundestag.de/btp/20/20085.pdf#page=63
+20-085-5304-01,09.02.2023,20,85,11003246,Jürgen Trittin,BÜNDNIS 90/DIE GRÜNEN,https://dserver.bundestag.de/btp/20/20085.xml,https://dserver.bundestag.de/btp/20/20085.pdf#page=64
+20-091-10614-01,16.03.2023,20,91,11004892,Martin Sichert,AfD,https://dserver.bundestag.de/btp/20/20091.xml,https://dserver.bundestag.de/btp/20/20091.pdf#page=170
+20-092-4955-01,17.03.2023,20,92,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20092.xml,https://dserver.bundestag.de/btp/20/20092.pdf#page=62
+20-094-10262-01,30.03.2023,20,94,11004767,Fabian Jacobi,AfD,https://dserver.bundestag.de/btp/20/20094.xml,https://dserver.bundestag.de/btp/20/20094.pdf#page=155
+20-095-3112-01,31.03.2023,20,95,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20095.xml,https://dserver.bundestag.de/btp/20/20095.pdf#page=25
+20-096-5848-01,19.04.2023,20,96,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20096.xml,https://dserver.bundestag.de/btp/20/20096.pdf#page=37
+20-100-9370-01,27.04.2023,20,100,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20100.xml,https://dserver.bundestag.de/btp/20/20100.pdf#page=160
+20-102-5682-01,10.05.2023,20,102,11005015,Daniel Baldy,SPD,https://dserver.bundestag.de/btp/20/20102.xml,https://dserver.bundestag.de/btp/20/20102.pdf#page=53
+20-103-10167-01,11.05.2023,20,103,11004796,Konstantin Kuhle,FDP,https://dserver.bundestag.de/btp/20/20103.xml,https://dserver.bundestag.de/btp/20/20103.pdf#page=144
+20-103-10167-01,11.05.2023,20,103,11004041,Nicole Gohlke,Die Linke,https://dserver.bundestag.de/btp/20/20103.xml,https://dserver.bundestag.de/btp/20/20103.pdf#page=144
+20-103-10167-01,11.05.2023,20,103,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20103.xml,https://dserver.bundestag.de/btp/20/20103.pdf#page=144
+20-103-10446-01,11.05.2023,20,103,11005092,Steffen Janich,AfD,https://dserver.bundestag.de/btp/20/20103.xml,https://dserver.bundestag.de/btp/20/20103.pdf#page=150
+DIP20-299524-N01,12.05.2023,20,104,11004752,Karsten Hilse,AfD,https://dserver.bundestag.de/btp/20/20104.pdf#page=53,https://dserver.bundestag.de/btp/20/20104.pdf#page=53 | DIP: https://dip.bundestag.de/vorgang/299524
+20-105-8741-01,24.05.2023,20,105,11005079,Matthias Helferich,fraktionslos,https://dserver.bundestag.de/btp/20/20105.xml,https://dserver.bundestag.de/btp/20/20105.pdf#page=103
+20-109-10020-01,15.06.2023,20,109,11005082,Susanne Hennig-Wellsow,Die Linke,https://dserver.bundestag.de/btp/20/20109.xml,https://dserver.bundestag.de/btp/20/20109.pdf#page=121
+20-109-8708-01,15.06.2023,20,109,11003790,Jan Korte,Die Linke,https://dserver.bundestag.de/btp/20/20109.xml,https://dserver.bundestag.de/btp/20/20109.pdf#page=89
+20-112-11281-01,22.06.2023,20,112,11005203,Bernd Schattner,AfD,https://dserver.bundestag.de/btp/20/20112.xml,https://dserver.bundestag.de/btp/20/20112.pdf#page=175
+20-115-7359-01,06.07.2023,20,115,11004731,Kay Gottschalk,AfD,https://dserver.bundestag.de/btp/20/20115.xml,https://dserver.bundestag.de/btp/20/20115.pdf#page=53
+20-118-2947-01,06.09.2023,20,118,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20118.xml,https://dserver.bundestag.de/btp/20/20118.pdf#page=30
+DIP20-303275-N01,08.09.2023,20,120,11004731,Kay Gottschalk,AfD,https://dserver.bundestag.de/btp/20/20120.pdf#page=53,https://dserver.bundestag.de/btp/20/20120.pdf#page=53 | DIP: https://dip.bundestag.de/vorgang/303275
+20-122-5253-01,21.09.2023,20,122,11004802,Helge Lindh,SPD,https://dserver.bundestag.de/btp/20/20122.xml,https://dserver.bundestag.de/btp/20/20122.pdf#page=102
+20-125-5509-01,28.09.2023,20,125,11005053,Robert Farle,fraktionslos,https://dserver.bundestag.de/btp/20/20125.xml,https://dserver.bundestag.de/btp/20/20125.pdf#page=116
+20-125-6015-01,28.09.2023,20,125,11005209,Eugen Schmidt,AfD,https://dserver.bundestag.de/btp/20/20125.xml,https://dserver.bundestag.de/btp/20/20125.pdf#page=133
+20-126-1179-01,29.09.2023,20,126,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20126.xml,https://dserver.bundestag.de/btp/20/20126.pdf#page=24
+20-128-3742-01,12.10.2023,20,128,11004680,Jürgen Braun,AfD,https://dserver.bundestag.de/btp/20/20128.xml,https://dserver.bundestag.de/btp/20/20128.pdf#page=77
+20-130-3244-01,18.10.2023,20,130,11003576,Renate Künast,BÜNDNIS 90/DIE GRÜNEN,https://dserver.bundestag.de/btp/20/20130.xml,https://dserver.bundestag.de/btp/20/20130.pdf#page=42
+20-130-3246-01,18.10.2023,20,130,11003576,Renate Künast,BÜNDNIS 90/DIE GRÜNEN,https://dserver.bundestag.de/btp/20/20130.xml,https://dserver.bundestag.de/btp/20/20130.pdf#page=42
+20-133-3880-01,08.11.2023,20,133,11005053,Robert Farle,fraktionslos,https://dserver.bundestag.de/btp/20/20133.xml,https://dserver.bundestag.de/btp/20/20133.pdf#page=68
+DIP20-305608-N01,08.11.2023,20,133,11004788,Jörn König,AfD,https://dserver.bundestag.de/btp/20/20133.pdf#page=72,https://dserver.bundestag.de/btp/20/20133.pdf#page=72 | DIP: https://dip.bundestag.de/vorgang/305608
+20-134-7225-01,09.11.2023,20,134,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20134.xml,https://dserver.bundestag.de/btp/20/20134.pdf#page=179
+20-136-4113-01,15.11.2023,20,136,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20136.xml,https://dserver.bundestag.de/btp/20/20136.pdf#page=78
+20-136-4474-01,15.11.2023,20,136,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20136.xml,https://dserver.bundestag.de/btp/20/20136.pdf#page=89
+DIP20-306052-K01,15.11.2023,20,136,11005079,Matthias Helferich,fraktionslos,https://dserver.bundestag.de/btp/20/20136.pdf#page=86,https://dserver.bundestag.de/btp/20/20136.pdf#page=86 | DIP: https://dip.bundestag.de/vorgang/306052
+20-137-9744-01,16.11.2023,20,137,11005209,Eugen Schmidt,AfD,https://dserver.bundestag.de/btp/20/20137.xml,https://dserver.bundestag.de/btp/20/20137.pdf#page=212
+20-139-584-01,28.11.2023,20,139,11005229,Ralf Stegner,SPD,https://dserver.bundestag.de/btp/20/20139.xml,https://dserver.bundestag.de/btp/20/20139.pdf#page=16
+DIP20-306511-K01,30.11.2023,20,141,11005079,Matthias Helferich,fraktionslos,https://dserver.bundestag.de/btp/20/20141.pdf#page=25,https://dserver.bundestag.de/btp/20/20141.pdf#page=25 | DIP: https://dip.bundestag.de/vorgang/306511
+DIP20-306606-N01,30.11.2023,20,141,11005203,Bernd Schattner,AfD,https://dserver.bundestag.de/btp/20/20141.pdf#page=184,https://dserver.bundestag.de/btp/20/20141.pdf#page=184 | DIP: https://dip.bundestag.de/vorgang/306606
+20-142-1274-01,01.12.2023,20,142,11005053,Robert Farle,fraktionslos,https://dserver.bundestag.de/btp/20/20142.xml,https://dserver.bundestag.de/btp/20/20142.pdf#page=23
+20-142-2608-01,01.12.2023,20,142,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20142.xml,https://dserver.bundestag.de/btp/20/20142.pdf#page=63
+20-142-2863-01,01.12.2023,20,142,11004639,Jürgen Coße,SPD,https://dserver.bundestag.de/btp/20/20142.xml,https://dserver.bundestag.de/btp/20/20142.pdf#page=72
+20-143-3788-01,13.12.2023,20,143,11004662,Bernd Baumann,AfD,https://dserver.bundestag.de/btp/20/20143.xml,https://dserver.bundestag.de/btp/20/20143.pdf#page=59
+20-144-1863-01,14.12.2023,20,144,11004683,Leni Breymaier,SPD,https://dserver.bundestag.de/btp/20/20144.xml,https://dserver.bundestag.de/btp/20/20144.pdf#page=25
+20-144-2819-01,14.12.2023,20,144,11004731,Kay Gottschalk,AfD,https://dserver.bundestag.de/btp/20/20144.xml,https://dserver.bundestag.de/btp/20/20144.pdf#page=53
+20-144-4429-01,14.12.2023,20,144,11004721,Markus Frohnmaier,AfD,https://dserver.bundestag.de/btp/20/20144.xml,https://dserver.bundestag.de/btp/20/20144.pdf#page=103
+20-146-5307-01,17.01.2024,20,146,11005016,Felix Banaszak,BÜNDNIS 90/DIE GRÜNEN,https://dserver.bundestag.de/btp/20/20146.xml,https://dserver.bundestag.de/btp/20/20146.pdf#page=87
+20-146-5443-01,17.01.2024,20,146,11004675,Peter Boehringer,AfD,https://dserver.bundestag.de/btp/20/20146.xml,https://dserver.bundestag.de/btp/20/20146.pdf#page=91
+20-146-5523-01,17.01.2024,20,146,11004675,Peter Boehringer,AfD,https://dserver.bundestag.de/btp/20/20146.xml,https://dserver.bundestag.de/btp/20/20146.pdf#page=93
+DIP20-308052-K01,18.01.2024,20,147,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20147.pdf#page=168,https://dserver.bundestag.de/btp/20/20147.pdf#page=168 | DIP: https://dip.bundestag.de/vorgang/308052
+20-150-4491-01,31.01.2024,20,150,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20150.xml,https://dserver.bundestag.de/btp/20/20150.pdf#page=105
+20-151-3110-01,01.02.2024,20,151,11004787,Enrico Komning,AfD,https://dserver.bundestag.de/btp/20/20151.xml,https://dserver.bundestag.de/btp/20/20151.pdf#page=67
+20-152-1140-01,02.02.2024,20,152,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20152.xml,https://dserver.bundestag.de/btp/20/20152.pdf#page=21
+20-152-2360-01,02.02.2024,20,152,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20152.xml,https://dserver.bundestag.de/btp/20/20152.pdf#page=40
+20-153-2895-01,21.02.2024,20,153,11004731,Kay Gottschalk,AfD,https://dserver.bundestag.de/btp/20/20153.xml,https://dserver.bundestag.de/btp/20/20153.pdf#page=26
+20-153-2899-01,21.02.2024,20,153,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20153.xml,https://dserver.bundestag.de/btp/20/20153.pdf#page=26
+20-153-5013-01,21.02.2024,20,153,11004088,Caren Lay,Die Linke (Gruppe),https://dserver.bundestag.de/btp/20/20153.xml,https://dserver.bundestag.de/btp/20/20153.pdf#page=95
+DIP20-309117-N01,21.02.2024,20,153,11004888,Uwe Schulz,AfD,https://dserver.bundestag.de/btp/20/20153.pdf#page=86,https://dserver.bundestag.de/btp/20/20153.pdf#page=86 | DIP: https://dip.bundestag.de/vorgang/309117
+20-155-5616-01,23.02.2024,20,155,11004859,Martin Reichardt,AfD,https://dserver.bundestag.de/btp/20/20155.xml,https://dserver.bundestag.de/btp/20/20155.pdf#page=114
+20-155-5617-01,23.02.2024,20,155,11004859,Martin Reichardt,AfD,https://dserver.bundestag.de/btp/20/20155.xml,https://dserver.bundestag.de/btp/20/20155.pdf#page=114
+20-155-6361-01,23.02.2024,20,155,11003545,Bettina Hagedorn,SPD,https://dserver.bundestag.de/btp/20/20155.xml,https://dserver.bundestag.de/btp/20/20155.pdf#page=122
+20-156-2760-01,13.03.2024,20,156,11004859,Martin Reichardt,AfD,https://dserver.bundestag.de/btp/20/20156.xml,https://dserver.bundestag.de/btp/20/20156.pdf#page=37
+20-156-2760-01,13.03.2024,20,156,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20156.xml,https://dserver.bundestag.de/btp/20/20156.pdf#page=37
+20-156-3568-01,13.03.2024,20,156,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20156.xml,https://dserver.bundestag.de/btp/20/20156.pdf#page=64
+20-159-5385-01,20.03.2024,20,159,11004858,Stephan Protschka,AfD,https://dserver.bundestag.de/btp/20/20159.xml,https://dserver.bundestag.de/btp/20/20159.pdf#page=103
+20-160-4805-01,21.03.2024,20,160,11004888,Uwe Schulz,AfD,https://dserver.bundestag.de/btp/20/20160.xml,https://dserver.bundestag.de/btp/20/20160.pdf#page=104
+20-162-4862-01,10.04.2024,20,162,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20162.xml,https://dserver.bundestag.de/btp/20/20162.pdf#page=93
+20-164-3221-01,12.04.2024,20,164,11004405,Kordula Schulz-Asche,BÜNDNIS 90/DIE GRÜNEN,https://dserver.bundestag.de/btp/20/20164.xml,https://dserver.bundestag.de/btp/20/20164.pdf#page=75
+20-167-4170-01,26.04.2024,20,167,11004859,Martin Reichardt,AfD,https://dserver.bundestag.de/btp/20/20167.xml,https://dserver.bundestag.de/btp/20/20167.pdf#page=88
+20-172-6771-01,06.06.2024,20,172,11004892,Martin Sichert,AfD,https://dserver.bundestag.de/btp/20/20172.xml,https://dserver.bundestag.de/btp/20/20172.pdf#page=129
+20-173-1098-01,07.06.2024,20,173,11004906,Marie-Agnes Strack-Zimmermann,FDP,https://dserver.bundestag.de/btp/20/20173.xml,https://dserver.bundestag.de/btp/20/20173.pdf#page=21
+20-173-691-01,07.06.2024,20,173,11004695,Tino Chrupalla,AfD,https://dserver.bundestag.de/btp/20/20173.xml,https://dserver.bundestag.de/btp/20/20173.pdf#page=8
+20-177-2624-01,26.06.2024,20,177,11005092,Steffen Janich,AfD,https://dserver.bundestag.de/btp/20/20177.xml,https://dserver.bundestag.de/btp/20/20177.pdf#page=19
+20-177-2725-01,26.06.2024,20,177,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20177.xml,https://dserver.bundestag.de/btp/20/20177.pdf#page=22
+20-178-5748-01,27.06.2024,20,178,11004752,Karsten Hilse,AfD,https://dserver.bundestag.de/btp/20/20178.xml,https://dserver.bundestag.de/btp/20/20178.pdf#page=134
+DIP20-313510-N01,27.06.2024,20,178,11004409,Tino Sorge,CDU/CSU,https://dserver.bundestag.de/btp/20/20178.pdf#page=170,https://dserver.bundestag.de/btp/20/20178.pdf#page=170 | DIP: https://dip.bundestag.de/vorgang/313510
+20-182-2948-01,05.07.2024,20,182,11004859,Martin Reichardt,AfD,https://dserver.bundestag.de/btp/20/20182.xml,https://dserver.bundestag.de/btp/20/20182.pdf#page=71
+20-184-3808-01,11.09.2024,20,184,11005209,Eugen Schmidt,AfD,https://dserver.bundestag.de/btp/20/20184.xml,https://dserver.bundestag.de/btp/20/20184.pdf#page=108
+20-186-1174-01,13.09.2024,20,186,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20186.xml,https://dserver.bundestag.de/btp/20/20186.pdf#page=24
+20-187-2739-01,25.09.2024,20,187,11004305,Hendrik Hoppenstedt,CDU/CSU,https://dserver.bundestag.de/btp/20/20187.xml,https://dserver.bundestag.de/btp/20/20187.pdf#page=30
+20-189-2150-01,27.09.2024,20,189,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20189.xml,https://dserver.bundestag.de/btp/20/20189.pdf#page=48
+DIP20-316468-K01,10.10.2024,20,191,11005053,Robert Farle,fraktionslos,https://dserver.bundestag.de/btp/20/20191.pdf#page=171,https://dserver.bundestag.de/btp/20/20191.pdf#page=171 | DIP: https://dip.bundestag.de/vorgang/316468
+20-192-1503-01,11.10.2024,20,192,11004859,Martin Reichardt,AfD,https://dserver.bundestag.de/btp/20/20192.xml,https://dserver.bundestag.de/btp/20/20192.pdf#page=39
+20-196-4243-01,06.11.2024,20,196,11004752,Karsten Hilse,AfD,https://dserver.bundestag.de/btp/20/20196.xml,https://dserver.bundestag.de/btp/20/20196.pdf#page=78
+20-203-4102-01,05.12.2024,20,203,11004698,Gottfried Curio,AfD,https://dserver.bundestag.de/btp/20/20203.xml,https://dserver.bundestag.de/btp/20/20203.pdf#page=87
+DIP20-318445-N01,06.12.2024,20,204,11005197,Kassem Taher Saleh,BÜNDNIS 90/DIE GRÜNEN,https://dserver.bundestag.de/btp/20/20204.pdf#page=80,https://dserver.bundestag.de/btp/20/20204.pdf#page=80 | DIP: https://dip.bundestag.de/vorgang/318445
+20-205-1305-01,16.12.2024,20,205,11004848,Sören Pellmann,Die Linke (Gruppe),https://dserver.bundestag.de/btp/20/20205.xml,https://dserver.bundestag.de/btp/20/20205.pdf#page=35
+20-205-1437-01,16.12.2024,20,205,11004891,Thomas Seitz,fraktionslos,https://dserver.bundestag.de/btp/20/20205.xml,https://dserver.bundestag.de/btp/20/20205.pdf#page=38
+20-207-5366-01,19.12.2024,20,207,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20207.xml,https://dserver.bundestag.de/btp/20/20207.pdf#page=101
+20-207-5366-01,19.12.2024,20,207,11004880,Jörg Schneider,AfD,https://dserver.bundestag.de/btp/20/20207.xml,https://dserver.bundestag.de/btp/20/20207.pdf#page=101
+20-207-5370-01,19.12.2024,20,207,11004731,Kay Gottschalk,AfD,https://dserver.bundestag.de/btp/20/20207.xml,https://dserver.bundestag.de/btp/20/20207.pdf#page=101
+20-207-5438-01,19.12.2024,20,207,11005053,Robert Farle,fraktionslos,https://dserver.bundestag.de/btp/20/20207.xml,https://dserver.bundestag.de/btp/20/20207.pdf#page=103
+20-208-3264-01,20.12.2024,20,208,11004731,Kay Gottschalk,AfD,https://dserver.bundestag.de/btp/20/20208.xml,https://dserver.bundestag.de/btp/20/20208.pdf#page=81
+20-208-922-01,20.12.2024,20,208,11004752,Karsten Hilse,AfD,https://dserver.bundestag.de/btp/20/20208.xml,https://dserver.bundestag.de/btp/20/20208.pdf#page=11
+DIP20-318943-N01,20.12.2024,20,208,11004905,Beatrix von Storch,AfD,https://dserver.bundestag.de/btp/20/20208.pdf#page=95,https://dserver.bundestag.de/btp/20/20208.pdf#page=95 | DIP: https://dip.bundestag.de/vorgang/318943
+20-209-3186-01,29.01.2025,20,209,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20209.xml,https://dserver.bundestag.de/btp/20/20209.pdf#page=46
+20-210-5723-01,30.01.2025,20,210,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20210.xml,https://dserver.bundestag.de/btp/20/20210.pdf#page=146
+20-211-4599-01,31.01.2025,20,211,11004753,Nicole Höchst,AfD,https://dserver.bundestag.de/btp/20/20211.xml,https://dserver.bundestag.de/btp/20/20211.pdf#page=89
+DIP20-319984-N01,31.01.2025,20,211,11005051,Heike Engelhardt,SPD,https://dserver.bundestag.de/btp/20/20211.pdf#page=93,https://dserver.bundestag.de/btp/20/20211.pdf#page=93 | DIP: https://dip.bundestag.de/vorgang/319984
+20-214-1040-01,18.03.2025,20,214,11004678,Stephan Brandner,AfD,https://dserver.bundestag.de/btp/20/20214.xml,https://dserver.bundestag.de/btp/20/20214.pdf#page=16
+20-214-2077-01,18.03.2025,20,214,11005007,Ali Al-Dailami,BSW (Gruppe),https://dserver.bundestag.de/btp/20/20214.xml,https://dserver.bundestag.de/btp/20/20214.pdf#page=50
+20-214-2077-01,18.03.2025,20,214,11004823,Amira Mohamed Ali,BSW (Gruppe),https://dserver.bundestag.de/btp/20/20214.xml,https://dserver.bundestag.de/btp/20/20214.pdf#page=50
+20-214-2077-01,18.03.2025,20,214,11004060,Andrej Hunko,BSW (Gruppe),https://dserver.bundestag.de/btp/20/20214.xml,https://dserver.bundestag.de/btp/20/20214.pdf#page=50
+20-214-2077-01,18.03.2025,20,214,11005127,Christian Leye,BSW (Gruppe),https://dserver.bundestag.de/btp/20/20214.xml,https://dserver.bundestag.de/btp/20/20214.pdf#page=50
+20-214-2077-01,18.03.2025,20,214,11004911,Jessica Tatti,BSW (Gruppe),https://dserver.bundestag.de/btp/20/20214.xml,https://dserver.bundestag.de/btp/20/20214.pdf#page=50
+20-214-2077-01,18.03.2025,20,214,11003753,Klaus Ernst,BSW (Gruppe),https://dserver.bundestag.de/btp/20/20214.xml,https://dserver.bundestag.de/btp/20/20214.pdf#page=50
+20-214-2077-01,18.03.2025,20,214,11004183,Sahra Wagenknecht,BSW (Gruppe),https://dserver.bundestag.de/btp/20/20214.xml,https://dserver.bundestag.de/btp/20/20214.pdf#page=50
+20-214-2077-01,18.03.2025,20,214,11003746,Sevim Dağdelen,BSW (Gruppe),https://dserver.bundestag.de/btp/20/20214.xml,https://dserver.bundestag.de/btp/20/20214.pdf#page=50
