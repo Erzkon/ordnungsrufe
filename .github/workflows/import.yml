@@ -44,10 +44,21 @@ jobs:
             --candidates kandidaten.csv \
             --people ordnungsrufe.csv \
             --source-folder protokolle \
+            --sessions sitzungen.csv \
             --out ereignisse.csv \
             --recipients-out ereignis_empfaenger.csv \
             --duplicates-out dubletten_pruefung.csv \
             --report-out ereignisbericht.json
+
+      - name: Menschliche Pruefentscheidungen anwenden und Pruefvorlagen erstellen
+        run: |
+          python verifikation.py \
+            --events ereignisse.csv \
+            --recipients ereignis_empfaenger.csv \
+            --relations dubletten_pruefung.csv \
+            --sessions sitzungen.csv \
+            --decisions pruefentscheidungen \
+            --out-folder .
 
       - name: CSV-Dateien und Download-Bericht bereitstellen
         if: always()
@@ -65,6 +76,12 @@ jobs:
             ereignis_empfaenger.csv
             dubletten_pruefung.csv
             ereignisbericht.json
+            pruefvorlage_ereignisse.csv
+            pruefvorlage_personen.csv
+            pruefvorlage_beziehungen.csv
+            bestaetigte_ordnungsrufe.csv
+            bestaetigte_statistik.json
+            verifikationsbericht.json
             download-report.json
           if-no-files-found: warn
           retention-days: 30
