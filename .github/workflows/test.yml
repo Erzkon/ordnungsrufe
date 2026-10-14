@@ -19,7 +19,9 @@ jobs:
           python-version: '3.12'
 
       - name: Abhaengigkeiten installieren
-        run: pip install -r requirements.txt
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install pytest
 
       - name: Parser testen
         run: python -m pytest -v
