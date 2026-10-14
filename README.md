@@ -46,3 +46,14 @@ Zeitstempel sichtbar. Es ist kein manueller Commit für diese Aktualisierung nö
 vollautomatische Übernahme in bestätigte Zähler wird erst nach unabhängiger
 Validierung von Identität, tatsächlicher Vergabe, Dubletten und späteren Rücknahmen
 freigegeben. Bis dahin gibt es keine ungeprüfte automatische Zählung.
+
+
+## Automatische Vorprüfung und Qualitätsmessung
+
+Die tägliche Pipeline erstellt zusätzlich eine maschinenunterstützte
+**Personen-Prüfliste** (`wp21_autopruefung.csv`, GitHub-Actions-Artefakt)
+und einen öffentlichen Prüfbericht (`docs/data/autopruefung_21.json`).
+Ein echter Ordnungsruf wird dabei **nicht** automatisch veröffentlicht:
+Personen- und Sitzungstreffer werden zunächst nur mit der bereits belegten
+21.-WP-Referenzliste abgeglichen. Der Bericht zeigt auch fehlende Treffer und
+mehrdeutige Zuordnungen. Details und Grenzen stehen in [WP21.md](WP21.md).
