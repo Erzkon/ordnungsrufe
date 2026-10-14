@@ -38,6 +38,17 @@ jobs:
             --events-out ordnungsrufe.csv \
             --summary-out sitzungen.csv
 
+      - name: Ereignisregister und Dubletten-Pruefliste erstellen
+        run: |
+          python ereignis_register.py \
+            --candidates kandidaten.csv \
+            --people ordnungsrufe.csv \
+            --source-folder protokolle \
+            --out ereignisse.csv \
+            --recipients-out ereignis_empfaenger.csv \
+            --duplicates-out dubletten_pruefung.csv \
+            --report-out ereignisbericht.json
+
       - name: CSV-Dateien und Download-Bericht bereitstellen
         if: always()
         uses: actions/upload-artifact@v6
@@ -50,6 +61,10 @@ jobs:
             pruefliste.csv
             klaerungsfaelle.csv
             qualitaetsbericht.json
+            ereignisse.csv
+            ereignis_empfaenger.csv
+            dubletten_pruefung.csv
+            ereignisbericht.json
             download-report.json
           if-no-files-found: warn
           retention-days: 30
