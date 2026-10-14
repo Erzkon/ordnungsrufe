@@ -173,3 +173,79 @@ def test_realistic_group_confirmation_expands_to_eight(tmp_path):
     assert len(rows) == 9
     assert rows[0]['person'] == 'Stephan Brandner'
     assert rows[-1]['person'] == 'Sahra Wagenknecht'
+
+# Update 5: real phrasing-based regression cases; recipient != first name
+
+def test_vocative_switch_before_sanction(tmp_path):
+    path = xml_file(tmp_path, [
+        'Ganz kurz, Frau Kollegin Reichinnek. – Frau von Storch, für den '
+        'Zwischenruf „Kindermörderin!“ bekommen Sie einen Ordnungsruf.',
+        'Herr Kuhle, sorry. Ich muss das leider durchziehen. – Frau von Storch, '
+        'ich hatte deutlich gemacht: Bei Zwischenrufen wird die Maske '
+        'aufbehalten. Das steht so in der Allgemeinverfügung. '
+        'Das ist jetzt ein Ordnungsruf für Sie.'
+    ], [('Heidi', 'Reichinnek'), ('Beatrix', 'von Storch'),
+        ('Konstantin', 'Kuhle')])
+    assert people(path) == ['Beatrix von Storch', 'Beatrix von Storch']
+
+
+def test_affected_person_after_order_not_another_recipient(tmp_path):
+    path = xml_file(tmp_path, [
+        'Bevor ich den letzten Redner aufrufe, muss ich dem Abgeordneten '
+        'Krichbaum einen Ordnungsruf erteilen; denn er hat dem Abgeordneten '
+        'Frohnmaier nach seiner Rede etwas hinterhergerufen.',
+        'Der Abgeordneten von Storch erteile ich einen Ordnungsruf für die '
+        'persönliche Beschimpfung der Abgeordneten Alt eben.',
+        'Ich rüge ausdrücklich die nonverbale Entgleisung der Abgeordneten '
+        'Fester nach der Rede des Abgeordneten Reichardt. Dem Abgeordneten '
+        'Reichardt erteile ich einen Ordnungsruf für seine Äußerung.'
+    ], [('Gunther', 'Krichbaum'), ('Markus', 'Frohnmaier'),
+        ('Beatrix', 'von Storch'), ('Renata', 'Alt'),
+        ('Emilia', 'Fester'), ('Martin', 'Reichardt')])
+    assert people(path) == ['Gunther Krichbaum', 'Beatrix von Storch',
+                            'Martin Reichardt']
+
+
+def test_last_direct_address_is_recipient(tmp_path):
+    path = xml_file(tmp_path, [
+        'Herr Kollege Gründer, kann ich Sie einen kleinen Augenblick '
+        'unterbrechen? – Herr Kollege Hilse, ich erteile Ihnen einen '
+        'Ordnungsruf, weil Sie im Plenarsaal telefoniert haben.'
+    ], [('Nils', 'Gründer'), ('Karsten', 'Hilse')])
+    assert people(path) == ['Karsten Hilse']
+
+
+def test_review_queue_contains_unmatched_and_other_mentions(tmp_path):
+    from parser import build_review_queue, save_quality_report
+    import json
+    path = xml_file(tmp_path, [
+        'Herr Muster, ich erteile Ihnen einen Ordnungsruf.',
+        'Ich erteile Ihnen jetzt einen Ordnungsruf.',
+        'Wenn Sie so weitermachen, bekommen Sie einen Ordnungsruf.',
+        'Gestern haben wir einen Ordnungsruf besprochen.'
+    ], [('Alex', 'Muster')])
+    found = list(candidates(path))
+    extracted = list(events(path))
+    queue = build_review_queue(found, extracted)
+    assert len(queue) == len(found) == 4
+    assert all(x['pruefung'] == 'offen' and x['entscheidung'] == '' for x in queue)
+    assert len({x['pruef_id'] for x in queue}) == 4
+    assert sum(x['prioritaet'] == 'hoch' for x in queue) >= 1
+    missing = next(x for x in queue if x['klassifikation'] == 'possible_grant'
+                   and x['parser_personenzahl'] == 0)
+    assert 'ohne automatisch erkannten' in missing['grund']
+    quality = tmp_path / 'qualitaetsbericht.json'
+    save_quality_report(quality, queue, extracted, 1)
+    stats = json.loads(quality.read_text(encoding='utf-8'))
+    assert stats['protokolle_verarbeitet'] == 1
+    assert stats['pruefung_abgeschlossen'] == 0
+    assert stats['textfundstellen'] == 4
+
+
+def test_20_214_original_xml_when_present():
+    """Real original transcript included with chat, not required on GitHub."""
+    from pathlib import Path
+    original = Path('/mnt/data/20214.xml')
+    if not original.exists():
+        return
+    assert len(list(events(original))) == 9
