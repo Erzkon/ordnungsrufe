@@ -48,6 +48,7 @@ jobs:
             ordnungsrufe.csv
             sitzungen.csv
             pruefliste.csv
+            klaerungsfaelle.csv
             qualitaetsbericht.json
             download-report.json
           if-no-files-found: warn
