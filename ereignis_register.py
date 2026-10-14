@@ -105,12 +105,13 @@ def split_unambiguous_grants(text, index):
     return None
 
 
-def build_register(hits, legacy_people, index=None):
+def build_register(hits, legacy_people, index=None, session_dates=None):
     """Pure event construction: return events, recipients, relation-review rows.
 
     `hits` and `legacy_people` are existing parser outputs; the optional
     cross-session speaker index permits SAFE splitting of distinct addresses.
     """
+    session_dates = session_dates or {}
     hits = sorted(hits, key=lambda row: (
         int(row['wahlperiode']), int(row['sitzung']), int(row['line'])))
     people_by_line = defaultdict(list)
@@ -144,7 +145,8 @@ def build_register(hits, legacy_people, index=None):
             reasons.append('Wortlaut und erstmalige Erteilung pruefen')
         event = dict(
             ereignis_id=event_id, wahlperiode=hit['wahlperiode'], sitzung=hit['sitzung'],
-            datum=hit.get('datum', ''), datei=hit['file'], xml_zeile=hit['line'],
+            datum=(session_dates.get((str(hit['wahlperiode']), str(int(hit['sitzung']))))
+                   or hit.get('datum', '')), datei=hit['file'], xml_zeile=hit['line'],
             ereignisstatus='review_required', ereignisart=subtype,
             gruppenvorgang='ja' if group else 'nein',
             mehrere_formulierungen='ja' if multi_formulas else 'nein',
@@ -297,6 +299,7 @@ def main():
     ap.add_argument('--candidates', type=Path, default=Path('kandidaten.csv'))
     ap.add_argument('--people', type=Path, default=Path('ordnungsrufe.csv'))
     ap.add_argument('--source-folder', type=Path, default=Path('protokolle'))
+    ap.add_argument('--sessions', type=Path, help='Sitzungsdaten aus sitzungen.csv (Pflicht fuer Vollimport)')
     ap.add_argument('--out', type=Path, default=Path('ereignisse.csv'))
     ap.add_argument('--recipients-out', type=Path, default=Path('ereignis_empfaenger.csv'))
     ap.add_argument('--duplicates-out', type=Path, default=Path('dubletten_pruefung.csv'))
@@ -306,7 +309,18 @@ def main():
     people = read_csv(args.people)
     sources = sorted(args.source_folder.rglob('*.xml')) if args.source_folder.exists() else []
     index = speaker_index(document(path) for path in sources) if sources else None
-    register, recipients, relations = build_register(hits, people, index=index)
+    dates = {}
+    if args.sessions:
+        for row in read_csv(args.sessions):
+            key = (str(row['wahlperiode']), str(int(row['sitzung'])))
+            if key in dates and dates[key] != row['datum']:
+                raise ValueError(f'Widerspruechliches Datum in Sitzungsuebersicht: {key}')
+            dates[key] = row['datum']
+    register, recipients, relations = build_register(hits, people, index=index, session_dates=dates)
+    if args.sessions:
+        missing = [e['ereignis_id'] for e in register if not e['datum']]
+        if missing:
+            raise ValueError(f'Fuer {len(missing)} Ereignisse fehlt ein Sitzungsdatum: {missing[:5]}')
     write_csv(args.out, EVENT_COLUMNS, register)
     write_csv(args.recipients_out, RECIPIENT_COLUMNS, recipients)
     write_csv(args.duplicates_out, DUPLICATE_COLUMNS, relations)
