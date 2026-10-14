@@ -141,21 +141,34 @@ def main():
     ap.add_argument('folder', type=Path)
     ap.add_argument('--out', type=Path, default=Path('kandidaten.csv'))
     ap.add_argument('--events-out', type=Path, default=Path('ordnungsrufe.csv'))
+    ap.add_argument('--summary-out', type=Path, default=Path('sitzungen.csv'))
     args = ap.parse_args()
     paths = sorted(args.folder.rglob('*.xml'))
     if not paths:
         ap.error('No XML files found')
-    hits, sanctions = [], []
+    hits, sanctions, sessions = [], [], []
     for path in paths:
-        hits.extend(candidates(path))
-        sanctions.extend(events(path))
+        local_hits, local_sanctions = list(candidates(path)), list(events(path))
+        hits.extend(local_hits)
+        sanctions.extend(local_sanctions)
+        root = document(path)
+        sessions.append(dict(wahlperiode=root.get('wahlperiode', ''),
+                             sitzung=root.get('sitzung-nr', ''),
+                             datum=root.get('sitzung-datum', ''),
+                             datei=path.name,
+                             quelle=f'https://dserver.bundestag.de/btp/20/{path.name}',
+                             textfundstellen=len(local_hits),
+                             erkannte_personenereignisse=len(local_sanctions),
+                             status='ungepruefte_parserergebnisse'))
     save_csv(args.out, ['file', 'wahlperiode', 'sitzung', 'line', 'text', 'status'], hits)
     save_csv(args.events_out,
              ['file','wahlperiode','sitzung','datum','person','person_id','fraktion',
               'identity_status','event_type','evidence_type','line','text','status'], sanctions)
+    save_csv(args.summary_out, ['wahlperiode', 'sitzung', 'datum', 'datei', 'quelle',
+                                'textfundstellen', 'erkannte_personenereignisse', 'status'], sessions)
     print(f'{len(hits)} Textkandidaten; {len(sanctions)} personenbezogene, noch zu '
           f'pruefende Ordnungsrufe; {len(paths)} Protokolle.')
-    print(f'Dateien: {args.out}, {args.events_out}. Nicht als amtliche Statistik verwenden.')
+    print(f'Dateien: {args.out}, {args.events_out}, {args.summary_out}. Nicht als amtliche Statistik verwenden.')
 
 
 if __name__ == '__main__':
