@@ -60,11 +60,79 @@ jobs:
             --decisions pruefentscheidungen \
             --out-folder .
 
-      - name: CSV-Dateien und Download-Bericht bereitstellen
-        if: always()
+      # Nur diese explizit benannten Ergebnisdateien duerfen in die Artifacts.
+      # Die Pruefung erkennt ungewoehnliche Dateitypen/fehlende Ausgaben,
+      # ersetzt aber KEINEN Virenscan.
+      - name: Ergebnisdateien pruefen und Dateilisten erstellen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import csv
+          import hashlib
+          import json
+          import stat
+
+          groups = {
+              'basis': (
+                  'kandidaten.csv',
+                  'ordnungsrufe.csv',
+                  'sitzungen.csv',
+                  'pruefliste.csv',
+                  'klaerungsfaelle.csv',
+                  'qualitaetsbericht.json',
+                  'ereignisse.csv',
+                  'ereignis_empfaenger.csv',
+                  'dubletten_pruefung.csv',
+                  'ereignisbericht.json',
+                  'download-report.json',
+              ),
+              'verifikation': (
+                  'pruefvorlage_ereignisse.csv',
+                  'pruefvorlage_personen.csv',
+                  'pruefvorlage_beziehungen.csv',
+                  'bestaetigte_ordnungsrufe.csv',
+                  'bestaetigte_statistik.json',
+                  'verifikationsbericht.json',
+              ),
+          }
+          maximum_size = 20 * 1024 * 1024  # 20 MiB pro Datei
+          for group_name, filenames in groups.items():
+              manifest = ['# Name | Bytes | SHA-256']
+              for filename in filenames:
+                  path = Path(filename)
+                  if path.is_symlink() or not path.is_file():
+                      raise SystemExit(f'Unerwartete oder fehlende Datei: {filename}')
+                  if not stat.S_ISREG(path.lstat().st_mode):
+                      raise SystemExit(f'Keine regulaere Datei: {filename}')
+                  if path.suffix not in ('.csv', '.json'):
+                      raise SystemExit(f'Unerwarteter Dateityp: {filename}')
+                  data = path.read_bytes()
+                  if not data or len(data) > maximum_size:
+                      raise SystemExit(f'Leere oder uebergrosse Datei: {filename}')
+                  content = data.decode('utf-8-sig')
+                  if path.suffix == '.json':
+                      json.loads(content)
+                  else:
+                      with path.open('r', encoding='utf-8-sig', newline='') as handle:
+                          reader = csv.reader(handle)
+                          header = next(reader, None)
+                          if not header:
+                              raise ValueError(f'CSV ohne Kopfzeile: {filename}')
+                          for row in reader:
+                              pass  # CSV-Syntax lesen; keine fachliche Validierung
+                  digest = hashlib.sha256(data).hexdigest()
+                  manifest.append(f'{filename} | {len(data)} | {digest}')
+                  print(f'{group_name}: {filename} ({len(data)} Bytes; SHA-256 {digest})')
+              Path(f'artifact-manifest-{group_name}.txt').write_text(
+                  '\n'.join(manifest) + '\n', encoding='utf-8'
+              )
+          print('Pruefung abgeschlossen: 11 Basisdateien, 6 Verifikationsdateien.')
+          PY
+
+      - name: Artifact 1 von 2 - Basisdaten
         uses: actions/upload-artifact@v6
         with:
-          name: ordnungsruf-vollimport
+          name: ordnungsruf-81-basis
           path: |
             kandidaten.csv
             ordnungsrufe.csv
@@ -76,12 +144,22 @@ jobs:
             ereignis_empfaenger.csv
             dubletten_pruefung.csv
             ereignisbericht.json
+            download-report.json
+            artifact-manifest-basis.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Artifact 2 von 2 - Neue Verifikationsdateien
+        uses: actions/upload-artifact@v6
+        with:
+          name: ordnungsruf-81-verifikation
+          path: |
             pruefvorlage_ereignisse.csv
             pruefvorlage_personen.csv
             pruefvorlage_beziehungen.csv
             bestaetigte_ordnungsrufe.csv
             bestaetigte_statistik.json
             verifikationsbericht.json
-            download-report.json
-          if-no-files-found: warn
+            artifact-manifest-verifikation.txt
+          if-no-files-found: error
           retention-days: 30
