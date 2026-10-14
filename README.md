@@ -30,3 +30,19 @@ Der separate manuelle Importworkflow `import.yml` für die historische 20. Wahlp
 Der Seitenworkflow läuft täglich um 06:23 UTC und durchsucht die XML-Protokolle nach Ordnungsruf-Hinweisen. Die Ergebnisse sind als **Prüfhinweis-Artefakt** im Actions-Lauf abrufbar und dienen zur Vorbereitung einer manuellen Sichtung. Hinweise erhöhen die geprüfte Zahl **nicht automatisch**. Erst einzeln geprüfte neue Zeilen in `daten/wirksame_ordnungsrufe_21wp.csv` werden nach Export und Merge in die Website übernommen.
 
 Die laufende Prüfung läuft unabhängig davon, ob neue Ordnungsrufe entdeckt werden; eine Veröffentlichung fehlerhafter oder ungeprüfter Treffer findet nicht statt. Weitere Details: [WP21.md](WP21.md).
+
+
+## Automatisierung ohne laufende Handarbeit
+
+Der tägliche GitHub-Actions-Lauf veröffentlicht bei erfolgreichem Abruf neben
+`scan_21.json` einen maschinenlesbaren **Prüfhinweis-Feed** (`docs/data/hinweise_21.json`).
+Die Website zeigt die bis zu 40 neuesten relevanten Textstellen mit Protokolllink,
+**getrennt** von den bestätigten Zahlen. Der vollständige CSV-Export ist weiterhin
+als Action-Artefakt verfügbar. Der letzte erfolgreiche Feed wird im Actions-Cache
+aufbewahrt; bei einem vorübergehenden Quellenausfall bleibt er mit seinem alten
+Zeitstempel sichtbar. Es ist kein manueller Commit für diese Aktualisierung nötig.
+
+**Wichtig:** Automatischer Textfund bedeutet noch keine gültige Maßnahme. Eine
+vollautomatische Übernahme in bestätigte Zähler wird erst nach unabhängiger
+Validierung von Identität, tatsächlicher Vergabe, Dubletten und späteren Rücknahmen
+freigegeben. Bis dahin gibt es keine ungeprüfte automatische Zählung.
