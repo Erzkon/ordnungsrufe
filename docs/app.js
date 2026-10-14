@@ -222,6 +222,31 @@ async function showActivityFeed() {
   }
 }
 
+async function showAutoTriage() {
+  const status = $('wp21-triage-detail');
+  try {
+    const response = await fetch('./data/autopruefung_21.json', {cache:'no-store'});
+    if (!response.ok) throw new Error('Kein Prüfbericht');
+    const audit = await response.json();
+    const fields = ['gescannte_sitzungen','bereits_einzeln_belegte_massnahmen',
+      'davon_referenz_person_sitzung_erkannt','davon_referenz_person_sitzung_nicht_erkannt',
+      'offene_personenhinweise','automatisch_freigegebene_ordnungsrufe'];
+    if (audit.wahlperiode !== 21 || audit.status !== 'automatische_vorpruefung_ohne_freigabe' ||
+        fields.some(key => !Number.isInteger(audit[key]) || audit[key] < 0) ||
+        audit.automatisch_freigegebene_ordnungsrufe !== 0 ||
+        audit.davon_referenz_person_sitzung_erkannt + audit.davon_referenz_person_sitzung_nicht_erkannt !== audit.bereits_einzeln_belegte_massnahmen) {
+      throw new Error('Ungültiger Prüfbericht');
+    }
+    status.textContent = 'Automatischer Qualitätsabgleich: ' +
+      audit.davon_referenz_person_sitzung_erkannt + ' von ' +
+      audit.bereits_einzeln_belegte_massnahmen + ' bereits belegten Maßnahmen mindestens nach Person/Sitzung wiedererkannt; ' +
+      audit.offene_personenhinweise + ' weitere automatische Personenhinweise zur Prüfung. ' +
+      'Dies ist kein Nachweis für richtige Einzelzuordnung. Keine automatische Freigabe für die Ranglisten.';
+  } catch (_) {
+    status.textContent = 'Automatischer Personenabgleich noch nicht verfügbar. Die belegten Zähler bleiben unverändert.';
+  }
+}
+
 function start() {
   for(const id of ['search','group-filter','sort']) {
     $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
@@ -249,6 +274,7 @@ function start() {
     activate(initial);
     showScan();
     showActivityFeed();
+    showAutoTriage();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
