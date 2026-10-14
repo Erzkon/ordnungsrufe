@@ -60,6 +60,66 @@ jobs:
             --decisions pruefentscheidungen \
             --out-folder .
 
+      - name: Unabhaengige Vollstaendigkeitskontrolle der gesamten Protokolltexte
+        run: |
+          python vollstaendigkeits_audit.py \
+            --source-folder protokolle \
+            --candidates kandidaten.csv \
+            --verified bestaetigte_ordnungsrufe.csv \
+            --out-folder .
+
+      - name: Auditdateien pruefen und Manifest schreiben
+        run: |
+          python - <<'PY_AUDIT'
+          from pathlib import Path
+          import csv
+          import hashlib
+          import json
+          files = (
+              'audit_alle_fundstellen.csv',
+              'audit_neue_fundstellen.csv',
+              'audit_ruecknahmen_einsprueche.csv',
+              'audit_amtlicher_abgleich.csv',
+              'audit_bericht.json',
+          )
+          manifest = ['# Name | Bytes | SHA-256']
+          for name in files:
+              p = Path(name)
+              if not p.is_file() or p.is_symlink():
+                  raise SystemExit(f'Auditdatei fehlt oder ist ungueltig: {name}')
+              data = p.read_bytes()
+              if not data or len(data) > 15 * 1024 * 1024:
+                  raise SystemExit(f'Auditdatei leer/zu gross: {name}')
+              if p.suffix == '.csv':
+                  with p.open('r', encoding='utf-8', newline='') as h:
+                      rows = csv.reader(h)
+                      if not next(rows, None):
+                          raise SystemExit(f'CSV Kopfzeile fehlt: {name}')
+                      for _ in rows: pass
+              else:
+                  report = json.loads(data)
+                  if report.get('protokolle_volltext_geprueft') != 214:
+                      raise SystemExit('Audit nicht auf 214 Protokollen abgeschlossen')
+              manifest.append(f'{name} | {len(data)} | {hashlib.sha256(data).hexdigest()}')
+          Path('artifact-manifest-audit.txt').write_text(
+              '\n'.join(manifest) + '\n', encoding='utf-8')
+          print('5 Auditausgaben geprueft.')
+          PY_AUDIT
+
+      - name: Artifact 3 von 3 - Unabhaengiger Vollstaendigkeitsaudit
+        uses: actions/upload-artifact@v6
+        with:
+          name: ordnungsruf-7-audit
+          path: |
+            audit_alle_fundstellen.csv
+            audit_neue_fundstellen.csv
+            audit_ruecknahmen_einsprueche.csv
+            audit_amtlicher_abgleich.csv
+            audit_bericht.json
+            artifact-manifest-audit.txt
+          if-no-files-found: error
+          retention-days: 30
+
       # Nur diese explizit benannten Ergebnisdateien duerfen in die Artifacts.
       # Die Pruefung erkennt ungewoehnliche Dateitypen/fehlende Ausgaben,
       # ersetzt aber KEINEN Virenscan.
