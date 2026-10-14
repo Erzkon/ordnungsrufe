@@ -38,3 +38,9 @@ jobs:
           name: ordnungsruf-kandidaten
           path: kandidaten.csv
           if-no-files-found: error
+
+      - name: Originalprotokoll bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundestag-xml
+          path: protokolle/20214.xml
