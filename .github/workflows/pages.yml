@@ -7,7 +7,10 @@ on:
       - 'docs/**'
       - 'daten/**'
       - 'export_webdaten.py'
-      - 'tests/test_web_export.py'
+      - 'export_wp21.py'
+      - 'wp21_scan.py'
+      - 'tests/**'
+      - 'WP21.md'
       - 'QUELLENABGLEICH.md'
       - '.github/workflows/pages.yml'
   pull_request:
@@ -15,31 +18,94 @@ on:
       - 'docs/**'
       - 'daten/**'
       - 'export_webdaten.py'
-      - 'tests/test_web_export.py'
+      - 'export_wp21.py'
+      - 'wp21_scan.py'
+      - 'tests/**'
+      - 'WP21.md'
       - 'QUELLENABGLEICH.md'
       - '.github/workflows/pages.yml'
+  schedule:
+    # Täglich um 06:23 UTC (Sommer-/Winterzeit in Deutschland beachten).
+    - cron: '23 6 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: github-pages-${{ github.ref }}
+  group: github-pages-main
   cancel-in-progress: false
 
 jobs:
   pruefen:
-    name: Quellen-Snapshot und Tests
+    name: 20./21. Wahlperiode pruefen und aktuelle Protokolle scannen
     runs-on: ubuntu-latest
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Webdaten und Sicherheitsregeln testen
-        run: python -m unittest discover -s tests -p 'test_web_export.py' -v
-      - name: Sicherstellen, dass JSON aus CSV generiert ist
-        run: python export_webdaten.py --check
+          cache: 'pip'
+      - name: Python-Abhaengigkeiten installieren
+        run: python -m pip install -r requirements.txt
+      - name: Datenexporte mit Isolationstests validieren
+        run: |
+          python -m unittest discover -s tests -p 'test_web_export.py' -v
+          python -m unittest discover -s tests -p 'test_wp21.py' -v
+      - name: Historische und aktuelle Quellenlisten gegen veroeffentlichte JSONs pruefen
+        run: |
+          python export_webdaten.py --check
+          python export_wp21.py --check
+      - name: Bereits heruntergeladene 21.-WP-Protokolle wiederverwenden
+        if: github.event_name != 'pull_request'
+        uses: actions/cache@v4
+        with:
+          path: .cache/wp21
+          key: wp21-xml-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            wp21-xml-
+      - name: Offizielle XML-Protokolle der 21. Wahlperiode auf neue Hinweise pruefen
+        if: github.event_name != 'pull_request'
+        id: scan
+        # Der Scanner liefert lediglich Hinweise. Ein vorübergehender Ausfall
+        # der Bundestagsquelle darf einen geprüften Website-Stand nicht sperren.
+        continue-on-error: true
+        run: |
+          python wp21_scan.py \
+            --cache-dir .cache/wp21 \
+            --candidates wp21_hinweise.csv \
+            --summary docs/data/scan_21.json
+      - name: Hinweis bei fehlgeschlagenem Datenabruf
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'failure'
+        run: echo '::warning::21.-WP-Quellenscan derzeit fehlgeschlagen; geprüfte Zähler bleiben unverändert.'
+      - name: Pruefhinweise fuer manuelle Auswertung archivieren
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-hinweise-${{ github.run_id }}
+          path: wp21_hinweise.csv
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verwendeten Website-Stand archivieren
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-datenstand-${{ github.run_id }}
+          path: |
+            docs/data/ordnungsrufe.json
+            docs/data/ordnungsrufe_21.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Website-Artefakt zur Veroeffentlichung uebertragen
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-fuer-pages
+          path: docs/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 2
 
   veroeffentlichen:
     name: Statische Website bereitstellen
@@ -54,7 +120,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: docs-fuer-pages
+          path: docs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

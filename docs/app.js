@@ -5,9 +5,8 @@ const GROUP_NAMES = {
   'Die Linke': 'Die Linke (Fraktion und Gruppe)',
   'Die Linke (Gruppe)': 'Die Linke (Fraktion und Gruppe)',
 };
-
-const $ = (id) => document.getElementById(id);
-const state = { records: [], visible: ITEMS_PER_PAGE };
+const $ = id => document.getElementById(id);
+const state = { datasets: {}, records: [], visible: ITEMS_PER_PAGE, period: '20' };
 
 function normalized(value) {
   return String(value).normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('de');
@@ -25,8 +24,8 @@ function dateDE(iso) {
 function counted(records, mapper) {
   const map = new Map();
   for (const row of records) {
-    const k = mapper(row);
-    map.set(k, (map.get(k) || 0) + 1);
+    const key = mapper(row);
+    map.set(key, (map.get(key) || 0) + 1);
   }
   return [...map].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'de'));
 }
@@ -45,7 +44,7 @@ function ranking(container, entries, kind) {
   entries.forEach(([name, count], index) => {
     const button = el('button', 'bar-row');
     button.type = 'button';
-    button.setAttribute('aria-label', `${name}: ${count} Ordnungsrufe. Einträge anzeigen`);
+    button.setAttribute('aria-label', `${name}: ${count} geprüfte Ordnungsrufe. Einträge anzeigen`);
     const heading = el('span', 'bar-heading');
     heading.append(el('span', 'bar-title', `${String(index + 1).padStart(2, '0')}  ${name}`), el('span', 'bar-value', count));
     const rail = el('span', 'bar-rail');
@@ -60,25 +59,26 @@ function ranking(container, entries, kind) {
 function filteredRecords() {
   const search = normalized($('search').value.trim());
   const group = $('group-filter').value;
-  const filtered = state.records.filter((row) => {
-    const matchesSearch = !search || normalized(row.person).includes(search) || String(row.session).includes(search);
+  const result = state.records.filter(row => {
+    const matchesSearch = !search || normalized(row.person).includes(search) ||
+      String(row.session).includes(search) || `${state.period}/${String(row.session).padStart(3, '0')}`.includes(search);
     const matchesGroup = !group || (group === 'Die Linke (Fraktion und Gruppe)'
-      ? (row.group === 'Die Linke' || row.group === 'Die Linke (Gruppe)')
+      ? row.group === 'Die Linke' || row.group === 'Die Linke (Gruppe)'
       : row.group === group);
     return matchesSearch && matchesGroup;
   });
   const sort = $('sort').value;
-  filtered.sort((a, b) => {
-    if (sort === 'person') return a.person.localeCompare(b.person, 'de') || b.date.localeCompare(a.date);
-    return (sort === 'oldest' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date))
-      || a.person.localeCompare(b.person, 'de');
+  result.sort((a,b) => {
+    if (sort === 'person') return a.person.localeCompare(b.person,'de') || b.date.localeCompare(a.date);
+    return (sort === 'oldest' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)) ||
+      a.person.localeCompare(b.person,'de');
   });
-  return filtered;
+  return result;
 }
 function renderRecords() {
   const rows = filteredRecords();
-  const shown = rows.slice(0, state.visible);
-  $('result-count').textContent = rows.length;
+  const shown = rows.slice(0,state.visible);
+  $('result-count').textContent = String(rows.length);
   $('showing-count').textContent = `${shown.length} von ${rows.length} Einträgen angezeigt`;
   $('load-more').hidden = shown.length >= rows.length;
   $('empty-state').hidden = rows.length !== 0;
@@ -86,14 +86,14 @@ function renderRecords() {
   body.replaceChildren();
   for (const item of shown) {
     const tr = document.createElement('tr');
-    tr.append(el('td', 'date', dateDE(item.date)), el('td', 'person', item.person),
-      el('td', 'group', item.group), el('td', 'session', `20/${String(item.session).padStart(3, '0')}`));
+    tr.append(el('td','date',dateDE(item.date)),el('td','person',item.person),
+      el('td','group',item.group),el('td','session',`${state.period}/${String(item.session).padStart(3,'0')}`));
     const cell = document.createElement('td');
-    const link = el('a', 'source-link', 'Protokoll ↗');
+    const link = el('a','source-link','Protokoll ↗');
     link.href = item.source;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
-    link.setAttribute('aria-label', `Plenarprotokoll 20/${String(item.session).padStart(3, '0')} für ${item.person} öffnen`);
+    link.setAttribute('aria-label',`Plenarprotokoll ${state.period}/${String(item.session).padStart(3,'0')} für ${item.person} öffnen`);
     cell.append(link);
     tr.append(cell);
     body.append(tr);
@@ -101,64 +101,108 @@ function renderRecords() {
 }
 function addOptions(groups) {
   const select = $('group-filter');
+  select.replaceChildren(el('option','','Alle Zugehörigkeiten'));
+  select.firstChild.value = '';
   for (const name of groups) {
-    const option = el('option', '', name);
+    const option = el('option','',name);
     option.value = name;
     select.append(option);
   }
-  if (groups.includes('Die Linke') || groups.includes('Die Linke (Gruppe)')) {
-    const option = el('option', '', 'Die Linke (Fraktion + Gruppe)');
+  if (groups.includes('Die Linke (Gruppe)')) {
+    const option = el('option','','Die Linke (Fraktion + Gruppe)');
     option.value = 'Die Linke (Fraktion und Gruppe)';
     select.append(option);
   }
 }
-function initialize(payload) {
-  if (!Array.isArray(payload.records) || !payload.meta || payload.records.length !== payload.meta.count) {
-    throw new Error('Unvollständiger Datenexport');
-  }
+function activate(period) {
+  const payload = state.datasets[period];
+  if (!payload) return;
+  state.period = period;
   state.records = payload.records;
+  state.visible = ITEMS_PER_PAGE;
+  $('search').value = '';
+  $('sort').value = 'newest';
+  for (const p of ['20','21']) {
+    const button = $(`period-${p}`);
+    button.setAttribute('aria-pressed',String(p === period));
+    button.classList.toggle('is-active',p === period);
+  }
+  $('hero-period').textContent = `${period}. WAHLPERIODE`;
+  $('section-period').textContent = period === '20' ? '2021—2025' : 'SEIT 2025 · NOCH UNVOLLSTÄNDIG';
   $('metric-total').textContent = payload.meta.count;
   $('metric-events').textContent = payload.meta.events;
   $('metric-people').textContent = payload.meta.people;
   $('metric-rescinded').textContent = payload.meta.rescinded_excluded;
-  const groupNames = [...new Set(state.records.map((row) => row.group))].sort((a, b) => a.localeCompare(b, 'de'));
+  $('metric-foot-total').textContent = period === '20'
+    ? '20. Wahlperiode · 2021–2025' : '21. Wahlperiode · Geprüfte Teilmenge, keine Gesamtzahl';
+  $('metric-total-label').textContent = period === '20' ? 'WIRKSAME ORDNUNGSRUFE' : 'BISHER EINZELN GEPRÜFT';
+  $('metric-foot-rescinded').textContent = period === '20'
+    ? 'Nicht in der Gesamtzahl enthalten' : 'In dieser Teilmenge; kein Vollständigkeitsanspruch';
+  $('ranking-caption').textContent = period === '20'
+    ? 'Alle Angaben basieren auf den einzeln belegten, wirksamen Maßnahmen der 20. Wahlperiode.'
+    : 'Ausschließlich die bisher manuell geprüften Beispiele. Diese Ranglisten sind noch nicht repräsentativ.';
+  $('footer-period').textContent = period === '20'
+    ? '20. WAHLPERIODE · DATENSTAND 14.10.2026'
+    : '21. WAHLPERIODE · UNVOLLSTÄNDIGE ERFASSUNG';
+  $('wp20-note').hidden = period !== '20';
+  $('wp21-note').hidden = period !== '21';
+  $('wp21-scan').hidden = period !== '21';
+  $('period-methodology').textContent = period === '20' ? '20. Wahlperiode' : '20. und 21. Wahlperiode';
+  const groupNames=[...new Set(state.records.map(row=>row.group))].sort((a,b)=>a.localeCompare(b,'de'));
   addOptions(groupNames);
-  ranking('people-ranking', counted(state.records, (row) => row.person).slice(0, 10), 'person');
-  ranking('group-ranking', counted(state.records, (row) => GROUP_NAMES[row.group] || row.group), 'group');
-  for (const id of ['search', 'group-filter', 'sort']) {
-    $(id).addEventListener(id === 'search' ? 'input' : 'change', () => {
-      state.visible = ITEMS_PER_PAGE;
-      renderRecords();
-    });
-  }
-  $('reset').addEventListener('click', () => {
-    $('search').value = '';
-    $('group-filter').value = '';
-    $('sort').value = 'newest';
-    state.visible = ITEMS_PER_PAGE;
-    renderRecords();
-  });
-  $('load-more').addEventListener('click', () => {
-    state.visible += ITEMS_PER_PAGE;
-    renderRecords();
-  });
+  ranking('people-ranking',counted(state.records,row=>row.person).slice(0,10),'person');
+  ranking('group-ranking',counted(state.records,row=>GROUP_NAMES[row.group]||row.group),'group');
   renderRecords();
+  const url = new URL(window.location.href);
+  url.searchParams.set('wp',period);
+  window.history.replaceState(null,'',url.pathname+url.search+url.hash);
 }
-
-fetch('./data/ordnungsrufe.json', { cache: 'no-cache' })
-  .then((response) => {
+async function showScan() {
+  const box = $('wp21-scan-detail');
+  try {
+    const response = await fetch('./data/scan_21.json',{cache:'no-store'});
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
-  })
-  .then(initialize)
-  .catch((err) => {
-    console.error('Ordnungsruf-Daten konnten nicht geladen werden:', err);
-    $('people-ranking').textContent = 'Die Daten konnten nicht geladen werden.';
-    $('group-ranking').textContent = 'Die Daten konnten nicht geladen werden.';
-    $('records-body').replaceChildren(el('tr', '', ''));
-    const td = el('td', '', 'Die Daten konnten nicht geladen werden. Bitte die Seite erneut laden.');
-    td.colSpan = 5;
-    $('records-body').firstElementChild.append(td);
-    $('result-count').textContent = '0';
-    $('showing-count').textContent = 'Keine Daten verfügbar';
+    const scan = await response.json();
+    if (scan.status !== 'bereit' || !Number.isInteger(scan.untersuchte_sitzungen)) throw new Error('Scan unvollständig');
+    const timestamp = new Date(scan.zuletzt_geprueft_utc);
+    box.textContent = `Automatischer Quellencheck: ${scan.untersuchte_sitzungen} Plenarprotokolle durchsucht, ${scan.textstellen_zur_pruefung} Textstellen zur manuellen Prüfung markiert. Letzter erfolgreicher Suchlauf: ${timestamp.toLocaleDateString('de-DE')}. Diese Hinweise sind keine bestätigten Maßnahmen.`;
+  } catch (_) {
+    box.textContent = 'Noch kein erfolgreicher automatischer Suchlauf veröffentlicht. Die einzeln geprüften Einträge bleiben weiterhin abrufbar.';
+  }
+}
+function start() {
+  for(const id of ['search','group-filter','sort']) {
+    $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
+  }
+  $('reset').addEventListener('click',()=>{
+    $('search').value='';$('group-filter').value='';$('sort').value='newest';
+    state.visible=ITEMS_PER_PAGE;renderRecords();
   });
+  $('load-more').addEventListener('click',()=>{state.visible+=ITEMS_PER_PAGE;renderRecords();});
+  for(const period of ['20','21']) {
+    $(`period-${period}`).addEventListener('click',()=>activate(period));
+  }
+  Promise.all([
+    fetch('./data/ordnungsrufe.json',{cache:'no-cache'}),
+    fetch('./data/ordnungsrufe_21.json',{cache:'no-cache'})
+  ]).then(async responses=>{
+    if(responses.some(r=>!r.ok)) throw new Error('Datenabruf fehlgeschlagen');
+    const [twenty,twentyOne]=await Promise.all(responses.map(r=>r.json()));
+    for(const [period,payload] of [['20',twenty],['21',twentyOne]]) {
+      if(!payload.meta || !Array.isArray(payload.records) || payload.meta.count !== payload.records.length
+          || payload.meta.legislature !== Number(period)) throw new Error(`Datenfehler: ${period}`);
+      state.datasets[period]=payload;
+    }
+    const initial=new URL(window.location.href).searchParams.get('wp')==='21'?'21':'20';
+    activate(initial);
+    showScan();
+  }).catch(err=>{
+    console.error('Daten nicht geladen',err);
+    $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
+    $('group-ranking').textContent='Die Daten konnten nicht geladen werden.';
+    $('records-body').replaceChildren();
+    const tr=el('tr','');const td=el('td','','Die Daten konnten nicht geladen werden. Bitte die Seite erneut laden.');
+    td.colSpan=5;tr.append(td);$('records-body').append(tr);
+  });
+}
+start();
