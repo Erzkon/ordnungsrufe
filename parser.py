@@ -7,6 +7,7 @@ The public website must not treat these results as verified sanctions.
 
 import argparse
 import csv
+import json
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -181,12 +182,27 @@ def _name_at(text, start, index):
     return candidate_name(tail, index)
 
 
+def _grant_scope(text):
+    """Pick the clause carrying the last explicit grant, not its explanation.
+
+    The whole paragraph is retained separately for the audit. This scope is
+    only used to find grammatical recipients; it must not be treated as proof.
+    """
+    sentences = re.split(r'(?<=[.!?])\s+(?=[A-ZÄÖÜ])', text)
+    grants = [s for s in sentences if ACTION.search(s) and not THREAT.search(s)]
+    return grants[-1] if grants else text
+
+
 def _object_people(text, index):
     results = []
     action = ACTION.search(text)
     if not action:
         return []
-    for match in RECIPIENT.finditer(text):
+    # People first mentioned AFTER 'Ordnungsruf' commonly appear in the reason
+    # (the person who was insulted), not as recipients of the sanction.
+    term = re.search(r'\bOrdnungsruf\b', text, re.I)
+    recipient_part = text[:term.start()] if term else text
+    for match in RECIPIENT.finditer(recipient_part):
         # e.g. "gegenüber der Abgeordneten Weidel" refers to the insulted
         # person, NOT the target of a sanction.
         previous = text[max(0, match.start()-25):match.start()].casefold()
@@ -247,16 +263,17 @@ def persons_for_grant(text, index):
         if ' und ' in names:
             return [candidate_name(re.sub(r'^(?:an\s+)?(?:den|dem)\s+(?:Kollegen|Abgeordneten)\s+', '', s, flags=re.I), index)
                     for s in SPLIT_NAMES.split(names)]
-    objects = _object_people(text, index)
+    scope = _grant_scope(text)
+    objects = _object_people(scope, index)
     # When there is a direct addressee, object references in the explanation
     # are generally people affected by the insult, not sanction recipients.
     addresses = _vocative_people(text, index)
-    action = ACTION.search(text)
+    action = ACTION.search(scope)
     if not action:
         return []
     # "ich erteile ihm ...": a woman mentioned elsewhere cannot be inferred
     # to be the target. Wait for an explicit antecedent in a different source.
-    third_person = re.search(r'\b(?:erteile\s+ihm|erteile\s+ihr)\b', text, re.I)
+    third_person = re.search(r'\b(?:erteile\s+ihm|erteile\s+ihr)\b', scope, re.I)
     if third_person and not objects:
         return []
     if objects:
@@ -266,17 +283,23 @@ def persons_for_grant(text, index):
         # after the act ("Sie bekommen ..., Herr Nietan") is also legitimate.
         # A comma-marked early vocative remains the addressee even if
         # another person is referenced in the explanation of the insult.
-        before_action = [a for a in addresses if a[0] <= action.start()]
-        nearest = (before_action[0] if before_action else addresses[0])
+        # Last vocative preceding the grant overrides an earlier unrelated
+        # address (e.g. 'Frau Reichinnek. – Frau von Storch, ... Ordnungsruf').
+        # The action position belongs to `scope`, so use the full paragraph's
+        # last grant-bearing sentence to locate the selected vocative.
+        last_scope_at = text.rfind(scope)
+        position = last_scope_at + action.start() if last_scope_at >= 0 else len(text)
+        before_action = [a for a in addresses if a[0] <= position]
+        nearest = (before_action[-1] if before_action else addresses[-1])
         return [nearest[1]]
     # "erhält Herr Janich ..." without a vocative comma.
     for pattern in (
         r'\b(?:erhält|bekommt|kriegt)\s+(?:Herr|Frau|Herrn)\s+',
         r'\b(?:erhält|bekommt|kriegt)\s+(?:der|die)\s+Abgeordnete\s+',
     ):
-        m = re.search(pattern, text, re.I)
+        m = re.search(pattern, scope, re.I)
         if m:
-            p = _name_at(text, m.end(), index)
+            p = _name_at(scope, m.end(), index)
             if p:
                 return [p]
     return []
@@ -332,6 +355,69 @@ def events(path, index=None, root=None):
     yield from found
 
 
+def build_review_queue(hits, events):
+    """A human-auditable row for *every* candidate, including missed grants.
+
+    No entry becomes 'confirmed' here: identity resolution is not validation.
+    Identifiers are scoped to Wahlperiode, Sitzung, and XML source line.
+    """
+    located = defaultdict(list)
+    for event in events:
+        located[(event['file'], str(event['line']))].append(event)
+    rows = []
+    for hit in hits:
+        matched = located.get((hit['file'], str(hit['line'])), [])
+        category = hit['classification']
+        number = len(matched)
+        if category == 'named_group_confirmation':
+            priority, reason = 'hoch', 'Gruppenmassnahme: Zuordnung und Dopplungen pruefen'
+        elif category == 'possible_grant' and number == 0:
+            priority, reason = 'hoch', 'Moegliche Erteilung ohne automatisch erkannten Empfaenger'
+        elif category == 'possible_grant' and number > 1:
+            priority, reason = 'hoch', 'Mehrere erfasste Empfaenger: jeden einzeln pruefen'
+        elif category == 'possible_grant' and any(e['identity_status'] != 'matched_xml_person' for e in matched):
+            priority, reason = 'hoch', 'Empfaengeridentitaet nicht eindeutig abgeglichen'
+        elif category == 'possible_grant' and len(re.findall(r'\b(?:Herrn?|Frau|Abgeordnet(?:e|en|er))\b', hit['text'], re.I)) >= 2:
+            priority, reason = 'hoch', 'Mehrere Personen im selben Text: Adressat pruefen'
+        elif category == 'possible_grant':
+            priority, reason = 'mittel', 'Automatisch erkannte Erteilung: amtlichen Wortlaut pruefen'
+        else:
+            priority, reason = 'niedrig', 'Automatisch als Hinweis oder unsicher klassifiziert: Ausschluss pruefen'
+        rows.append(dict(
+            pruef_id=f"{hit['wahlperiode']}-{str(hit['sitzung']).zfill(3)}-{hit['line']}",
+            prioritaet=priority, grund=reason, wahlperiode=hit['wahlperiode'],
+            sitzung=hit['sitzung'], datei=hit['file'], xml_zeile=hit['line'],
+            klassifikation=category, parser_personenzahl=number,
+            parser_personen=' | '.join(e['person'] for e in matched),
+            parser_personen_ids=' | '.join(e['person_id'] for e in matched),
+            quell_url=(f"https://dserver.bundestag.de/btp/{hit['wahlperiode']}/"
+                       f"{hit['file']}"),
+            protokolltext=hit['text'], pruefung='offen',
+            entscheidung='', korrekte_personen='', bemerkung=''))
+    order = {'hoch': 0, 'mittel': 1, 'niedrig': 2}
+    return sorted(rows, key=lambda x: (order[x['prioritaet']], int(x['sitzung']), int(x['xml_zeile'])))
+
+
+def save_quality_report(path, reviews, events, protocol_count):
+    """Coverage and triage ONLY. Never present raw parser events as verified."""
+    by_priority = defaultdict(int)
+    by_class = defaultdict(int)
+    for row in reviews:
+        by_priority[row['prioritaet']] += 1
+        by_class[row['klassifikation']] += 1
+    report = {
+        'hinweis': 'Ausschliesslich ungepruefte Parserergebnisse; keine amtliche Statistik.',
+        'protokolle_verarbeitet': protocol_count,
+        'textfundstellen': len(reviews),
+        'personenereignisse_ungeprueft': len(events),
+        'pruefung_abgeschlossen': 0,
+        'pruefzeilen_nach_prioritaet': dict(sorted(by_priority.items())),
+        'fundstellen_nach_klassifikation': dict(sorted(by_class.items())),
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+
 def save_csv(path, fields, rows):
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open('w', newline='', encoding='utf-8-sig') as f:
@@ -346,6 +432,8 @@ def main():
     ap.add_argument('--out', type=Path, default=Path('kandidaten.csv'))
     ap.add_argument('--events-out', type=Path, default=Path('ordnungsrufe.csv'))
     ap.add_argument('--summary-out', type=Path, default=Path('sitzungen.csv'))
+    ap.add_argument('--review-out', type=Path, default=Path('pruefliste.csv'))
+    ap.add_argument('--quality-out', type=Path, default=Path('qualitaetsbericht.json'))
     args = ap.parse_args()
     paths = sorted(args.folder.rglob('*.xml'))
     if not paths:
@@ -373,13 +461,20 @@ def main():
               'issuer','issuer_evidence'], sanctions)
     save_csv(args.summary_out, ['wahlperiode','sitzung','datum','datei','quelle',
                                 'textfundstellen','erkannte_personenereignisse','status'], sessions)
+    reviews = build_review_queue(hits, sanctions)
+    save_csv(args.review_out, ['pruef_id','prioritaet','grund','wahlperiode','sitzung',
+                               'datei','xml_zeile','klassifikation','parser_personenzahl',
+                               'parser_personen','parser_personen_ids','quell_url',
+                               'protokolltext','pruefung','entscheidung',
+                               'korrekte_personen','bemerkung'], reviews)
+    save_quality_report(args.quality_out, reviews, sanctions, len(paths))
     by_class = defaultdict(int)
     for hit in hits:
         by_class[hit['classification']] += 1
     print(f'{len(hits)} Kandidaten; {len(sanctions)} PERSONENBEZOGENE PRUEFFÄLLE; '
           f'{len(paths)} Protokolle. Noch keine amtliche Statistik.')
     print('Klassen:', dict(sorted(by_class.items())))
-    print(f'Dateien: {args.out}, {args.events_out}, {args.summary_out}.')
+    print(f'Dateien: {args.out}, {args.events_out}, {args.summary_out}, {args.review_out}, {args.quality_out}.')
 
 
 if __name__ == '__main__':
