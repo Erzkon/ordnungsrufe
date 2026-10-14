@@ -9,3 +9,19 @@
 @media(max-width:680px){.shell{width:min(100% - 32px,1180px)}.masthead-inner{height:auto;min-height:74px;flex-wrap:wrap;padding:15px 0;gap:15px}.nav{width:100%;justify-content:space-between;gap:8px}.nav a{font-size:11px}.hero{min-height:0}.hero-content{padding:58px 0 39px}.hero h1{font-size:42px}.hero p{font-size:14px}.hero-bottom{margin-top:47px;flex-wrap:wrap;font-size:9px}.metrics{grid-template-columns:repeat(2,1fr)}.metric{min-height:150px;border-bottom:1px solid var(--line)}.metric:nth-child(2){border-right:0}.metric:nth-child(3),.metric:nth-child(4){border-bottom:0}.metric strong{font-size:40px}.metric-label{font-size:9px}.metric-foot{font-size:10px}.disclosure{padding:17px 14px;gap:10px}.section-gap{padding-top:66px;padding-bottom:66px}.section-heading{align-items:start}.section-flag{display:none}.ranking-grid{grid-template-columns:1fr}.filters{grid-template-columns:1fr}.method-grid{grid-template-columns:1fr 1fr;gap:25px}.method-item p{font-size:12px}th,td{padding:13px 18px}.sources{gap:15px}.sources>span{width:100%}.footer-inner{flex-wrap:wrap}.footer-inner>span{width:100%}}
 @media(max-width:430px){.hero h1{font-size:37px}.button{width:100%}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding-inline:12px}.metric strong{font-size:37px}.metric-label{font-size:8px}.ranking-panel{padding:19px 16px}.method-grid{grid-template-columns:1fr}.more-line{flex-direction:column;align-items:stretch}.button-more{width:100%}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button,.bar-fill{transition:none}}
+
+
+/* 21st-term switch and cautious early-stage disclosure */
+.period-switch { display: flex; flex-wrap: wrap; gap: 10px; margin: 29px 0 8px; }
+.period-button { display: flex; flex-direction: column; gap: 5px; min-width: 170px; text-align: left;
+  border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.07); color: #f7f7f3;
+  padding: 12px 16px; border-radius: 5px; font: inherit; font-weight: 700; cursor: pointer; }
+.period-button small { opacity: .78; font-size: .72rem; font-weight: 400; }
+.period-button:hover, .period-button:focus-visible { border-color: #eaba71; }
+.period-button.is-active { background: #f0c176; color: #182b32; border-color: #f0c176; }
+.wp21-disclosure { border-left: 3px solid #d39843; margin-top: 12px; }
+.scan-status { display: flex; align-items: baseline; gap: 12px; padding: 18px 20px;
+  margin-top: 12px; border: 1px solid #aeb8bd; border-radius: 4px; background: #e8eef0; color: #203341; }
+.scan-status p { margin: 0; line-height: 1.55; font-size: .91rem; }
+.scan-dot { width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: #46787b; }
+[hidden] { display: none !important; }
