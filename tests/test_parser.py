@@ -249,3 +249,133 @@ def test_20_214_original_xml_when_present():
     if not original.exists():
         return
     assert len(list(events(original))) == 9
+
+# Update 6 -- phrasing taken from the uploaded 20th-term review queue.
+# Expected people are still candidate links, not independently verified sanctions.
+
+def test_032_explicit_recipient_before_second_order_phrase(tmp_path):
+    path = xml_file(tmp_path, [
+        'erteile ich – das sage ich Ihnen jetzt – dem Kollegen Christian Petry '
+        'einen Ordnungsruf. Es ging um den Ausdruck „Dummschwätzer“. '
+        'Insofern rufe ich Sie zur Ordnung, und damit kommen wir wieder zur Debatte.'
+    ], [('Christian', 'Petry')])
+    assert people(path) == ['Christian Petry']
+
+
+def test_095_grant_against_named_colleague_not_presiding_chair(tmp_path):
+    path = xml_file(tmp_path, [
+        'Nach Durchsicht des Protokolls erteile ich im Namen von '
+        'Vizepräsidentin Özoğuz gegen die Abgeordnete Beatrix von Storch '
+        'einen Ordnungsruf wegen einer Beleidigung.'
+    ], [('Beatrix','von Storch'), ('Aydan','Özoğuz')])
+    e = list(events(path))[0]
+    assert e['person'] == 'Beatrix von Storch'
+    assert e['zuordnungsmethode'] == 'explizit_gegen'
+
+
+def test_142_explicit_dative_with_infinitive_after_sanction(tmp_path):
+    path = xml_file(tmp_path, [
+        'Ich komme kurz zum Tagesordnungspunkt 24 zurück; denn ich habe '
+        'dem Abgeordneten Brandner im Namen meiner Kollegin, Vizepräsidentin '
+        'Magwas, einen Ordnungsruf für seinen Zwischenruf zu erteilen.'
+    ], [('Stephan','Brandner'), ('Yvonne','Magwas')])
+    assert people(path) == ['Stephan Brandner']
+
+
+def test_150_anaphoric_ihm_requires_strict_previous_subject(tmp_path):
+    path = xml_file(tmp_path, [
+        'Herr Brandner hat die Kollegin Nanni in die Nähe einer '
+        'terroristischen Vereinigung gestellt. Ich erteile ihm dafür '
+        'einen Ordnungsruf.'
+    ], [('Stephan','Brandner'), ('Sara','Nanni')])
+    assert people(path) == ['Stephan Brandner']
+    assert list(events(path))[0]['zuordnungsmethode'] == 'pronomen_bezug_im_absatz'
+
+
+def test_151_anaphoric_name_after_auxiliary_hat(tmp_path):
+    path = xml_file(tmp_path, [
+        'Während der Rede des Herrn Bundesministers hat Herr Komning ein '
+        'Foto im Saal gemacht. Das verstößt gegen unsere Regeln hier. '
+        'Darum erteile ich Ihnen einen Ordnungsruf.'
+    ], [('Enrico','Komning')])
+    assert people(path) == ['Enrico Komning']
+
+
+def test_164_anaphoric_female_subject_not_named_chair(tmp_path):
+    path = xml_file(tmp_path, [
+        'Beim TOP 6 hat Frau Kollegin Kordula Schulz-Asche von der Fraktion '
+        'Bündnis 90/Die Grünen gerufen: „Das sind die Reden der zukünftigen '
+        'Völkermörder!“ Dafür erteile ich ihr nachträglich einen Ordnungsruf.'
+    ], [('Kordula','Schulz-Asche')])
+    assert people(path) == ['Kordula Schulz-Asche']
+
+
+def test_177_same_sentence_named_subject_not_insult_target(tmp_path):
+    path = xml_file(tmp_path, [
+        'Der Abgeordnete Brandner hat Herrn Merz als „Vaterlandsverräter“ '
+        'bezeichnet, und auch dafür bekommt er einen Ordnungsruf.'
+    ], [('Stephan','Brandner'),('Friedrich','Merz')])
+    assert people(path) == ['Stephan Brandner']
+
+
+def test_156_named_lead_in_not_other_person_in_text(tmp_path):
+    path = xml_file(tmp_path, [
+        'Vielen Dank. – Ich wollte die Rednerin nicht unterbrechen. '
+        'Herr Brandner wird sich das schon denken: Für diese höchst '
+        'unparlamentarische – ja, wie soll ich das sagen? – Mischung aus '
+        'Beleidigung und Beschimpfung erteile ich Ihnen einen Ordnungsruf.'
+    ], [('Stephan','Brandner')])
+    assert people(path) == ['Stephan Brandner']
+
+
+def test_209_antecedent_named_in_previous_sentence(tmp_path):
+    path = xml_file(tmp_path, [
+        'Wir als Präsidium haben wahrgenommen, dass Frau von Storch die SPD '
+        'als „Nazitruppe“ bezeichnet hat. Das ist eine direkte Beleidigung. '
+        'Sie kriegen einen Ordnungsruf.'
+    ], [('Beatrix','von Storch')])
+    assert people(path) == ['Beatrix von Storch']
+
+
+def test_explicit_future_and_indefinite_future_not_counted(tmp_path):
+    path = xml_file(tmp_path, [
+        'Ich werde Herrn Hilse einen Ordnungsruf erteilen,',
+        'Sollte das wiederholt vorkommen, werde ich einen Ordnungsruf erteilen.',
+        'Der Nächste, den ich erwische, bekommt nicht nur einen Ordnungsruf, '
+        'sondern ein Ordnungsgeld.',
+        'Und jeder, der das tut, bekommt einen weiteren Ordnungsruf.'
+    ], [('Karsten','Hilse')])
+    assert people(path) == []
+    assert all(x['classification'] != 'possible_grant' for x in candidates(path))
+
+
+def test_unknown_ihnen_not_assigned_arbitrarily(tmp_path):
+    path = xml_file(tmp_path, [
+        'Ich erteile Ihnen für diese Bemerkung einen Ordnungsruf.',
+        'Herr Abgeordneter, ich erteile Ihnen einen Ordnungsruf.',
+        'Ich erteile ihm hiermit einen Ordnungsruf.'
+    ], [('Alex','Muster'),('Bea','Beispiel')])
+    assert people(path) == []
+
+
+def test_neighbors_are_present_without_guessing_person(tmp_path):
+    from parser import neighboring_paragraphs, build_review_queue, save_quality_report
+    import json
+    path = xml_file(tmp_path, [
+        'Herr Muster redet laut.',
+        'Ich erteile Ihnen einen Ordnungsruf.',
+        'Nun geht es weiter.'
+    ], [('Alex','Muster')])
+    context = {path.name: neighboring_paragraphs(document(path))}
+    hits, result = list(candidates(path)), list(events(path))
+    queue = build_review_queue(hits, result, context)
+    assert len(queue) == 1 and queue[0]['parser_personenzahl'] == 0
+    assert queue[0]['vorheriger_absatz'] == 'Herr Muster redet laut.'
+    assert queue[0]['naechster_absatz'] == 'Nun geht es weiter.'
+    assert 'nur aus dem Originalkontext' in queue[0]['pruefhinweis']
+    assert queue[0]['pruefung'] == 'offen'
+    out = tmp_path / 'quality.json'
+    save_quality_report(out,queue,result,1)
+    report = json.loads(out.read_text(encoding='utf-8'))
+    assert report['klaerungsfaelle_moegliche_erteilung_ohne_person'] == 1
+    assert report['pruefung_abgeschlossen'] == 0
