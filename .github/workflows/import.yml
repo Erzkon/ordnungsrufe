@@ -1,4 +1,3 @@
-
 name: Bundestag Datenimport
 
 on:
@@ -18,7 +17,7 @@ jobs:
           python-version: '3.12'
 
       - name: Pakete installieren
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
 
       - name: Bundestagsprotokoll herunterladen
         run: |
@@ -28,15 +27,16 @@ jobs:
             "https://dserver.bundestag.de/btp/20/20214.xml" \
             -o protokolle/20214.xml
 
-      - name: Ordnungsruf-Kandidaten extrahieren
-        run: |
-          python parser.py protokolle --out kandidaten.csv
+      - name: Ordnungsrufe extrahieren
+        run: python parser.py protokolle --out kandidaten.csv --events-out ordnungsrufe.csv
 
       - name: Ergebnisse bereitstellen
         uses: actions/upload-artifact@v4
         with:
-          name: ordnungsruf-kandidaten
-          path: kandidaten.csv
+          name: ordnungsruf-auswertung
+          path: |
+            kandidaten.csv
+            ordnungsrufe.csv
           if-no-files-found: error
 
       - name: Originalprotokoll bereitstellen
