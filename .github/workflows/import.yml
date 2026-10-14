@@ -74,22 +74,31 @@ jobs:
             --verified bestaetigte_ordnungsrufe.csv \
             --out-folder .
 
+      - name: Amtliche MdB-Personenkennungen fuer neue DIP-Nachtraege abgleichen
+        run: |
+          python mdb_id_abgleich.py \
+            --decisions pruefentscheidungen/dip_nachtraege.csv \
+            --output dip_nachtraege_mit_personen_ids.csv \
+            --report mdb_id_abgleich_bericht.json
+
       - name: Unabhaengig belegte DIP-Nachtraege getrennt zusammenfuehren
         run: |
           python dip_nachtraege.py \
             --verified bestaetigte_ordnungsrufe.csv \
             --dip dip_alle_ordnungsrufbezuege.csv \
             --sessions sitzungen.csv \
-            --decisions pruefentscheidungen/dip_nachtraege.csv \
+            --decisions dip_nachtraege_mit_personen_ids.csv \
             --out-folder .
 
       - name: Artifact 5 - Quellengepruefte Nachtraege
         uses: actions/upload-artifact@v6
         with:
-          name: ordnungsruf-9-nachtraege
+          name: ordnungsruf-10-nachtraege
           path: |
             bestaetigte_ordnungsrufe_mit_nachtraegen.csv
             nachtragsbericht.json
+            mdb_id_abgleich_bericht.json
+            dip_nachtraege_mit_personen_ids.csv
           if-no-files-found: error
           retention-days: 30
 
