@@ -1,0 +1,7 @@
+dip_id,dip_fingerabdruck,sitzung,person_id,person,fraktion_zur_sitzung,nachtrag_anzahl,beleg_pdf,begruendung
+296009,sha256:694b32968df940ae067672ce9c0d370df6305f6b9e09cc6872ba56d217f0953c,82,11003199,Dietmar Nietan,SPD,1,https://dserver.bundestag.de/btp/20/20082.pdf#page=82,Zweiter Ordnungsruf wird im amtlichen PDF ausdrücklich erteilt; erster ist bereits im Basisregister.
+299524,sha256:df1fa8e5d72e0bdf4832df661713b558d422829ae88d369640f6d7915a5f7c6e,104,11004752,Karsten Hilse,AfD,1,https://dserver.bundestag.de/btp/20/20104.pdf#page=53,Ordnungsruf für das Zeigen diffamierender Aufkleber.
+303275,sha256:7229169c23c588d4d742bd9355e32eaf33abcb18fd561afcb2275ab7dc524bf3,120,11004731,Kay Gottschalk,AfD,1,https://dserver.bundestag.de/btp/20/20120.pdf#page=53,Vizepräsidentin erteilt ausdrücklich Ordnungsruf für Landesverräter-Zuschreibung.
+306606,sha256:1c27a8975cf8aadd7cb2422d9bfbe266d1874923f6eb3c88fd1e4792925745ed,141,11005203,Bernd Schattner,AfD,1,https://dserver.bundestag.de/btp/20/20141.pdf#page=184,Ordnungsruf für Zwischenruf Hetzer.
+309117,sha256:09c3911e113f3e2dd21a62c75fe7d0446c7607d5ef3a4c183ffab090f7c1c95b,153,11004888,Uwe Schulz,AfD,1,https://dserver.bundestag.de/btp/20/20153.pdf#page=86,Ordnungsruf für Zwischenruf Dummschwätzer.
+318943,sha256:773ab9029c1eee258efd3d4dfa25ab95678eed45148e4c3355b374c9c8975b1c,208,11004905,Beatrix von Storch,AfD,1,https://dserver.bundestag.de/btp/20/20208.pdf#page=95,Bärbel Bas erteilt Ordnungsruf für persönliche Beleidigung.
