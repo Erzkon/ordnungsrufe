@@ -53,6 +53,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p 'test_web_export.py' -v
           python -m unittest discover -s tests -p 'test_wp21.py' -v
+          python -m unittest discover -s tests -p 'test_wp21_feed.py' -v
       - name: Historische und aktuelle Quellenlisten gegen veroeffentlichte JSONs pruefen
         run: |
           python export_webdaten.py --check
@@ -65,6 +66,16 @@ jobs:
           key: wp21-xml-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             wp21-xml-
+      - name: Letzten erfolgreichen Website-Quellenstand wiederverwenden
+        if: github.event_name != 'pull_request'
+        uses: actions/cache@v4
+        with:
+          path: |
+            docs/data/scan_21.json
+            docs/data/hinweise_21.json
+          key: wp21-feed-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            wp21-feed-
       - name: Offizielle XML-Protokolle der 21. Wahlperiode auf neue Hinweise pruefen
         if: github.event_name != 'pull_request'
         id: scan
@@ -75,7 +86,8 @@ jobs:
           python wp21_scan.py \
             --cache-dir .cache/wp21 \
             --candidates wp21_hinweise.csv \
-            --summary docs/data/scan_21.json
+            --summary docs/data/scan_21.json \
+            --public-feed docs/data/hinweise_21.json
       - name: Hinweis bei fehlgeschlagenem Datenabruf
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'failure'
         run: echo '::warning::21.-WP-Quellenscan derzeit fehlgeschlagen; geprüfte Zähler bleiben unverändert.'
@@ -95,6 +107,8 @@ jobs:
           path: |
             docs/data/ordnungsrufe.json
             docs/data/ordnungsrufe_21.json
+            docs/data/scan_21.json
+            docs/data/hinweise_21.json
           if-no-files-found: error
           retention-days: 30
       - name: Website-Artefakt zur Veroeffentlichung uebertragen
