@@ -3,44 +3,50 @@ name: Bundestag Datenimport
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   import:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
 
     steps:
       - name: Repository laden
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Python einrichten
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
-      - name: Pakete installieren
-        run: python -m pip install -r requirements.txt
-
-      - name: Bundestagsprotokoll herunterladen
+      - name: Abhaengigkeiten installieren
         run: |
-          mkdir -p protokolle
-          curl --fail --location --show-error \
-            --retry 3 \
-            "https://dserver.bundestag.de/btp/20/20214.xml" \
-            -o protokolle/20214.xml
+          python -m pip install -r requirements.txt
+          python -m pip install pytest
 
-      - name: Ordnungsrufe extrahieren
-        run: python parser.py protokolle --out kandidaten.csv --events-out ordnungsrufe.csv
+      - name: Parser- und Downloadtests
+        run: python -m pytest -q tests/
 
-      - name: Ergebnisse bereitstellen
-        uses: actions/upload-artifact@v4
+      - name: Alle Protokolle herunterladen und pruefen
+        run: python download_protokolle.py --folder protokolle --report download-report.json
+
+      - name: Fundstellen und einzelne Ordnungsrufe extrahieren
+        run: |
+          python parser.py protokolle \
+            --out kandidaten.csv \
+            --events-out ordnungsrufe.csv \
+            --summary-out sitzungen.csv
+
+      - name: CSV-Dateien und Download-Bericht bereitstellen
+        if: always()
+        uses: actions/upload-artifact@v6
         with:
-          name: ordnungsruf-auswertung
+          name: ordnungsruf-vollimport
           path: |
             kandidaten.csv
             ordnungsrufe.csv
-          if-no-files-found: error
-
-      - name: Originalprotokoll bereitstellen
-        uses: actions/upload-artifact@v4
-        with:
-          name: bundestag-xml
-          path: protokolle/20214.xml
+            sitzungen.csv
+            download-report.json
+          if-no-files-found: warn
+          retention-days: 30
