@@ -9,7 +9,7 @@ permissions:
 jobs:
   import:
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 90
 
     steps:
       - name: Repository laden
@@ -67,6 +67,41 @@ jobs:
             --candidates kandidaten.csv \
             --verified bestaetigte_ordnungsrufe.csv \
             --out-folder .
+
+      - name: Unabhaengiger Abgleich mit DIP-Vorgangsmetadaten (20. Wahlperiode)
+        run: |
+          python dip_abgleich.py \
+            --verified bestaetigte_ordnungsrufe.csv \
+            --out-folder .
+
+      - name: DIP-Abgleichausgaben kontrollieren
+        run: |
+          python - <<'PY_DIP'
+          import csv, json
+          from pathlib import Path
+          for name in ('dip_alle_ordnungsrufbezuege.csv', 'dip_pruefliste.csv'):
+              p = Path(name)
+              if not p.is_file() or p.stat().st_size > 20_000_000:
+                  raise SystemExit('DIP-Ausgabe fehlt/zu gross: ' + name)
+              with p.open('r', encoding='utf-8', newline='') as h:
+                  if not next(csv.reader(h), None):
+                      raise SystemExit('DIP-CSV ohne Kopf: ' + name)
+          report = json.loads(Path('dip_bericht.json').read_text(encoding='utf-8'))
+          if report.get('dip_vorgaenge_mit_ordnungsruf_im_titel', 0) < 1:
+              raise SystemExit('DIP lieferte keinen Ordnungsrufvorgang')
+          print('DIP-Ausgaben plausibilisiert, keine Verifikationsentscheidungen verändert.')
+          PY_DIP
+
+      - name: Artifact 4 - Unabhaengiger DIP-Abgleich
+        uses: actions/upload-artifact@v6
+        with:
+          name: ordnungsruf-8-dip
+          path: |
+            dip_alle_ordnungsrufbezuege.csv
+            dip_pruefliste.csv
+            dip_bericht.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Auditdateien pruefen und Manifest schreiben
         run: |
