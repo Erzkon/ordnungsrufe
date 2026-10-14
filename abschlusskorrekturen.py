@@ -2,7 +2,7 @@
 """Verbindliche Nachpruefung: Ruecknahmen, Fehlzuordnungen und DIP-Nachtraege.
 
 Erhaelt alle urspruenglichen Daten unveraendert. Vergleicht Quellenfingerabdruecke
-und stoppt bei abweichender Ausgangslage; publiziert keine vorlaeufigen 135.
+und stoppt bei abweichender Ausgangslage; 135 bleibt als Arbeitswert markiert.
 """
 import argparse
 import csv
@@ -23,6 +23,7 @@ EXPECTED_REMOVALS = {'20-107-2983-01','20-163-4303-01','20-204-3164-01'}
 EXPECTED_ADDITIONS = {
     '287211':('31','11004905','Beatrix von Storch','AfD'),
     '306052':('136','11005079','Matthias Helferich','fraktionslos'),
+    '306511':('141','11005079','Matthias Helferich','fraktionslos'),
     '308052':('147','11004905','Beatrix von Storch','AfD'),
     '316468':('191','11005053','Robert Farle','fraktionslos'),
 }
@@ -80,7 +81,7 @@ def correct(original, dip, sessions, decisions):
           'Sicherheitsstopp: bekannte Ruecknahme-/Fehlzuordnungs-IDs fehlen oder weichen ab')
     check({d['dip_id'] for d in decisions if d['aktion']=='hinzufuegen'}==set(EXPECTED_ADDITIONS),
           'Sicherheitsstopp: erwartete neue DIP-Faelle fehlen oder weichen ab')
-    check(len(decisions)==7,'Es muessen genau sieben nachvollziehbare Korrekturentscheidungen vorliegen')
+    check(len(decisions)==8,'Es muessen genau acht nachvollziehbare Korrekturentscheidungen vorliegen')
     dismissed=[];new=[];changed=set();added_dips=set()
     for d in decisions:
         typ=d['aktion']
@@ -132,10 +133,12 @@ def correct(original, dip, sessions, decisions):
                   f'{did}: Sitzungs-PDF-Beleg falsch')
             page=d['beleg'][len(pdf_for_sitzung(d['sitzung'])):]
             check(page.isdigit(), f'{did}: PDF-Seite fehlt')
-            # 20/031: DIP-Vorgangsdatum ist Tag des erfolglosen Einspruchs (20/032).
-            if did=='287211':
-                check(d['sitzung']=='31' and source['dip_datum']==as_date(by_sid['32']['datum']),
-                      'Nachtraeglicher DIP-Vorgang 287211 nicht mehr passend')
+            # Bei den Einspruchsvorgaengen 287211 (20/032) und 306511 (20/142)
+            # entspricht das DIP-Datum dem Folgetag der Erteilung.
+            if did in ('287211','306511'):
+                orig,follow={'287211':('31','32'),'306511':('141','142')}[did]
+                check(d['sitzung']==orig and source['dip_datum']==as_date(by_sid[follow]['datum']),
+                      f'Nachtraeglicher DIP-Vorgang {did} nicht mehr passend')
             else:
                 check(source['dip_datum']==as_date(by_sid[d['sitzung']]['datum']),
                       f'{did}: Datum weicht ab')
@@ -157,8 +160,8 @@ def correct(original, dip, sessions, decisions):
             })
     result=sorted([r for r in original if (r['ereignis_id'],r['person_id']) not in changed]+new,
                   key=lambda r:(int(r['sitzung']),r['ereignis_id'],r['person']))
-    check(len(new)==4 and len(dismissed)==3,'Sicherheitsstopp: erwartete 4+3 nicht erreicht')
-    check(len(result)==len(original)+1,'Unerwartete Änderung der Personenmaßnahmen')
+    check(len(new)==5 and len(dismissed)==3,'Sicherheitsstopp: erwartete 5+3 nicht erreicht')
+    check(len(result)==len(original)+2,'Unerwartete Änderung der Personenmaßnahmen')
     check(len({(r['ereignis_id'],r['person_id']) for r in result})==len(result),
           'Dubletten nach Korrektur')
     return result,dismissed,new
@@ -175,7 +178,7 @@ def run(input_path,dip_path,sessions_path,decisions_path,dest_path):
     check(len(sessions)==214,'Nicht alle 214 Protokolle verarbeitet')
     decisions=read(decisions_path,DECISIONS)
     final,dismissed,added=correct(source,dips,sessions,decisions)
-    check(len(final)==134,'Abweichende wirksame Gesamtzahl – Sicherheitsstopp')
+    check(len(final)==135,'Abweichende wirksame Gesamtzahl – Sicherheitsstopp')
     dest=Path(dest_path);dest.mkdir(parents=True,exist_ok=True)
     write_csv(dest/'wirksame_ordnungsrufe.csv',final,FIELDS)
     write_csv(dest/'ausgenommene_ordnungsrufe.csv',dismissed,CORR_FIELDS)
@@ -193,11 +196,15 @@ def run(input_path,dip_path,sessions_path,decisions_path,dest_path):
         'bestaetigte_ereignis_ids':len({r['ereignis_id'] for r in final}),
         'stephan_brandner':people['Stephan Brandner'],
         'beatrix_von_storch':people['Beatrix von Storch'],
+        'amtliche_personenzahl_beatrix_von_storch':19,
+        'abweichung_personenzahl_beatrix_von_storch':19-people['Beatrix von Storch'],
+        'identifizierter_offener_dip_konflikt':'DIP 298177 Sitzung 20/094 vs DIP 298160 Sitzung 20/095: Vorbehalt am Vortag, Erteilung am Folgetag. In Arbeitsliste einmal gezaehlt.',
+        'dip_306511_einspruch_zurueckgewiesen':'20/142, PDF Seiten 15 und 61',
         'methodik':'Nur per Quellenabgleich einzeln belegte Massnahmen, keine automatische Auffuellung zur amtlichen Zahl.',
-        'status':'Vorlaeufig. Letzte Differenz und weitere Quervergleiche offen.',
+        'status':'Vorlaeufig. Gesamtwert 135 stimmt numerisch, aber Einzelabgleich (von Storch 18 statt amtlich 19) und DIP-Konflikte sind offen.',
     }
     (dest/'korrekturbericht.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    print(f'Korrigiert: {len(source)} - 2 Ruecknahmen - 1 Fehlzuordnung + 4 belegte = {len(final)}; Differenz zur amtlichen Zahl: {report["offene_differenz"]}')
+    print(f'Korrigiert: {len(source)} - 2 Ruecknahmen - 1 Fehlzuordnung + 5 belegte = {len(final)}; Einzelabgleich bleibt offen.')
     return report
 
 def main():
