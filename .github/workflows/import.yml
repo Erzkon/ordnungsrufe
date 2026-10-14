@@ -74,6 +74,25 @@ jobs:
             --verified bestaetigte_ordnungsrufe.csv \
             --out-folder .
 
+      - name: Unabhaengig belegte DIP-Nachtraege getrennt zusammenfuehren
+        run: |
+          python dip_nachtraege.py \
+            --verified bestaetigte_ordnungsrufe.csv \
+            --dip dip_alle_ordnungsrufbezuege.csv \
+            --sessions sitzungen.csv \
+            --decisions pruefentscheidungen/dip_nachtraege.csv \
+            --out-folder .
+
+      - name: Artifact 5 - Quellengepruefte Nachtraege
+        uses: actions/upload-artifact@v6
+        with:
+          name: ordnungsruf-9-nachtraege
+          path: |
+            bestaetigte_ordnungsrufe_mit_nachtraegen.csv
+            nachtragsbericht.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: DIP-Abgleichausgaben kontrollieren
         run: |
           python - <<'PY_DIP'
