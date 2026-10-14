@@ -1,0 +1,92 @@
+{
+  "meta": {
+    "legislature": 21,
+    "period": "seit 2025",
+    "snapshot_date": "2026-10-14",
+    "count": 8,
+    "events": 8,
+    "people": 7,
+    "rescinded_excluded": 0,
+    "provisional": true,
+    "incomplete": true,
+    "note": "Dies ist eine kleine, einzeln überprüfte Anfangsauswahl, ausdrücklich KEINE vollständige Statistik der 21. Wahlperiode. Weitere Protokolle werden nach und nach geprüft. Automatische Hinweise zählen nicht mit.",
+    "sources": {
+      "bundestag": "https://www.bundestag.de/services/opendata",
+      "methodology": "https://github.com/Erzkon/ordnungsrufe/blob/main/WP21.md"
+    }
+  },
+  "records": [
+    {
+      "event_id": "21-057-kneller-01",
+      "date": "2026-01-30",
+      "session": 57,
+      "person_id": "",
+      "person": "Maximilian Kneller",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/21/21057.pdf#page=48"
+    },
+    {
+      "event_id": "21-077-reichardt-01",
+      "date": "2026-05-07",
+      "session": 77,
+      "person_id": "",
+      "person": "Martin Reichardt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/21/21077.pdf#page=54"
+    },
+    {
+      "event_id": "21-090-sichert-01",
+      "date": "2026-07-10",
+      "session": 90,
+      "person_id": "",
+      "person": "Martin Sichert",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/21/21090.pdf#page=30"
+    },
+    {
+      "event_id": "21-092-koegel-01",
+      "date": "2026-09-09",
+      "session": 92,
+      "person_id": "",
+      "person": "Jürgen Koegel",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/21/21092.pdf#page=62"
+    },
+    {
+      "event_id": "21-094-koektuerk-01",
+      "date": "2026-09-11",
+      "session": 94,
+      "person_id": "",
+      "person": "Cansin Köktürk",
+      "group": "Die Linke",
+      "source": "https://dserver.bundestag.de/btp/21/21094.pdf#page=24"
+    },
+    {
+      "event_id": "21-094-koektuerk-02",
+      "date": "2026-09-11",
+      "session": 94,
+      "person_id": "",
+      "person": "Cansin Köktürk",
+      "group": "Die Linke",
+      "source": "https://dserver.bundestag.de/btp/21/21094.pdf#page=24"
+    },
+    {
+      "event_id": "21-097-wagener-01",
+      "date": "2026-09-25",
+      "session": 97,
+      "person_id": "",
+      "person": "Robin Wagener",
+      "group": "BÜNDNIS 90/DIE GRÜNEN",
+      "source": "https://dserver.bundestag.de/btp/21/21097.pdf#page=59"
+    },
+    {
+      "event_id": "21-099-theis-01",
+      "date": "2026-10-08",
+      "session": 99,
+      "person_id": "",
+      "person": "Roland Theis",
+      "group": "CDU/CSU",
+      "source": "https://dserver.bundestag.de/btp/21/21099.pdf#page=40"
+    }
+  ]
+}
