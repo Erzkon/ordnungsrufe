@@ -28,16 +28,17 @@ def example():
     old('20-060-5739-01','11005079','Matthias Helferich',60,'fraktionslos')
     old('20-085-5217-01','11005053','Robert Farle',85,'fraktionslos')
     dips={};sessions={}
-    for sn in [20,31,32,60,85,107,136,147,163,191,204]:
+    for sn in [20,31,32,60,85,107,136,141,142,147,163,191,204]:
         date={31:'28.04.2022',32:'29.04.2022',136:'15.11.2023',
-              147:'18.01.2024',191:'10.10.2024'}.get(sn,'01.01.2023')
+              141:'30.11.2023',142:'01.12.2023',147:'18.01.2024',191:'10.10.2024'}.get(sn,'01.01.2023')
         sessions[str(sn)]=dict(sitzung=str(sn),datum=date)
     for did,sn,name,iso in [('287211','31','Beatrix von Storch','2022-04-29'),
                              ('306052','136','Matthias Helferich','2023-11-15'),
+                             ('306511','141','Matthias Helferich','2023-12-01'),
                              ('308052','147','Beatrix von Storch','2024-01-18'),
                              ('316468','191','Robert Farle','2024-10-10')]:
         dips[did]=dict(dip_id=did,dip_titel='Erteilung eines Ordnungsrufes an '+name,
-                       dip_datum=iso,sitzungen_aus_dip='31;32' if did=='287211' else sn,
+                       dip_datum=iso,sitzungen_aus_dip='31;32' if did=='287211' else '141;142' if did=='306511' else sn,
                        mehrfachvergabe_hinweis='nein')
     decisions=[]
     for row,typ,ref in [(s,'zurueckgenommen',108),(v,'zurueckgenommen',164),
@@ -49,6 +50,7 @@ def example():
             begruendung='Amtlich dokumentierte Begruendung'))
     for did,sn,pid,name,fr in [('287211','31','11004905','Beatrix von Storch','AfD'),
                                ('306052','136','11005079','Matthias Helferich','fraktionslos'),
+                               ('306511','141','11005079','Matthias Helferich','fraktionslos'),
                                ('308052','147','11004905','Beatrix von Storch','AfD'),
                                ('316468','191','11005053','Robert Farle','fraktionslos')]:
         decisions.append(dict(aktion='hinzufuegen',ereignis_id='',person_id=pid,person=name,
@@ -63,8 +65,8 @@ def test_historical_corrections_are_separate_from_originals():
     original,dips,sessions,decisions=example()
     before=copy.deepcopy(original)
     result,excluded,added=correct(original,dips,sessions,decisions)
-    assert len(result)==len(original)+1
-    assert len(excluded)==3 and len(added)==4
+    assert len(result)==len(original)+2
+    assert len(excluded)==3 and len(added)==5
     assert original==before
     assert {x['ereignis_id'] for x in original}-{x['ereignis_id'] for x in result}=={
         '20-107-2983-01','20-163-4303-01','20-204-3164-01'}
@@ -121,6 +123,38 @@ def test_session_31_uses_subsequent_objection_date():
 
 def test_can_reject_missing_evidence_page():
     source,dips,sessions,decisions=example()
-    decisions[6]['beleg']='https://dserver.bundestag.de/btp/20/20191.pdf#page='
+    decisions[7]['beleg']='https://dserver.bundestag.de/btp/20/20191.pdf#page='
     with pytest.raises(CheckError):
         correct(source,dips,sessions,decisions)
+
+
+def test_141_historic_order_and_followup_objection():
+    original,dips,sessions,decisions=example()
+    result,excluded,added=correct(original,dips,sessions,decisions)
+    new=[r for r in added if r['ereignis_id']=='DIP20-306511-K01']
+    assert len(new)==1
+    assert new[0]['person']=='Matthias Helferich'
+    assert new[0]['sitzung']=='141'
+    assert new[0]['datum']=='30.11.2023'
+
+
+def test_reject_changed_followup_date_142():
+    original,dips,sessions,decisions=example()
+    for s in sessions:
+        if s['sitzung']=='142':s['datum']='02.12.2023'
+    with pytest.raises(CheckError,match='306511'):
+        correct(original,dips,sessions,decisions)
+
+
+def test_reject_wrong_followup_dip_metadata_306511():
+    original,dips,sessions,decisions=example()
+    for x in dips:
+        if x['dip_id']=='306511':x['dip_datum']='2023-11-30'
+    with pytest.raises(CheckError,match='QUELLENDRIFT'):
+        correct(original,dips,sessions,decisions)
+
+
+def test_reject_fake_person_in_new_141():
+    original,dips,sessions,decisions=example()
+    decisions[-1]['person_id']='11004905'
+    with pytest.raises(CheckError):correct(original,dips,sessions,decisions)
