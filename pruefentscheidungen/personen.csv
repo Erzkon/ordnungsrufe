@@ -1,7 +1,20 @@
-﻿ereignis_id,person_id,person,fraktion_zur_sitzung,entscheidung,beleg,kommentar
+ereignis_id,person_id,person,fraktion_zur_sitzung,entscheidung,beleg,kommentar
+20-009-2461-01,11004891,Thomas Seitz,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20009.pdf#page=27,"Zwei Formulierungen im selben Wortbeitrag erteilen denselben Ordnungsruf an Seitz; laut Protokoll damals AfD-Fraktion, anders als die ungepruefte Parser-Zuordnung."
+20-010-5320-01,11004605,Christian Petry,SPD,bestaetigt,https://dserver.bundestag.de/btp/20/20010.pdf#page=73,Nach Pruefung des Protokolls wird Christian Petry der zuvor vorbehaltene Ordnungsruf ausdruecklich erteilt.
+20-020-7812-01,11004905,Beatrix von Storch,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20020.pdf#page=90,Direkte Erteilung an Beatrix von Storch nach Verstoessen gegen die Maskenregel.
+20-022-7672-01,11004905,Beatrix von Storch,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20022.pdf#page=98,Direkter Ordnungsruf an Beatrix von Storch wegen Missachtung der Allgemeinverfuegung.
 20-032-1591-01,11004605,Christian Petry,SPD,bestaetigt,https://dserver.bundestag.de/btp/20/20032.pdf#page=14,Adressat und zum Sitzungstag bestehende Zugehoerigkeit anhand des Plenarprotokolls geprueft.
+20-035-3790-01,11004678,Stephan Brandner,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20035.pdf#page=54,Direkte Erteilung an Stephan Brandner fuer den Ausdruck Sie sind ein Luegner.
+20-040-4674-01,11003573,Gunther Krichbaum,CDU/CSU,bestaetigt,https://dserver.bundestag.de/btp/20/20040.pdf#page=73,"Erteilung an Gunther Krichbaum, nicht an den im Begruendungssatz erwaehnten Markus Frohnmaier."
+20-045-3356-01,11004926,Christoph de Vries,CDU/CSU,bestaetigt,https://dserver.bundestag.de/btp/20/20045.pdf#page=39,Direkte Erteilung an Christoph de Vries wegen persoenlicher Herabsetzung.
+20-055-4004-01,11004678,Stephan Brandner,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20055.pdf#page=57,Direkte Erteilung an Stephan Brandner wegen seines Zwischenrufs.
 20-056-3753-01,11004905,Beatrix von Storch,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20056.pdf#page=16,Adressat und zum Sitzungstag bestehende Zugehoerigkeit anhand des Plenarprotokolls geprueft.
+20-060-5739-01,11005079,Matthias Helferich,fraktionslos,bestaetigt,https://dserver.bundestag.de/btp/20/20060.pdf#page=57,Nachtraeglich erteilter Ordnungsruf an den ausdruecklich fraktionslosen Matthias Helferich.
+20-064-3333-01,11004678,Stephan Brandner,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20064.pdf#page=37,Direkte Erteilung an Stephan Brandner wegen persoenlicher Beleidigung der Kollegin Detzer.
+20-073-15029-01,11005189,Frank Rinck,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20073.pdf#page=205,Direkte Erteilung an Frank Rinck fuer den Zwischenruf Laecherlich.
 20-074-11861-01,11004905,Beatrix von Storch,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20074.pdf#page=111,Adressat und zum Sitzungstag bestehende Zugehoerigkeit anhand des Plenarprotokolls geprueft.
+20-076-9315-01,11004678,Stephan Brandner,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20076.pdf#page=122,Direkte Erteilung an Stephan Brandner fuer Bezeichnung Heuchlerin.
+20-092-4955-01,11004905,Beatrix von Storch,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20092.pdf#page=62,Direkte Erteilung an Beatrix von Storch wegen Zwischenruf; Heidi Reichinnek ist nicht Empfaengerin.
 20-126-1179-01,11004905,Beatrix von Storch,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20126.pdf#page=24,Adressat und zum Sitzungstag bestehende Zugehoerigkeit anhand des Plenarprotokolls geprueft.
 20-130-3244-01,11003576,Renate Künast,BÜNDNIS 90/DIE GRÜNEN,bestaetigt,https://dserver.bundestag.de/btp/20/20130.pdf#page=42,Adressat und zum Sitzungstag bestehende Zugehoerigkeit anhand des Plenarprotokolls geprueft.
 20-130-3246-01,11003576,Renate Künast,BÜNDNIS 90/DIE GRÜNEN,bestaetigt,https://dserver.bundestag.de/btp/20/20130.pdf#page=42,Adressat und zum Sitzungstag bestehende Zugehoerigkeit anhand des Plenarprotokolls geprueft.
@@ -14,11 +27,11 @@
 20-155-5616-01,11004859,Martin Reichardt,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20155.pdf#page=114,Adressat und zum Sitzungstag bestehende Zugehoerigkeit anhand des Plenarprotokolls geprueft.
 20-155-5617-01,11004859,Martin Reichardt,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20155.pdf#page=114,Adressat und zum Sitzungstag bestehende Zugehoerigkeit anhand des Plenarprotokolls geprueft.
 20-186-1174-01,11004678,Stephan Brandner,AfD,bestaetigt,https://dserver.bundestag.de/btp/20/20186.pdf#page=24,Adressat und zum Sitzungstag bestehende Zugehoerigkeit anhand des Plenarprotokolls geprueft.
-20-214-2077-01,11005007,Ali Al-Dailami,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
 20-214-2077-01,11003746,Sevim Dağdelen,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
 20-214-2077-01,11003753,Klaus Ernst,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
 20-214-2077-01,11004060,Andrej Hunko,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
-20-214-2077-01,11005127,Christian Leye,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
+20-214-2077-01,11004183,Sahra Wagenknecht,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
 20-214-2077-01,11004823,Amira Mohamed Ali,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
 20-214-2077-01,11004911,Jessica Tatti,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
-20-214-2077-01,11004183,Sahra Wagenknecht,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
+20-214-2077-01,11005007,Ali Al-Dailami,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
+20-214-2077-01,11005127,Christian Leye,BSW (Gruppe),bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=50,"BSW war am Sitzungstag eine parlamentarische Gruppe, keine Fraktion."
