@@ -1,0 +1,1238 @@
+{
+  "meta": {
+    "legislature": 20,
+    "period": "2021–2025",
+    "snapshot_date": "2026-10-14",
+    "count": 135,
+    "events": 123,
+    "people": 61,
+    "rescinded_excluded": 2,
+    "official_total": 135,
+    "official_beatrix_von_storch": 19,
+    "verified_beatrix_von_storch": 18,
+    "provisional": true,
+    "note": "Die Gesamtzahl stimmt mit der amtlichen Angabe ueberein. Die Einzelzahl fuer Beatrix von Storch (18 quellengeprueft / 19 amtlich) und eine moegliche DIP-Doppelregistrierung sind noch nicht abschliessend geklaert.",
+    "sources": {
+      "bundestag": "https://www.bundestag.de/dokumente/textarchiv/1949-09-20-ordnungsruf-1086652",
+      "handbook": "https://www.bundestag.de/resource/blob/196296/08d0a21670ca40e45ecfdb242d119d58/Kapitel_07_16_Ordnungsma__nahmen-data.pdf",
+      "methodology": "https://github.com/Erzkon/ordnungsrufe/blob/main/QUELLENABGLEICH.md"
+    }
+  },
+  "records": [
+    {
+      "event_id": "20-009-2461-01",
+      "date": "2021-12-16",
+      "session": 9,
+      "person_id": "11004891",
+      "person": "Thomas Seitz",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20009.pdf#page=27"
+    },
+    {
+      "event_id": "20-010-5320-01",
+      "date": "2022-01-12",
+      "session": 10,
+      "person_id": "11004605",
+      "person": "Christian Petry",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20010.pdf#page=73"
+    },
+    {
+      "event_id": "20-020-7812-01",
+      "date": "2022-03-16",
+      "session": 20,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20020.pdf#page=90"
+    },
+    {
+      "event_id": "20-022-7672-01",
+      "date": "2022-03-18",
+      "session": 22,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20022.pdf#page=98"
+    },
+    {
+      "event_id": "DIP20-287211-K01",
+      "date": "2022-04-28",
+      "session": 31,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20031.pdf#page=78"
+    },
+    {
+      "event_id": "20-032-1591-01",
+      "date": "2022-04-29",
+      "session": 32,
+      "person_id": "11004605",
+      "person": "Christian Petry",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20032.pdf#page=14"
+    },
+    {
+      "event_id": "20-035-3790-01",
+      "date": "2022-05-13",
+      "session": 35,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20035.pdf#page=54"
+    },
+    {
+      "event_id": "20-040-4674-01",
+      "date": "2022-06-01",
+      "session": 40,
+      "person_id": "11003573",
+      "person": "Gunther Krichbaum",
+      "group": "CDU/CSU",
+      "source": "https://dserver.bundestag.de/btp/20/20040.pdf#page=73"
+    },
+    {
+      "event_id": "20-041-3228-01",
+      "date": "2022-06-02",
+      "session": 41,
+      "person_id": "11005079",
+      "person": "Matthias Helferich",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20041.pdf#page=26"
+    },
+    {
+      "event_id": "20-041-4807-01",
+      "date": "2022-06-02",
+      "session": 41,
+      "person_id": "11004787",
+      "person": "Enrico Komning",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20041.pdf#page=69"
+    },
+    {
+      "event_id": "20-041-4807-01",
+      "date": "2022-06-02",
+      "session": 41,
+      "person_id": "11004859",
+      "person": "Martin Reichardt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20041.pdf#page=69"
+    },
+    {
+      "event_id": "20-044-6518-01",
+      "date": "2022-06-23",
+      "session": 44,
+      "person_id": "11005031",
+      "person": "Dirk Brandes",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20044.pdf#page=69"
+    },
+    {
+      "event_id": "20-045-3356-01",
+      "date": "2022-06-24",
+      "session": 45,
+      "person_id": "11004926",
+      "person": "Christoph de Vries",
+      "group": "CDU/CSU",
+      "source": "https://dserver.bundestag.de/btp/20/20045.pdf#page=39"
+    },
+    {
+      "event_id": "20-047-14250-01",
+      "date": "2022-07-07",
+      "session": 47,
+      "person_id": "11005079",
+      "person": "Matthias Helferich",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20047.pdf#page=172"
+    },
+    {
+      "event_id": "20-055-4004-01",
+      "date": "2022-09-23",
+      "session": 55,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20055.pdf#page=57"
+    },
+    {
+      "event_id": "20-056-3753-01",
+      "date": "2022-09-28",
+      "session": 56,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20056.pdf#page=16"
+    },
+    {
+      "event_id": "20-056-6230-01",
+      "date": "2022-09-28",
+      "session": 56,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20056.pdf#page=51"
+    },
+    {
+      "event_id": "20-060-5739-01",
+      "date": "2022-10-13",
+      "session": 60,
+      "person_id": "11005079",
+      "person": "Matthias Helferich",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20060.pdf#page=57"
+    },
+    {
+      "event_id": "20-064-3333-01",
+      "date": "2022-10-21",
+      "session": 64,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20064.pdf#page=37"
+    },
+    {
+      "event_id": "20-068-4604-01",
+      "date": "2022-11-21",
+      "session": 68,
+      "person_id": "11005086",
+      "person": "Bruno Hönel",
+      "group": "BÜNDNIS 90/DIE GRÜNEN",
+      "source": "https://dserver.bundestag.de/btp/20/20068.pdf#page=67"
+    },
+    {
+      "event_id": "20-070-9534-01",
+      "date": "2022-11-24",
+      "session": 70,
+      "person_id": "11005189",
+      "person": "Frank Rinck",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20070.pdf#page=137"
+    },
+    {
+      "event_id": "20-073-15029-01",
+      "date": "2022-12-01",
+      "session": 73,
+      "person_id": "11005189",
+      "person": "Frank Rinck",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20073.pdf#page=205"
+    },
+    {
+      "event_id": "20-074-11861-01",
+      "date": "2022-12-02",
+      "session": 74,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20074.pdf#page=111"
+    },
+    {
+      "event_id": "20-076-9315-01",
+      "date": "2022-12-15",
+      "session": 76,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20076.pdf#page=122"
+    },
+    {
+      "event_id": "20-080-2254-01",
+      "date": "2023-01-20",
+      "session": 80,
+      "person_id": "11003790",
+      "person": "Jan Korte",
+      "group": "Die Linke",
+      "source": "https://dserver.bundestag.de/btp/20/20080.pdf#page=22"
+    },
+    {
+      "event_id": "20-082-5912-01",
+      "date": "2023-01-26",
+      "session": 82,
+      "person_id": "11003199",
+      "person": "Dietmar Nietan",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20082.pdf#page=82"
+    },
+    {
+      "event_id": "DIP20-296009-N01",
+      "date": "2023-01-26",
+      "session": 82,
+      "person_id": "11003199",
+      "person": "Dietmar Nietan",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20082.pdf#page=82"
+    },
+    {
+      "event_id": "20-083-2504-01",
+      "date": "2023-01-27",
+      "session": 83,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20083.pdf#page=40"
+    },
+    {
+      "event_id": "20-085-5217-01",
+      "date": "2023-02-09",
+      "session": 85,
+      "person_id": "11005053",
+      "person": "Robert Farle",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20085.pdf#page=63"
+    },
+    {
+      "event_id": "20-085-5304-01",
+      "date": "2023-02-09",
+      "session": 85,
+      "person_id": "11003246",
+      "person": "Jürgen Trittin",
+      "group": "BÜNDNIS 90/DIE GRÜNEN",
+      "source": "https://dserver.bundestag.de/btp/20/20085.pdf#page=64"
+    },
+    {
+      "event_id": "20-091-10614-01",
+      "date": "2023-03-16",
+      "session": 91,
+      "person_id": "11004892",
+      "person": "Martin Sichert",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20091.pdf#page=170"
+    },
+    {
+      "event_id": "20-092-4955-01",
+      "date": "2023-03-17",
+      "session": 92,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20092.pdf#page=62"
+    },
+    {
+      "event_id": "20-094-10262-01",
+      "date": "2023-03-30",
+      "session": 94,
+      "person_id": "11004767",
+      "person": "Fabian Jacobi",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20094.pdf#page=155"
+    },
+    {
+      "event_id": "20-095-3112-01",
+      "date": "2023-03-31",
+      "session": 95,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20095.pdf#page=25"
+    },
+    {
+      "event_id": "20-096-5848-01",
+      "date": "2023-04-19",
+      "session": 96,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20096.pdf#page=37"
+    },
+    {
+      "event_id": "20-100-9370-01",
+      "date": "2023-04-27",
+      "session": 100,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20100.pdf#page=160"
+    },
+    {
+      "event_id": "20-102-5682-01",
+      "date": "2023-05-10",
+      "session": 102,
+      "person_id": "11005015",
+      "person": "Daniel Baldy",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20102.pdf#page=53"
+    },
+    {
+      "event_id": "20-103-10167-01",
+      "date": "2023-05-11",
+      "session": 103,
+      "person_id": "11004041",
+      "person": "Nicole Gohlke",
+      "group": "Die Linke",
+      "source": "https://dserver.bundestag.de/btp/20/20103.pdf#page=144"
+    },
+    {
+      "event_id": "20-103-10167-01",
+      "date": "2023-05-11",
+      "session": 103,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20103.pdf#page=144"
+    },
+    {
+      "event_id": "20-103-10167-01",
+      "date": "2023-05-11",
+      "session": 103,
+      "person_id": "11004796",
+      "person": "Konstantin Kuhle",
+      "group": "FDP",
+      "source": "https://dserver.bundestag.de/btp/20/20103.pdf#page=144"
+    },
+    {
+      "event_id": "20-103-10446-01",
+      "date": "2023-05-11",
+      "session": 103,
+      "person_id": "11005092",
+      "person": "Steffen Janich",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20103.pdf#page=150"
+    },
+    {
+      "event_id": "DIP20-299524-N01",
+      "date": "2023-05-12",
+      "session": 104,
+      "person_id": "11004752",
+      "person": "Karsten Hilse",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20104.pdf#page=53"
+    },
+    {
+      "event_id": "20-105-8741-01",
+      "date": "2023-05-24",
+      "session": 105,
+      "person_id": "11005079",
+      "person": "Matthias Helferich",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20105.pdf#page=103"
+    },
+    {
+      "event_id": "20-109-10020-01",
+      "date": "2023-06-15",
+      "session": 109,
+      "person_id": "11005082",
+      "person": "Susanne Hennig-Wellsow",
+      "group": "Die Linke",
+      "source": "https://dserver.bundestag.de/btp/20/20109.pdf#page=121"
+    },
+    {
+      "event_id": "20-109-8708-01",
+      "date": "2023-06-15",
+      "session": 109,
+      "person_id": "11003790",
+      "person": "Jan Korte",
+      "group": "Die Linke",
+      "source": "https://dserver.bundestag.de/btp/20/20109.pdf#page=89"
+    },
+    {
+      "event_id": "20-112-11281-01",
+      "date": "2023-06-22",
+      "session": 112,
+      "person_id": "11005203",
+      "person": "Bernd Schattner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20112.pdf#page=175"
+    },
+    {
+      "event_id": "20-115-7359-01",
+      "date": "2023-07-06",
+      "session": 115,
+      "person_id": "11004731",
+      "person": "Kay Gottschalk",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20115.pdf#page=53"
+    },
+    {
+      "event_id": "20-118-2947-01",
+      "date": "2023-09-06",
+      "session": 118,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20118.pdf#page=30"
+    },
+    {
+      "event_id": "DIP20-303275-N01",
+      "date": "2023-09-08",
+      "session": 120,
+      "person_id": "11004731",
+      "person": "Kay Gottschalk",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20120.pdf#page=53"
+    },
+    {
+      "event_id": "20-122-5253-01",
+      "date": "2023-09-21",
+      "session": 122,
+      "person_id": "11004802",
+      "person": "Helge Lindh",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20122.pdf#page=102"
+    },
+    {
+      "event_id": "20-125-5509-01",
+      "date": "2023-09-28",
+      "session": 125,
+      "person_id": "11005053",
+      "person": "Robert Farle",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20125.pdf#page=116"
+    },
+    {
+      "event_id": "20-125-6015-01",
+      "date": "2023-09-28",
+      "session": 125,
+      "person_id": "11005209",
+      "person": "Eugen Schmidt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20125.pdf#page=133"
+    },
+    {
+      "event_id": "20-126-1179-01",
+      "date": "2023-09-29",
+      "session": 126,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20126.pdf#page=24"
+    },
+    {
+      "event_id": "20-128-3742-01",
+      "date": "2023-10-12",
+      "session": 128,
+      "person_id": "11004680",
+      "person": "Jürgen Braun",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20128.pdf#page=77"
+    },
+    {
+      "event_id": "20-130-3244-01",
+      "date": "2023-10-18",
+      "session": 130,
+      "person_id": "11003576",
+      "person": "Renate Künast",
+      "group": "BÜNDNIS 90/DIE GRÜNEN",
+      "source": "https://dserver.bundestag.de/btp/20/20130.pdf#page=42"
+    },
+    {
+      "event_id": "20-130-3246-01",
+      "date": "2023-10-18",
+      "session": 130,
+      "person_id": "11003576",
+      "person": "Renate Künast",
+      "group": "BÜNDNIS 90/DIE GRÜNEN",
+      "source": "https://dserver.bundestag.de/btp/20/20130.pdf#page=42"
+    },
+    {
+      "event_id": "20-133-3880-01",
+      "date": "2023-11-08",
+      "session": 133,
+      "person_id": "11005053",
+      "person": "Robert Farle",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20133.pdf#page=68"
+    },
+    {
+      "event_id": "DIP20-305608-N01",
+      "date": "2023-11-08",
+      "session": 133,
+      "person_id": "11004788",
+      "person": "Jörn König",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20133.pdf#page=72"
+    },
+    {
+      "event_id": "20-134-7225-01",
+      "date": "2023-11-09",
+      "session": 134,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20134.pdf#page=179"
+    },
+    {
+      "event_id": "20-136-4113-01",
+      "date": "2023-11-15",
+      "session": 136,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20136.pdf#page=78"
+    },
+    {
+      "event_id": "20-136-4474-01",
+      "date": "2023-11-15",
+      "session": 136,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20136.pdf#page=89"
+    },
+    {
+      "event_id": "DIP20-306052-K01",
+      "date": "2023-11-15",
+      "session": 136,
+      "person_id": "11005079",
+      "person": "Matthias Helferich",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20136.pdf#page=86"
+    },
+    {
+      "event_id": "20-137-9744-01",
+      "date": "2023-11-16",
+      "session": 137,
+      "person_id": "11005209",
+      "person": "Eugen Schmidt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20137.pdf#page=212"
+    },
+    {
+      "event_id": "20-139-584-01",
+      "date": "2023-11-28",
+      "session": 139,
+      "person_id": "11005229",
+      "person": "Ralf Stegner",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20139.pdf#page=16"
+    },
+    {
+      "event_id": "DIP20-306511-K01",
+      "date": "2023-11-30",
+      "session": 141,
+      "person_id": "11005079",
+      "person": "Matthias Helferich",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20141.pdf#page=25"
+    },
+    {
+      "event_id": "DIP20-306606-N01",
+      "date": "2023-11-30",
+      "session": 141,
+      "person_id": "11005203",
+      "person": "Bernd Schattner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20141.pdf#page=184"
+    },
+    {
+      "event_id": "20-142-1274-01",
+      "date": "2023-12-01",
+      "session": 142,
+      "person_id": "11005053",
+      "person": "Robert Farle",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20142.pdf#page=23"
+    },
+    {
+      "event_id": "20-142-2608-01",
+      "date": "2023-12-01",
+      "session": 142,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20142.pdf#page=63"
+    },
+    {
+      "event_id": "20-142-2863-01",
+      "date": "2023-12-01",
+      "session": 142,
+      "person_id": "11004639",
+      "person": "Jürgen Coße",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20142.pdf#page=72"
+    },
+    {
+      "event_id": "20-143-3788-01",
+      "date": "2023-12-13",
+      "session": 143,
+      "person_id": "11004662",
+      "person": "Bernd Baumann",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20143.pdf#page=59"
+    },
+    {
+      "event_id": "20-144-1863-01",
+      "date": "2023-12-14",
+      "session": 144,
+      "person_id": "11004683",
+      "person": "Leni Breymaier",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20144.pdf#page=25"
+    },
+    {
+      "event_id": "20-144-2819-01",
+      "date": "2023-12-14",
+      "session": 144,
+      "person_id": "11004731",
+      "person": "Kay Gottschalk",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20144.pdf#page=53"
+    },
+    {
+      "event_id": "20-144-4429-01",
+      "date": "2023-12-14",
+      "session": 144,
+      "person_id": "11004721",
+      "person": "Markus Frohnmaier",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20144.pdf#page=103"
+    },
+    {
+      "event_id": "20-146-5307-01",
+      "date": "2024-01-17",
+      "session": 146,
+      "person_id": "11005016",
+      "person": "Felix Banaszak",
+      "group": "BÜNDNIS 90/DIE GRÜNEN",
+      "source": "https://dserver.bundestag.de/btp/20/20146.pdf#page=87"
+    },
+    {
+      "event_id": "20-146-5443-01",
+      "date": "2024-01-17",
+      "session": 146,
+      "person_id": "11004675",
+      "person": "Peter Boehringer",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20146.pdf#page=91"
+    },
+    {
+      "event_id": "20-146-5523-01",
+      "date": "2024-01-17",
+      "session": 146,
+      "person_id": "11004675",
+      "person": "Peter Boehringer",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20146.pdf#page=93"
+    },
+    {
+      "event_id": "DIP20-308052-K01",
+      "date": "2024-01-18",
+      "session": 147,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20147.pdf#page=168"
+    },
+    {
+      "event_id": "20-150-4491-01",
+      "date": "2024-01-31",
+      "session": 150,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20150.pdf#page=105"
+    },
+    {
+      "event_id": "20-151-3110-01",
+      "date": "2024-02-01",
+      "session": 151,
+      "person_id": "11004787",
+      "person": "Enrico Komning",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20151.pdf#page=67"
+    },
+    {
+      "event_id": "20-152-1140-01",
+      "date": "2024-02-02",
+      "session": 152,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20152.pdf#page=21"
+    },
+    {
+      "event_id": "20-152-2360-01",
+      "date": "2024-02-02",
+      "session": 152,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20152.pdf#page=40"
+    },
+    {
+      "event_id": "20-153-2895-01",
+      "date": "2024-02-21",
+      "session": 153,
+      "person_id": "11004731",
+      "person": "Kay Gottschalk",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20153.pdf#page=26"
+    },
+    {
+      "event_id": "20-153-2899-01",
+      "date": "2024-02-21",
+      "session": 153,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20153.pdf#page=26"
+    },
+    {
+      "event_id": "20-153-5013-01",
+      "date": "2024-02-21",
+      "session": 153,
+      "person_id": "11004088",
+      "person": "Caren Lay",
+      "group": "Die Linke (Gruppe)",
+      "source": "https://dserver.bundestag.de/btp/20/20153.pdf#page=95"
+    },
+    {
+      "event_id": "DIP20-309117-N01",
+      "date": "2024-02-21",
+      "session": 153,
+      "person_id": "11004888",
+      "person": "Uwe Schulz",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20153.pdf#page=86"
+    },
+    {
+      "event_id": "20-155-5616-01",
+      "date": "2024-02-23",
+      "session": 155,
+      "person_id": "11004859",
+      "person": "Martin Reichardt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20155.pdf#page=114"
+    },
+    {
+      "event_id": "20-155-5617-01",
+      "date": "2024-02-23",
+      "session": 155,
+      "person_id": "11004859",
+      "person": "Martin Reichardt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20155.pdf#page=114"
+    },
+    {
+      "event_id": "20-155-6361-01",
+      "date": "2024-02-23",
+      "session": 155,
+      "person_id": "11003545",
+      "person": "Bettina Hagedorn",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20155.pdf#page=122"
+    },
+    {
+      "event_id": "20-156-2760-01",
+      "date": "2024-03-13",
+      "session": 156,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20156.pdf#page=37"
+    },
+    {
+      "event_id": "20-156-2760-01",
+      "date": "2024-03-13",
+      "session": 156,
+      "person_id": "11004859",
+      "person": "Martin Reichardt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20156.pdf#page=37"
+    },
+    {
+      "event_id": "20-156-3568-01",
+      "date": "2024-03-13",
+      "session": 156,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20156.pdf#page=64"
+    },
+    {
+      "event_id": "20-159-5385-01",
+      "date": "2024-03-20",
+      "session": 159,
+      "person_id": "11004858",
+      "person": "Stephan Protschka",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20159.pdf#page=103"
+    },
+    {
+      "event_id": "20-160-4805-01",
+      "date": "2024-03-21",
+      "session": 160,
+      "person_id": "11004888",
+      "person": "Uwe Schulz",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20160.pdf#page=104"
+    },
+    {
+      "event_id": "20-162-4862-01",
+      "date": "2024-04-10",
+      "session": 162,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20162.pdf#page=93"
+    },
+    {
+      "event_id": "20-164-3221-01",
+      "date": "2024-04-12",
+      "session": 164,
+      "person_id": "11004405",
+      "person": "Kordula Schulz-Asche",
+      "group": "BÜNDNIS 90/DIE GRÜNEN",
+      "source": "https://dserver.bundestag.de/btp/20/20164.pdf#page=75"
+    },
+    {
+      "event_id": "20-167-4170-01",
+      "date": "2024-04-26",
+      "session": 167,
+      "person_id": "11004859",
+      "person": "Martin Reichardt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20167.pdf#page=88"
+    },
+    {
+      "event_id": "20-172-6771-01",
+      "date": "2024-06-06",
+      "session": 172,
+      "person_id": "11004892",
+      "person": "Martin Sichert",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20172.pdf#page=129"
+    },
+    {
+      "event_id": "20-173-1098-01",
+      "date": "2024-06-07",
+      "session": 173,
+      "person_id": "11004906",
+      "person": "Marie-Agnes Strack-Zimmermann",
+      "group": "FDP",
+      "source": "https://dserver.bundestag.de/btp/20/20173.pdf#page=21"
+    },
+    {
+      "event_id": "20-173-691-01",
+      "date": "2024-06-07",
+      "session": 173,
+      "person_id": "11004695",
+      "person": "Tino Chrupalla",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20173.pdf#page=8"
+    },
+    {
+      "event_id": "20-177-2624-01",
+      "date": "2024-06-26",
+      "session": 177,
+      "person_id": "11005092",
+      "person": "Steffen Janich",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20177.pdf#page=19"
+    },
+    {
+      "event_id": "20-177-2725-01",
+      "date": "2024-06-26",
+      "session": 177,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20177.pdf#page=22"
+    },
+    {
+      "event_id": "20-178-5748-01",
+      "date": "2024-06-27",
+      "session": 178,
+      "person_id": "11004752",
+      "person": "Karsten Hilse",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20178.pdf#page=134"
+    },
+    {
+      "event_id": "DIP20-313510-N01",
+      "date": "2024-06-27",
+      "session": 178,
+      "person_id": "11004409",
+      "person": "Tino Sorge",
+      "group": "CDU/CSU",
+      "source": "https://dserver.bundestag.de/btp/20/20178.pdf#page=170"
+    },
+    {
+      "event_id": "20-182-2948-01",
+      "date": "2024-07-05",
+      "session": 182,
+      "person_id": "11004859",
+      "person": "Martin Reichardt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20182.pdf#page=71"
+    },
+    {
+      "event_id": "20-184-3808-01",
+      "date": "2024-09-11",
+      "session": 184,
+      "person_id": "11005209",
+      "person": "Eugen Schmidt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20184.pdf#page=108"
+    },
+    {
+      "event_id": "20-186-1174-01",
+      "date": "2024-09-13",
+      "session": 186,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20186.pdf#page=24"
+    },
+    {
+      "event_id": "20-187-2739-01",
+      "date": "2024-09-25",
+      "session": 187,
+      "person_id": "11004305",
+      "person": "Hendrik Hoppenstedt",
+      "group": "CDU/CSU",
+      "source": "https://dserver.bundestag.de/btp/20/20187.pdf#page=30"
+    },
+    {
+      "event_id": "20-189-2150-01",
+      "date": "2024-09-27",
+      "session": 189,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20189.pdf#page=48"
+    },
+    {
+      "event_id": "DIP20-316468-K01",
+      "date": "2024-10-10",
+      "session": 191,
+      "person_id": "11005053",
+      "person": "Robert Farle",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20191.pdf#page=171"
+    },
+    {
+      "event_id": "20-192-1503-01",
+      "date": "2024-10-11",
+      "session": 192,
+      "person_id": "11004859",
+      "person": "Martin Reichardt",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20192.pdf#page=39"
+    },
+    {
+      "event_id": "20-196-4243-01",
+      "date": "2024-11-06",
+      "session": 196,
+      "person_id": "11004752",
+      "person": "Karsten Hilse",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20196.pdf#page=78"
+    },
+    {
+      "event_id": "20-203-4102-01",
+      "date": "2024-12-05",
+      "session": 203,
+      "person_id": "11004698",
+      "person": "Gottfried Curio",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20203.pdf#page=87"
+    },
+    {
+      "event_id": "DIP20-318445-N01",
+      "date": "2024-12-06",
+      "session": 204,
+      "person_id": "11005197",
+      "person": "Kassem Taher Saleh",
+      "group": "BÜNDNIS 90/DIE GRÜNEN",
+      "source": "https://dserver.bundestag.de/btp/20/20204.pdf#page=80"
+    },
+    {
+      "event_id": "20-205-1305-01",
+      "date": "2024-12-16",
+      "session": 205,
+      "person_id": "11004848",
+      "person": "Sören Pellmann",
+      "group": "Die Linke (Gruppe)",
+      "source": "https://dserver.bundestag.de/btp/20/20205.pdf#page=35"
+    },
+    {
+      "event_id": "20-205-1437-01",
+      "date": "2024-12-16",
+      "session": 205,
+      "person_id": "11004891",
+      "person": "Thomas Seitz",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20205.pdf#page=38"
+    },
+    {
+      "event_id": "20-207-5366-01",
+      "date": "2024-12-19",
+      "session": 207,
+      "person_id": "11004880",
+      "person": "Jörg Schneider",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20207.pdf#page=101"
+    },
+    {
+      "event_id": "20-207-5366-01",
+      "date": "2024-12-19",
+      "session": 207,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20207.pdf#page=101"
+    },
+    {
+      "event_id": "20-207-5370-01",
+      "date": "2024-12-19",
+      "session": 207,
+      "person_id": "11004731",
+      "person": "Kay Gottschalk",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20207.pdf#page=101"
+    },
+    {
+      "event_id": "20-207-5438-01",
+      "date": "2024-12-19",
+      "session": 207,
+      "person_id": "11005053",
+      "person": "Robert Farle",
+      "group": "fraktionslos",
+      "source": "https://dserver.bundestag.de/btp/20/20207.pdf#page=103"
+    },
+    {
+      "event_id": "20-208-3264-01",
+      "date": "2024-12-20",
+      "session": 208,
+      "person_id": "11004731",
+      "person": "Kay Gottschalk",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20208.pdf#page=81"
+    },
+    {
+      "event_id": "20-208-922-01",
+      "date": "2024-12-20",
+      "session": 208,
+      "person_id": "11004752",
+      "person": "Karsten Hilse",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20208.pdf#page=11"
+    },
+    {
+      "event_id": "DIP20-318943-N01",
+      "date": "2024-12-20",
+      "session": 208,
+      "person_id": "11004905",
+      "person": "Beatrix von Storch",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20208.pdf#page=95"
+    },
+    {
+      "event_id": "20-209-3186-01",
+      "date": "2025-01-29",
+      "session": 209,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20209.pdf#page=46"
+    },
+    {
+      "event_id": "20-210-5723-01",
+      "date": "2025-01-30",
+      "session": 210,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20210.pdf#page=146"
+    },
+    {
+      "event_id": "20-211-4599-01",
+      "date": "2025-01-31",
+      "session": 211,
+      "person_id": "11004753",
+      "person": "Nicole Höchst",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20211.pdf#page=89"
+    },
+    {
+      "event_id": "DIP20-319984-N01",
+      "date": "2025-01-31",
+      "session": 211,
+      "person_id": "11005051",
+      "person": "Heike Engelhardt",
+      "group": "SPD",
+      "source": "https://dserver.bundestag.de/btp/20/20211.pdf#page=93"
+    },
+    {
+      "event_id": "20-214-1040-01",
+      "date": "2025-03-18",
+      "session": 214,
+      "person_id": "11004678",
+      "person": "Stephan Brandner",
+      "group": "AfD",
+      "source": "https://dserver.bundestag.de/btp/20/20214.pdf#page=16"
+    },
+    {
+      "event_id": "20-214-2077-01",
+      "date": "2025-03-18",
+      "session": 214,
+      "person_id": "11003746",
+      "person": "Sevim Dağdelen",
+      "group": "BSW (Gruppe)",
+      "source": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50"
+    },
+    {
+      "event_id": "20-214-2077-01",
+      "date": "2025-03-18",
+      "session": 214,
+      "person_id": "11003753",
+      "person": "Klaus Ernst",
+      "group": "BSW (Gruppe)",
+      "source": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50"
+    },
+    {
+      "event_id": "20-214-2077-01",
+      "date": "2025-03-18",
+      "session": 214,
+      "person_id": "11004060",
+      "person": "Andrej Hunko",
+      "group": "BSW (Gruppe)",
+      "source": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50"
+    },
+    {
+      "event_id": "20-214-2077-01",
+      "date": "2025-03-18",
+      "session": 214,
+      "person_id": "11004183",
+      "person": "Sahra Wagenknecht",
+      "group": "BSW (Gruppe)",
+      "source": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50"
+    },
+    {
+      "event_id": "20-214-2077-01",
+      "date": "2025-03-18",
+      "session": 214,
+      "person_id": "11004823",
+      "person": "Amira Mohamed Ali",
+      "group": "BSW (Gruppe)",
+      "source": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50"
+    },
+    {
+      "event_id": "20-214-2077-01",
+      "date": "2025-03-18",
+      "session": 214,
+      "person_id": "11004911",
+      "person": "Jessica Tatti",
+      "group": "BSW (Gruppe)",
+      "source": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50"
+    },
+    {
+      "event_id": "20-214-2077-01",
+      "date": "2025-03-18",
+      "session": 214,
+      "person_id": "11005007",
+      "person": "Ali Al-Dailami",
+      "group": "BSW (Gruppe)",
+      "source": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50"
+    },
+    {
+      "event_id": "20-214-2077-01",
+      "date": "2025-03-18",
+      "session": 214,
+      "person_id": "11005127",
+      "person": "Christian Leye",
+      "group": "BSW (Gruppe)",
+      "source": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50"
+    }
+  ]
+}
