@@ -1,1 +1,13 @@
-vorgang_id_1,vorgang_id_2,entscheidung,beleg,kommentar
+﻿vorgang_id_1,vorgang_id_2,entscheidung,beleg,kommentar
+20-032-1589-01,20-032-1591-01,gleiche_massnahme,https://dserver.bundestag.de/btp/20/20032.pdf#page=14,Ankuendigung und Fortsetzung desselben Satzes; genau eine Vergabe an Christian Petry.
+20-056-3753-01,20-056-3755-01,gleiche_massnahme,https://dserver.bundestag.de/btp/20/20056.pdf#page=16,Beide Erteilungen begruenden denselben Zwischenruf (Kindermoerder) an Beatrix von Storch; einmalige Massnahme wiederholt.
+20-074-11861-01,20-074-11864-01,getrennte_massnahmen,https://dserver.bundestag.de/btp/20/20074.pdf#page=111,Zwei Adressaten ausdruecklich unterschieden: Frau von Storch und eine zweite namentlich unbekannte Person (auch).
+20-126-1179-01,20-126-1185-01,gleiche_massnahme,https://dserver.bundestag.de/btp/20/20126.pdf#page=24,Spaetere Aussage erklaert die unmittelbar zuvor erteilte Massnahme an Frau von Storch; keine neue Vergabe.
+20-130-3244-01,20-130-3246-01,getrennte_massnahmen,https://dserver.bundestag.de/btp/20/20130.pdf#page=42,Zweiter Ordnungsruf gegen Renate Kuenast wird ausdruecklich als zweiter bezeichnet.
+20-134-7225-01,20-134-7227-01,gleiche_massnahme,https://dserver.bundestag.de/btp/20/20134.pdf#page=179,Dieselbe Aussage Brandners und derselbe Vorwurf einer unbelegten Straftat; Wiederholung zur Begruendung.
+20-136-4474-01,20-136-4480-01,gleiche_massnahme,https://dserver.bundestag.de/btp/20/20136.pdf#page=89,Praesidentin sagt denselben zweiten Ordnungsruf gegen Beatrix von Storch zweimal waehrend ihrer Erklaerung.
+20-142-1274-01,20-142-1276-01,gleiche_massnahme,https://dserver.bundestag.de/btp/20/20142.pdf#page=23,Beide Formulierungen betreffen das Ansprechen der Regierungsbank durch Robert Farle; keine neue Zuwiderhandlung.
+20-153-2895-01,20-153-2899-01,getrennte_massnahmen,https://dserver.bundestag.de/btp/20/20153.pdf#page=26,Zwei Adressaten: Kay Gottschalk und nach Zwischenbemerkung Stephan Brandner; jeweils eigene Vergabe.
+20-155-5616-01,20-155-5617-01,getrennte_massnahmen,https://dserver.bundestag.de/btp/20/20155.pdf#page=114,Zwei Gruende und zwei ausgesprochene Massnahmen an Martin Reichardt: Fahne und Verfassungsfeinde-Aeusserung.
+20-186-1174-01,20-186-1177-01,gleiche_massnahme,https://dserver.bundestag.de/btp/20/20186.pdf#page=24,Beide Formulierungen gegen Stephan Brandner wegen derselben Bezeichnung Hetzer; keine zweite Massnahme.
+20-214-2077-01,20-214-2112-beleg,beleg_bestaetigt,https://dserver.bundestag.de/btp/20/20214.pdf#page=51,Spaetere namentliche Protokollfeststellung beschreibt die zuvor ausgesprochene Gruppenvergabe an acht BSW-Abgeordnete.
