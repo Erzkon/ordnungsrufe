@@ -47,6 +47,8 @@ jobs:
             kandidaten.csv
             ordnungsrufe.csv
             sitzungen.csv
+            pruefliste.csv
+            qualitaetsbericht.json
             download-report.json
           if-no-files-found: warn
           retention-days: 30
