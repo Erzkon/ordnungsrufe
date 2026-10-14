@@ -1,0 +1,19 @@
+{
+  "wahlperiode": 20,
+  "original_bestaetigt_mit_nachtraegen": 133,
+  "zurueckgenommen": 2,
+  "fehlzugeordnet": 1,
+  "zusaetzlich_belegt": 5,
+  "wirksame_massnahmen_in_arbeitsliste": 135,
+  "amtliche_statistik_wirksame_massnahmen": 135,
+  "offene_differenz": 0,
+  "bestaetigte_ereignis_ids": 123,
+  "stephan_brandner": 20,
+  "beatrix_von_storch": 18,
+  "amtliche_personenzahl_beatrix_von_storch": 19,
+  "abweichung_personenzahl_beatrix_von_storch": 1,
+  "identifizierter_offener_dip_konflikt": "DIP 298177 Sitzung 20/094 vs DIP 298160 Sitzung 20/095: Vorbehalt am Vortag, Erteilung am Folgetag. In Arbeitsliste einmal gezaehlt.",
+  "dip_306511_einspruch_zurueckgewiesen": "20/142, PDF Seiten 15 und 61",
+  "methodik": "Nur per Quellenabgleich einzeln belegte Massnahmen, keine automatische Auffuellung zur amtlichen Zahl.",
+  "status": "Vorlaeufig. Gesamtwert 135 stimmt numerisch, aber Einzelabgleich (von Storch 18 statt amtlich 19) und DIP-Konflikte sind offen."
+}
