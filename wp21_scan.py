@@ -20,6 +20,9 @@ from parser import candidates
 
 HOST = 'https://dserver.bundestag.de/btp/21'
 MAX_SIZE = 25 * 1024 * 1024
+PUBLIC_CLASSES = ('possible_grant', 'named_group_confirmation',
+                  'appeal_or_retrospective', 'warning_or_conditional')
+PUBLIC_LIMIT = 40
 FIELDS = ('hinweis_id', 'sitzung', 'datum', 'klasse', 'xml_zeile',
           'textstelle', 'xml_quelle', 'pdf_quelle', 'status')
 
@@ -134,12 +137,61 @@ def scan(cache, max_session=250, refresh_last=6):
     }
 
 
+
+def public_feed(hints, summary, limit=PUBLIC_LIMIT):
+    """Publish a limited, *unverified* activity feed, never a sanction counter.
+
+    No person or faction is attributed automatically. The source URL is
+    constructed from the validated session, not copied from candidate input.
+    """
+    if not 1 <= limit <= 100:
+        raise ValueError('Feed-Limit ausserhalb des Sicherheitsbereichs')
+    allowed = set(PUBLIC_CLASSES)
+    selected = []
+    unique = set()
+    for h in hints:
+        session = int(h['sitzung'])
+        if not 1 <= session <= summary['letzte_sitzung']:
+            raise ValueError('Feed: Sitzung ausserhalb des gescannten Bereichs')
+        if not re.fullmatch(r'21-\d{3}-L\d+-[0-9a-f]{12}', h['hinweis_id']):
+            raise ValueError('Feed: ungueltige Hinweis-ID')
+        if h['hinweis_id'] in unique:
+            raise ValueError('Feed: doppelte Hinweis-ID')
+        unique.add(h['hinweis_id'])
+        if h['klasse'] not in allowed:
+            continue
+        date = datetime.strptime(h['datum'], '%d.%m.%Y').date().isoformat()
+        # Only excerpts, never assume the extract represents the full debate.
+        snippet = ' '.join(h['textstelle'].split())[:220]
+        selected.append({
+            'id': h['hinweis_id'], 'session': session, 'date': date,
+            'kind': h['klasse'], 'excerpt': snippet,
+            'source': f'{HOST}/21{session:03d}.pdf',
+        })
+    # Multiple paragraphs can reference the same event. The feed deliberately
+    # calls these *text locations* and does not collapse/count sanctions.
+    selected.sort(key=lambda x: (x['date'], x['session'], x['id']), reverse=True)
+    return {
+        'meta': {
+            'legislature': 21, 'status': 'unverified_text_locations',
+            'last_scan_utc': summary['zuletzt_geprueft_utc'],
+            'sessions_scanned': summary['untersuchte_sitzungen'],
+            'all_text_locations': summary['textstellen_zur_pruefung'],
+            'selected_text_locations': len(selected),
+            'shown': min(len(selected), limit),
+            'warning': 'Textstellen sind keine bestaetigten Ordnungsrufe. Keine automatische Personen- oder Fraktionszuordnung.',
+        },
+        'items': selected[:limit],
+    }
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--cache-dir',type=Path,default=Path('.cache/wp21'))
     p.add_argument('--candidates',type=Path,default=Path('wp21_hinweise.csv'))
     p.add_argument('--summary',type=Path,default=Path('docs/data/scan_21.json'))
     p.add_argument('--max-session',type=int,default=250)
+    p.add_argument('--public-feed',type=Path,default=Path('docs/data/hinweise_21.json'))
     a=p.parse_args()
     if not 10<=a.max_session<=450:
         p.error('--max-session muss zwischen 10 und 450 liegen')
@@ -151,6 +203,8 @@ def main():
         writer.writerows(hints)
     a.summary.parent.mkdir(parents=True,exist_ok=True)
     a.summary.write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    a.public_feed.parent.mkdir(parents=True,exist_ok=True)
+    a.public_feed.write_text(json.dumps(public_feed(hints,summary),ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(f'{summary["untersuchte_sitzungen"]} Protokolle, {len(hints)} Hinweise (kein gepruefter Counter).')
 
 if __name__=='__main__':main()

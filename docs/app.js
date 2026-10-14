@@ -147,6 +147,7 @@ function activate(period) {
   $('wp20-note').hidden = period !== '20';
   $('wp21-note').hidden = period !== '21';
   $('wp21-scan').hidden = period !== '21';
+  $('wp21-activity').hidden = period !== '21';
   $('period-methodology').textContent = period === '20' ? '20. Wahlperiode' : '20. und 21. Wahlperiode';
   const groupNames=[...new Set(state.records.map(row=>row.group))].sort((a,b)=>a.localeCompare(b,'de'));
   addOptions(groupNames);
@@ -170,6 +171,57 @@ async function showScan() {
     box.textContent = 'Noch kein erfolgreicher automatischer Suchlauf veröffentlicht. Die einzeln geprüften Einträge bleiben weiterhin abrufbar.';
   }
 }
+async function showActivityFeed() {
+  const container = $('wp21-activity-items');
+  const label = $('wp21-activity-meta');
+  const classNames = {
+    possible_grant: 'Mögliche Erteilung',
+    named_group_confirmation: 'Mögliche Gruppenvergabe',
+    appeal_or_retrospective: 'Einspruch oder Rückblick',
+    warning_or_conditional: 'Warnung oder Vorbehalt'
+  };
+  try {
+    const response = await fetch('./data/hinweise_21.json', {cache:'no-store'});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const feed = await response.json();
+    const meta = feed.meta;
+    if (!meta || meta.legislature !== 21 || meta.status !== 'unverified_text_locations' ||
+        !Array.isArray(feed.items) || feed.items.length > 40 ||
+        !Number.isInteger(meta.sessions_scanned) || !Number.isInteger(meta.all_text_locations)) {
+      throw new Error('Ungültiges Feed-Format');
+    }
+    const timestamp = new Date(meta.last_scan_utc);
+    if (!Number.isFinite(timestamp.getTime())) throw new Error('Ungültiges Prüfdatum');
+    label.textContent = `Letzter erfolgreicher Suchlauf: ${timestamp.toLocaleDateString('de-DE')}. ` +
+      `${meta.all_text_locations} Suchtreffer in ${meta.sessions_scanned} Protokollen. ` +
+      'Angezeigte Textstellen sind keine bestätigten Ordnungsrufe.';
+    container.replaceChildren();
+    for (const item of feed.items) {
+      if (!Number.isInteger(item.session) || item.session < 1 || item.session > 450 ||
+          !Object.prototype.hasOwnProperty.call(classNames, item.kind) ||
+          item.source !== `https://dserver.bundestag.de/btp/21/21${String(item.session).padStart(3,'0')}.pdf` ||
+          typeof item.excerpt !== 'string' || item.excerpt.length > 220 ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) throw new Error('Ungültiger Suchtreffer');
+      const card = el('li','activity-item');
+      const top = el('div','activity-top');
+      top.append(el('span','activity-type',classNames[item.kind]),
+                 el('span','activity-date',`${dateDE(item.date)} · 21/${String(item.session).padStart(3,'0')}`));
+      const snippet = el('p','activity-excerpt',item.excerpt);
+      const link = el('a','source-link','Plenarprotokoll öffnen ↗');
+      link.href = item.source;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      card.append(top,snippet,link);
+      container.append(card);
+    }
+    if (!feed.items.length) container.append(el('li','activity-empty','Keine prüfbedürftigen Treffer im veröffentlichten Suchlauf.'));
+  } catch (error) {
+    console.warn('Aktivitätsfeed nicht verfügbar',error);
+    label.textContent = 'Noch kein erfolgreicher Suchlauf verfügbar. Die bestätigten Daten bleiben unverändert.';
+    container.replaceChildren();
+  }
+}
+
 function start() {
   for(const id of ['search','group-filter','sort']) {
     $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
@@ -196,6 +248,7 @@ function start() {
     const initial=new URL(window.location.href).searchParams.get('wp')==='21'?'21':'20';
     activate(initial);
     showScan();
+    showActivityFeed();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
