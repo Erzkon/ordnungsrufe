@@ -102,6 +102,27 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Quellengepruefte Ruecknahmen, Fehlzuordnungen und neue Massnahmen korrigieren
+        run: |
+          python abschlusskorrekturen.py \
+            --verified bestaetigte_ordnungsrufe_mit_nachtraegen.csv \
+            --dip dip_alle_ordnungsrufbezuege.csv \
+            --sessions sitzungen.csv \
+            --decisions pruefentscheidungen/abschlusskorrekturen.csv \
+            --out-folder .
+
+      - name: Artifact 6 - Nachvollziehbare Korrekturen und wirksame Massnahmen
+        uses: actions/upload-artifact@v6
+        with:
+          name: ordnungsruf-11-korrekturen
+          path: |
+            wirksame_ordnungsrufe.csv
+            ausgenommene_ordnungsrufe.csv
+            ergaenzte_ordnungsrufe.csv
+            korrekturbericht.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: DIP-Abgleichausgaben kontrollieren
         run: |
           python - <<'PY_DIP'
