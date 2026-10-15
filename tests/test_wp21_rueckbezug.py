@@ -176,6 +176,33 @@ class CrossParagraphReviewLinks(unittest.TestCase):
         self.assertEqual(found[0]['person'],'Martin Reichardt')
         self.assertNotIn('namensbestaetigung',found[0]['zuordnungsmethode'])
 
+    def test_two_reichardts_prior_full_name_uniquely_disambiguates_recipient(self):
+        _,found=parse([
+            (CHAIR,['Der erste Redner in dieser Debatte ist Martin Reichardt.',
+                    'Herr Reichardt, Sie haben das Wort.',
+                    REICHARDT_GRANT,
+                    'Der nächste Redner ist Truels Reichardt.',
+                    REICHARDT_RECAP])],
+            [('Martin','Reichardt'),('Truels','Reichardt')],77)
+        self.assertEqual([row['person'] for row in found],['Martin Reichardt'])
+        self.assertTrue(found[0]['zuordnungsmethode'].startswith('namensbestaetigung'))
+
+    def test_two_reichardts_both_introduced_before_grant_are_ambiguous(self):
+        _,found=parse([
+            (CHAIR,['Der Abgeordnete Martin Reichardt spricht.',
+                    'Danach spricht der Abgeordnete Truels Reichardt.',
+                    REICHARDT_GRANT,REICHARDT_RECAP])],
+            [('Martin','Reichardt'),('Truels','Reichardt')],77)
+        self.assertEqual(found,[])
+
+    def test_two_reichardts_without_prior_full_name_do_not_choose_one(self):
+        _,found=parse([
+            (CHAIR,['Herr Reichardt, Sie haben das Wort.',
+                    REICHARDT_GRANT,REICHARDT_RECAP])],
+            [('Martin','Reichardt'),('Truels','Reichardt')],77)
+        self.assertEqual(found,[])
+
+
 
 if __name__=='__main__':
     unittest.main()
