@@ -113,6 +113,108 @@ def _same_named_xml_speaker(element, person):
     return False
 
 
+def _identity_from_xml_speech(element, index):
+    """Identity of the preceding <redner id> within this SAME speech block.
+
+    Some chair interjections are inside an MP's <rede>; others form a new
+    <rede> after the MP has finished. Do not treat a chair name as a redner.
+    """
+    parent=element.getparent()
+    if parent is None or parent.tag!='rede':
+        return None
+    for previous in element.itersiblings(preceding=True):
+        if previous.tag=='p' and previous.get('klasse')=='redner':
+            identities=previous.xpath('.//redner[@id]')
+            if len(identities)!=1:
+                return None
+            ident=identities[0].get('id')
+            found={}
+            for persons in index[1].values():
+                for key,person in persons.items():
+                    if person['person_id']==ident:
+                        found[ident]=person
+            return ({**found[ident], 'identity_status':'matched_xml_person'}
+                    if len(found)==1 else None)
+    return None
+
+
+def _strict_offence_chair_address(text):
+    """Only original researched singular chair sanctions, not generic 'Sie'.
+
+    Verbatim 21/052 insulted a colleague with 'Inkompetenz', and 21/067
+    'pathologischen Männerhass'. Being named as the *victim* is insufficient.
+    """
+    if re.search(r'^\s*Herr\s+Kollege,\s+dafür,\s+dass\s+Sie\s+der\s+'
+                 r'Kollegin\s+Inkompetenz\s+und\s+noch\s+mehr\s+'
+                 r'vorgeworfen\s+haben,\s+erteile\s+ich\s+Ihnen\s+'
+                 r'hiermit\s+einen\s+Ordnungsruf\b',text,re.I):
+        return 'speech_block'
+    if re.search(r'^\s*Frau\s+Kollegin,\s+dafür,\s+dass\s+Sie\s+'
+                 r'der\s+Kollegin\s+Gebel\s+[„"][^“"]*Männerhass[“"]'
+                 r'\s+vorgeworfen\s+haben,\s+erhalten\s+Sie\s+'
+                 r'jetzt\s+von\s+mir\s+einen\s+Ordnungsruf\b',text,re.I):
+        return 'preceding_speech'
+    return None
+
+
+def _recent_explicit_intro(paragraphs, index, target_element, target_chair,
+                           target_person, limit=180):
+    """Unique previous *chair-introduced FULL name* of a matching MP.
+
+    Unlike general mentions, the official introduction explicitly names
+    who is about to speak. For 21/065 two people in the index share
+    'Reichardt', so a surname alone is not a reliable identity.
+    """
+    from parser import issuer_context
+    line=int(target_element.sourceline)
+    identities=index[0].get(target_person.casefold(), {})
+    if len(identities)<2:
+        return None
+    found={}
+    for element,text in paragraphs:
+        delta=line-int(element.sourceline)
+        if not 0<delta<=limit or _chair(element,issuer_context)!=target_chair:
+            continue
+        if not re.search(r'\b(?:hat|erhält|bekommt)\b'
+                         r'[^.!?]{0,170}\bdas\s+Wort\b',text,re.I):
+            continue
+        for person in identities.values():
+            full=person['person']
+            if re.search(r'(?<!\w)'+re.escape(full)+r'(?!\w)',text,re.I):
+                found[(person['person_id'],full)]=(person,int(element.sourceline))
+    if len(found)!=1:
+        return None
+    who,source_line=next(iter(found.values()))
+    return {**who, 'identity_status':'matched_xml_person',
+            'zuordnungsmethode':f'vollname_vorsitz_einleitung_xmlzeile_{source_line}'}
+
+
+def refine_ambiguous_grant_identity(identified,element,paragraphs,index):
+    """Improve an EXISTING review hint; never add/duplicate an issuing act."""
+    from parser import issuer_context
+    if (identified.get('identity_status') not in
+            ('ambiguous_xml_person','unmatched_name_review')
+            or identified.get('zuordnungsmethode') not in
+            ('anrede_vor_erteilung','direkte_anrede')
+            or len(identified.get('person','').split())!=1):
+        return identified
+    marker=_chair(element,issuer_context)
+    if marker is None:
+        return identified
+    original=' '.join(element.itertext())
+    # The sanction itself must contain a direct, vocative surname AND
+    # explicitly apply the present-tense sanction to 'Sie'.
+    surname=identified['person']
+    if (not re.search(r'\bHerr\s+'+re.escape(surname)+r',\s*Sie\b',
+                      original,re.I)
+            or not re.search(r'\b(?:kriegen|bekommen|erteile)\s+'
+                             r'[^.!?]{0,65}?\bOrdnungsruf\b',
+                             original,re.I)):
+        return identified
+    verified=_recent_explicit_intro(paragraphs,index,element,marker,surname)
+    return verified if verified else identified
+
+
 def infer_source_linked_hints(paragraphs, index, local_lines):
     """Yield (original grant element, identified person), never recap events.
 
