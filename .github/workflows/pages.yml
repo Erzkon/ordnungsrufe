@@ -348,7 +348,8 @@ jobs:
 
   quellenwache:
     name: DIP- und XML-Quellenzustand ueberwachen
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    # Watch failures of the validation job itself instead of skipping alerts.
+    if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     needs: pruefen
     runs-on: ubuntu-latest
     permissions:
@@ -358,12 +359,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
+        id: dataartifact
+        if: needs.pruefen.result == 'success'
+        continue-on-error: true
         with:
           name: docs-fuer-pages
           path: docs
       - name: Quellenstand strukturiert pruefen
+        id: health
+        if: needs.pruefen.result == 'success' && steps.dataartifact.outcome == 'success'
+        continue-on-error: true
         run: python wp21_betriebsbericht.py --data docs/data --json-output wp21_health.json
       - name: Bei längerem Quellenausfall einmaligen GitHub-Vorgang öffnen oder schließen
+        if: needs.pruefen.result == 'success' && steps.health.outcome == 'success'
         continue-on-error: true
         uses: actions/github-script@v7
         with:
@@ -397,6 +405,38 @@ jobs:
               '\n\nDies ist keine Aussage über Ordnungsrufe. Der letzte erfolgreiche ' +
               'Datenstand bleibt verfügbar; geprüfte Zähler werden nicht geändert.' +
               '\n\nDetails: https://github.com/' + owner + '/' + repo + '/actions';
+            if (existing) {
+              if ((existing.body || '') !== body) {
+                await github.rest.issues.update({owner,repo,
+                  issue_number:existing.number,body});
+              }
+            } else {
+              await github.rest.issues.create({owner,repo,
+                title:'Automatischer Quellencheck: Datenstand prüfen',body});
+            }
+      - name: Fehler des Tageslaufs auch ohne Datenbericht melden
+        if: ${{ always() && (needs.pruefen.result != 'success' || steps.dataartifact.outcome == 'failure' || steps.health.outcome == 'failure') }}
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- ordnungsruf-wp21-data-sources -->';
+            const {owner,repo} = context.repo;
+            const link = 'https://github.com/' + owner + '/' + repo +
+              '/actions/runs/' + context.runId;
+            const body = marker +
+              '\nDie automatische Quellen- und Website-Prüfung konnte nicht ' +
+              'vollständig abgeschlossen werden. Ursache kann ein fehlgeschlagener ' +
+              'Prüftest, ein Workflow-Fehler oder ein fehlendes Datenartefakt sein.' +
+              '\n\nBetroffener Lauf: ' + link +
+              '\n\nBestätigte Ordnungsruf-Zähler wurden dadurch nicht verändert. ' +
+              'Bei erfolgreicher Wiederherstellung aller Quellen wird dieses ' +
+              'Störungs-Issue automatisch geschlossen.';
+            const issues = await github.paginate(github.rest.issues.listForRepo,{
+              owner,repo,state:'open',per_page:100
+            });
+            const existing = issues.find(x=>!x.pull_request &&
+              (x.body || '').includes(marker));
             if (existing) {
               if ((existing.body || '') !== body) {
                 await github.rest.issues.update({owner,repo,
