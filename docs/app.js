@@ -394,6 +394,47 @@ async function showDipCases() {
   }
 }
 
+async function showCoverageAudit() {
+  const target = $('wp21-coverage-detail');
+  try {
+    const response = await fetch('./data/vollstaendigkeit_21.json',{cache:'no-store'});
+    if (!response.ok) throw new Error('Vollständigkeitsbericht fehlt');
+    const data = await response.json();
+    const counts = ['sessions_scanned','verified_effective_measures_in_partial_ledger',
+      'dip_sample_person_session_keys_within_scan','dip_sample_grants_not_in_verified_partial_ledger',
+      'confirmed_keys_without_parser','dip_sample_keys_without_parser',
+      'multiple_measure_person_session_keys','xml_text_locations_without_person_parser',
+      'review_cases_total','high_priority_cases','shown'];
+    if (data.wahlperiode !== 21 ||
+        data.status !== 'quellenvollstaendigkeit_ohne_automatische_freigabe' ||
+        data.automatically_confirmed_sanctions !== 0 ||
+        data.automatically_rescinded_sanctions !== 0 ||
+        counts.some(key=>!Number.isInteger(data[key]) || data[key]<0) ||
+        data.shown > 30 || data.shown > data.review_cases_total ||
+        !Array.isArray(data.items) || data.items.length !== data.shown ||
+        data.high_priority_cases > data.review_cases_total) {
+      throw new Error('Vollständigkeits-Audit hat unerwartetes Schema');
+    }
+    const time = new Date(data.last_success_utc);
+    if (!Number.isFinite(time.getTime())) throw new Error('Zeitstempel ungültig');
+    const stale = Date.now() - time.getTime() > 48*60*60*1000;
+    target.textContent =
+      'Quellenübergreifende Vollständigkeitsprüfung (' +
+      data.sessions_scanned + ' XML-Sitzungen, letzter erfolgreicher Stand ' +
+      time.toLocaleDateString('de-DE') + (stale?', veraltet':', aktuell') + '): ' +
+      data.review_cases_total + ' quellenbezogene Prüffälle, davon ' +
+      data.high_priority_cases + ' mit hoher Priorität. ' +
+      data.dip_sample_grants_not_in_verified_partial_ledger +
+      ' ursprünglich dokumentierte DIP-Erteilungen sind in der kuratierten Stichprobe ' +
+      'noch nicht einzeln im bestätigten Teilbestand belegt; ' +
+      data.confirmed_keys_without_parser + ' bekannte Person/Sitzung-Kombinationen ' +
+      'wurden vom Parser nicht erkannt. Die DIP-Stichprobe ist keine Vollerhebung; ' +
+      'eine Texterwähnung ist keine bestätigte Maßnahme. Keine automatische Zählung.';
+  } catch (_) {
+    target.textContent = 'Noch kein erfolgreicher quellenübergreifender Vollständigkeits-Audit veröffentlicht. Die bestätigten Ordnungsruf-Zähler bleiben unverändert.';
+  }
+}
+
 function start() {
   for(const id of ['search','group-filter','sort']) {
     $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
@@ -426,6 +467,7 @@ function start() {
     showDipSample();
     showDipLive();
     showDipCases();
+    showCoverageAudit();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
