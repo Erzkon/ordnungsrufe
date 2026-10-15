@@ -98,6 +98,43 @@ class DIPMonitorTests(unittest.TestCase):
             self.assertEqual(requests[1]['f.aktualisiert.start'],
                              iso(NOW-timedelta(days=30)))
 
+    def test_monthly_full_refresh_recovers_backdated_updates(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            paths=(root/'state.json',root/'report.json',root/'changes.json')
+            requests=[]
+            def load(params,key):
+                requests.append(dict(params))
+                if len(requests)==1:
+                    return {'numFound':1,'documents':[entry(330701,'Ordnungsruf alt')],
+                            'cursor':None}
+                return {'numFound':2,'documents':[
+                    entry(330701,'Ordnungsruf alt'),
+                    entry(330702,'Ordnungsruf nachträglich ergänzt',
+                          changed='2026-05-01T10:00:00+00:00')],'cursor':None}
+            first=run(*paths,now=NOW,key='test',load=load)
+            monthly=run(*paths,now=datetime(2026,11,1,tzinfo=timezone.utc),
+                        key='test',load=load)
+            self.assertEqual(first['new_vorgaenge'],1)
+            self.assertEqual(monthly['new_vorgaenge'],1)
+            self.assertTrue(monthly['full_term_refresh'])
+            self.assertEqual(monthly['request_since_utc'],iso(START))
+            self.assertEqual(monthly['tracked_relevant_vorgaenge'],2)
+
+    def test_regular_day_uses_rolling_overlap(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            params=[]
+            def load(p,k):
+                params.append(p)
+                return {'numFound':0,'documents':[],'cursor':None}
+            paths=(root/'state.json',root/'report.json',root/'changes.json')
+            run(*paths,now=NOW,key='test',load=load)
+            report=run(*paths,now=NOW+timedelta(days=1),key='test',load=load)
+            self.assertFalse(report['full_term_refresh'])
+            self.assertEqual(params[1]['f.aktualisiert.start'],
+                             iso(NOW-timedelta(days=30)))
+
     def test_metadata_change_emits_alert_but_does_not_retract(self):
         original=relevant_item(entry(333,'Ordnungsruf für Frau Test'))
         earlier={'last_success_utc':iso(NOW-timedelta(days=1)),
