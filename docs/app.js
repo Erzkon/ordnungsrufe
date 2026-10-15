@@ -339,6 +339,61 @@ async function showDipLive() {
   }
 }
 
+async function showDipCases() {
+  const parent = $('wp21-dip-cases');
+  const label = $('wp21-dip-cases-meta');
+  try {
+    const response = await fetch('./data/dip_prueffalle_21.json',{cache:'no-store'});
+    if (!response.ok) throw new Error('DIP-Prüffälle fehlen');
+    const audit = await response.json();
+    if (audit.wahlperiode !== 21 ||
+        audit.status !== 'dip_verknuepfte_prueffalle_ohne_autozaehlung' ||
+        audit.automatically_confirmed_sanctions !== 0 ||
+        audit.automatically_rescinded_sanctions !== 0 ||
+        !Number.isInteger(audit.linked_dip_vorgaenge) ||
+        !Array.isArray(audit.items) || audit.items.length > 30) {
+      throw new Error('DIP-Prüfliste ungültig');
+    }
+    const time = new Date(audit.last_success_utc);
+    if (!Number.isFinite(time.getTime())) throw new Error('Ungültiger Zeitstempel');
+    label.textContent = audit.linked_dip_vorgaenge +
+      ' DIP-Vorgänge anhand amtlicher IDs mit Folgeschritten abgeglichen; ' +
+      audit.high_priority_cases + ' mit erhöhter Prüfpriorität. Quellenstand: ' +
+      time.toLocaleDateString('de-DE') +
+      '. Aus dieser Liste wird nichts automatisch als gültige Maßnahme gezählt.';
+    parent.replaceChildren();
+    for (const record of audit.items.slice(0,8)) {
+      if (typeof record.id !== 'string' ||
+          !/^[1-9]\d{0,11}$/.test(record.id) ||
+          record.source !== 'https://dip.bundestag.de/vorgang/' + record.id ||
+          !['hoch','mittel','normal'].includes(record.priority) ||
+          typeof record.title !== 'string' || record.title.length > 240 ||
+          !Number.isInteger(record.position_count) || record.position_count < 0 ||
+          !Number.isInteger(record.legal_wording_positions) ||
+          record.legal_wording_positions < 0) throw new Error('DIP-Fallformat ungültig');
+      const box = el('li','dip-case');
+      const top = el('div','activity-top');
+      top.append(el('span','activity-type',
+                    record.priority === 'hoch' ? 'Rechtsfolgen prüfen' :
+                    record.priority === 'mittel' ? 'Verfahrensstand prüfen' : 'Quellenvorgang'),
+                 el('span','activity-date', record.position_count + ' DIP-Verfahrensschritte'));
+      const heading = el('p','dip-case-title',record.title);
+      const link = el('a','source-link','Amtlichen DIP-Vorgang öffnen ↗');
+      link.href = record.source;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      box.append(top,heading,link);
+      parent.append(box);
+    }
+    if (!audit.items.length) {
+      parent.append(el('li','activity-empty','Noch keine verknüpften DIP-Prüffälle verfügbar.'));
+    }
+  } catch (_) {
+    label.textContent = 'Noch kein vollständiger DIP-Positionsabgleich verfügbar. Die bestätigten Zahlen bleiben unverändert.';
+    parent.replaceChildren();
+  }
+}
+
 function start() {
   for(const id of ['search','group-filter','sort']) {
     $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
@@ -370,6 +425,7 @@ function start() {
     showLegalSignals();
     showDipSample();
     showDipLive();
+    showDipCases();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
