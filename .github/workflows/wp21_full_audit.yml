@@ -1,13 +1,11 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# One isolated full XML scan validating the three previously unresolved
-# official DIP-person/sitting references. Revert this PR trigger immediately
-# after obtaining and checking the full audit artifact.
+# Complete official 100-protocol source audit passed on PR #4:
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/38781124722
+# Curated original DIP person/session references: 24/24 detected.
+# Expensive complete rescans are now opt-in; lightweight original-XML
+# regression and site CI run automatically on relevant PR changes.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
