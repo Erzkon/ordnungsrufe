@@ -14,6 +14,7 @@ on:
       - 'wp21_betriebsbericht.py'
       - 'wp21_benchmark.py'
       - 'wp21_dip_kontrolle.py'
+      - 'wp21_dip_monitor.py'
       - 'parser.py'
       - 'tests/**'
       - 'WP21.md'
@@ -26,6 +27,7 @@ on:
       - 'wp21_betriebsbericht.py'
       - 'wp21_benchmark.py'
       - 'wp21_dip_kontrolle.py'
+      - 'wp21_dip_monitor.py'
       - 'parser.py'
       - 'docs/**'
       - 'daten/**'
@@ -72,6 +74,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_wp21_betrieb.py' -v
           python -m unittest discover -s tests -p 'test_wp21_benchmark.py' -v
           python -m unittest discover -s tests -p 'test_wp21_dip_kontrolle.py' -v
+          python -m unittest discover -s tests -p 'test_wp21_dip_monitor.py' -v
           python -m unittest discover -s tests -p 'test_wp21_originalformulierungen.py' -v
           python -m pytest -q tests/test_parser.py
       - name: Quellenbasierte Positiv- und Negativkontrollen gegen historische Referenz pruefen
@@ -99,6 +102,14 @@ jobs:
           key: wp21-xml-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             wp21-xml-
+      - name: Letzten erfolgreichen DIP-Metadatenzustand wiederverwenden
+        if: github.event_name != 'pull_request'
+        uses: actions/cache@v4
+        with:
+          path: .cache/dip21/state.json
+          key: dip21-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            dip21-state-
       - name: Letzten erfolgreichen Website-Quellenstand wiederverwenden
         if: github.event_name != 'pull_request'
         uses: actions/cache@v4
@@ -109,9 +120,33 @@ jobs:
             docs/data/autopruefung_21.json
             docs/data/rechtsfolgen_21.json
             docs/data/dip_kontrolle_21.json
+            docs/data/dip_live_21.json
           key: wp21-feed-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             wp21-feed-
+      - name: Amtliche DIP-Vorgaenge auf Neuerungen und geaenderte Entscheidungen pruefen
+        if: github.event_name != 'pull_request'
+        id: diplive
+        continue-on-error: true
+        env:
+          # Optionaler eigener Key; sonst oeffentlich dokumentierter DIP-Key.
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_dip_monitor.py \
+            --state .cache/dip21/state.json \
+            --report docs/data/dip_live_21.json \
+            --changes wp21_dip_aenderungen.json
+      - name: Amtliche DIP-Aenderungen archivieren
+        if: github.event_name != 'pull_request' && steps.diplive.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-dip-aenderungen-${{ github.run_id }}
+          path: wp21_dip_aenderungen.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Voruebergehend fehlgeschlagene DIP-Suche vermerken
+        if: github.event_name != 'pull_request' && steps.diplive.outcome == 'failure'
+        run: echo '::warning::DIP-API-Daten derzeit nicht aktuell; alter erfolgreicher Bericht bleibt sichtbar, bestaetigte Zahlen unveraendert.'
       - name: Offizielle XML-Protokolle der 21. Wahlperiode auf neue Hinweise pruefen
         if: github.event_name != 'pull_request'
         id: scan
@@ -201,6 +236,7 @@ jobs:
           WP21_SCAN_OUTCOME: ${{ steps.scan.outcome }}
           WP21_AUTOPRUEFUNG_OUTCOME: ${{ steps.autopruefung.outcome }}
           WP21_RECHTSFOLGEN_OUTCOME: ${{ steps.rechtsfolgen.outcome }}
+          WP21_DIP_OUTCOME: ${{ steps.diplive.outcome }}
         run: python wp21_betriebsbericht.py --data docs/data
       - name: Verwendeten Website-Stand archivieren
         if: github.event_name != 'pull_request'
@@ -215,6 +251,7 @@ jobs:
             docs/data/autopruefung_21.json
             docs/data/rechtsfolgen_21.json
             docs/data/dip_kontrolle_21.json
+            docs/data/dip_live_21.json
           if-no-files-found: error
           retention-days: 30
       - name: Website-Artefakt zur Veroeffentlichung uebertragen
