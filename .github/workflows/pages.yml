@@ -14,6 +14,7 @@ on:
       - 'wp21_betriebsbericht.py'
       - 'wp21_benchmark.py'
       - 'wp21_dip_kontrolle.py'
+      - 'parser.py'
       - 'tests/**'
       - 'WP21.md'
       - 'QUELLENABGLEICH.md'
@@ -25,6 +26,7 @@ on:
       - 'wp21_betriebsbericht.py'
       - 'wp21_benchmark.py'
       - 'wp21_dip_kontrolle.py'
+      - 'parser.py'
       - 'docs/**'
       - 'daten/**'
       - 'export_webdaten.py'
@@ -58,7 +60,7 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
       - name: Python-Abhaengigkeiten installieren
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt 'pytest>=8,<10'
       - name: Datenexporte mit Isolationstests validieren
         run: |
           python -m unittest discover -s tests -p 'test_web_export.py' -v
@@ -70,6 +72,8 @@ jobs:
           python -m unittest discover -s tests -p 'test_wp21_betrieb.py' -v
           python -m unittest discover -s tests -p 'test_wp21_benchmark.py' -v
           python -m unittest discover -s tests -p 'test_wp21_dip_kontrolle.py' -v
+          python -m unittest discover -s tests -p 'test_wp21_originalformulierungen.py' -v
+          python -m pytest -q tests/test_parser.py
       - name: Quellenbasierte Positiv- und Negativkontrollen gegen historische Referenz pruefen
         run: python wp21_benchmark.py --output wp21_regression_audit.json
       - name: Quellenbenchmark mit konkreten Gegenbeispielen archivieren
