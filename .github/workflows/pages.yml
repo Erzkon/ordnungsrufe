@@ -11,6 +11,7 @@ on:
       - 'wp21_scan.py'
       - 'wp21_autopruefung.py'
       - 'wp21_rechtsfolgen.py'
+      - 'wp21_betriebsbericht.py'
       - 'tests/**'
       - 'WP21.md'
       - 'QUELLENABGLEICH.md'
@@ -19,6 +20,7 @@ on:
     paths:
       - 'wp21_autopruefung.py'
       - 'wp21_rechtsfolgen.py'
+      - 'wp21_betriebsbericht.py'
       - 'docs/**'
       - 'daten/**'
       - 'export_webdaten.py'
@@ -61,6 +63,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_wp21_autopruefung.py' -v
           python -m unittest discover -s tests -p 'test_wp21_rechtsfolgen.py' -v
           python -m unittest discover -s tests -p 'test_wp21_refresh.py' -v
+          python -m unittest discover -s tests -p 'test_wp21_betrieb.py' -v
       - name: Historische und aktuelle Quellenlisten gegen veroeffentlichte JSONs pruefen
         run: |
           python export_webdaten.py --check
@@ -151,6 +154,13 @@ jobs:
           path: wp21_hinweise.csv
           if-no-files-found: error
           retention-days: 30
+      - name: Taeglichen Betrieb und Quellenalter im Actions-Bericht zusammenfassen
+        if: github.event_name != 'pull_request'
+        env:
+          WP21_SCAN_OUTCOME: ${{ steps.scan.outcome }}
+          WP21_AUTOPRUEFUNG_OUTCOME: ${{ steps.autopruefung.outcome }}
+          WP21_RECHTSFOLGEN_OUTCOME: ${{ steps.rechtsfolgen.outcome }}
+        run: python wp21_betriebsbericht.py --data docs/data
       - name: Verwendeten Website-Stand archivieren
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
