@@ -149,9 +149,15 @@ class OriginalSourceRecipientSafeguards(unittest.TestCase):
         ],GRANT_37)
         self.assertEqual(found,[])
 
-    def test_named_original_spoken_in_same_rede_as_chair_not_safe(self):
+    def test_same_xml_rede_is_safe_with_exact_offence_and_speaker_id(self):
         found=fixture(39,'Anna Rathert',[
             'Ich habe erlebt, wie Sie Lügen über uns auskippen.'
+        ],GRANT_39,same_rede=True)
+        self.assertEqual([x['person'] for x in found],['Anna Rathert'])
+
+    def test_same_xml_rede_without_offence_not_attributed(self):
+        found=fixture(39,'Anna Rathert',[
+            'Ich habe eine andere Frage zum heutigen Thema.'
         ],GRANT_39,same_rede=True)
         self.assertEqual(found,[])
 
