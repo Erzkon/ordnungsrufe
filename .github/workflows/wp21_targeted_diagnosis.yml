@@ -45,7 +45,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from wp21_scan import fetch
-          for number in (15,22,23,25,27,40,43,50,69,74,75,82):
+          for number in (14,15,22,23,25,26,27,37,39,40,43,50,69,74,75,82):
               data=fetch(number,Path('.audit/targeted_xml'))
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
@@ -69,6 +69,37 @@ jobs:
                         'parent=',node.getparent().tag if node.getparent() is not None else '',
                         'xml=',etree.tostring(node,encoding='unicode')[:1850],
                         flush=True)
+          PY
+      - name: Quellenkette von 21/014, 21/026, 21/037 und 21/039 untersuchen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from wp21_scan import safe_parse
+          from parser import issuer_context,iter_session_text,speaker_index,events
+          for session,source in ((14,2311),(26,3436),(37,5923),(39,4341)):
+              root=safe_parse(Path(f'.audit/targeted_xml/21{session:03d}.xml').read_bytes(),session)
+              nodes=list(iter_session_text(root))
+              print('SESSION',session,'source',source)
+              for i,(p,txt) in enumerate(nodes):
+                  if abs(int(p.sourceline)-source)>20:continue
+                  tag=p.getparent()
+                  issuer,kind=issuer_context(p)
+                  preceding=[]
+                  if tag is not None:
+                      for sib in p.itersiblings(preceding=True):
+                          if sib.tag in ('name','kommentar') or (
+                                  sib.tag=='p' and sib.get('klasse')=='redner'):
+                              preceding.append(f"{sib.tag}:{sib.get('klasse')}:{' '.join(''.join(sib.itertext()).split())[:90]}")
+                              if len(preceding)>=3:break
+                  print('XMLTRACE',session,int(p.sourceline),kind,
+                        issuer[:45], 'rede=',tag.tag if tag is not None else '',
+                        'prev=',preceding[:2],
+                        'txt=',txt[:220],flush=True)
+              for ev in events(Path(f'21{session:03d}.xml'),
+                               root=root,index=speaker_index([root])):
+                  if abs(int(ev['line'])-source)<=20:
+                      print('CURRENT_HINT',session,ev['line'],ev['person'],
+                            ev['zuordnungsmethode'],flush=True)
           PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
