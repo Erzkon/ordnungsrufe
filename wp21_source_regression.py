@@ -22,7 +22,7 @@ SOURCE_FRAGMENTS = {
         ('named_hint','Gottschalk'),
     (40, 'und ich erteile ihnen einen zweiten ordnungsruf dafür'):
         ('linked_hint','Gottschalk'),
-    (40, 'wenn sie lachen – und ich weiß, wer gelacht hat'):
+    (40, 'erteile ich ihnen gleich fürs lachen den nächsten ordnungsruf'):
         ('conditional_warning',None),
     # Three remaining independent DIP-positive references, with exact XML
     # recipients supported by named speech blocks / formal introductions.
