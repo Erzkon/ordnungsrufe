@@ -60,6 +60,15 @@ def probe(load=request_page, key=PUBLIC_KEY):
         'documents':len(recent),'pages':page_count,
         'title_or_abstract_matches':relevant
     }
+    from wp21_dip_monitor import START
+    history = load({'f.wahlperiode':'21','f.aktualisiert.start':iso(START)},key)
+    if not isinstance(history,dict) or type(history.get('numFound')) is not int:
+        raise ValueError('Initialer DIP-Backfill-Filter nicht verwendbar')
+    estimated_pages=(history['numFound']+99)//100
+    result['Erstlauf-Kapazitaet']={'historical_records':history['numFound'],
+                                 'estimated_pages':estimated_pages}
+    if estimated_pages > 1200:
+        raise ValueError('Historische DIP-Erstladung würde das Seitenlimit überschreiten')
     # Exercise the same strict XML validator and review parser as production,
     # but for ONE archived protocol only; never touch reviewed datasets.
     from wp21_scan import safe_parse, review_rows, HOST, MAX_SIZE
