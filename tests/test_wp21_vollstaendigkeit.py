@@ -19,14 +19,16 @@ def scanrow(line=12, classification='possible_grant'):
     return {'hinweis_id':f'21-094-L{line}-abcdef012345',
             'sitzung':'94','xml_zeile':str(line),
             'klasse':classification,'status':'manuelle_pruefung_erforderlich',
-            'xml_quelle':XML,'pdf_quelle':PDF}
+            'xml_quelle':XML,'pdf_quelle':PDF,
+            'textstelle':'Ich erteile der Abgeordneten einen Ordnungsruf.'}
 
 
 def parserrow(line=12, person='Cansin Köktürk'):
     return {'hinweis_id':f'21-094-L{line}-abcdef0123',
             'sitzung':'94','xml_zeile':str(line),
             'person_vorschlag':person,'klassifikation':'possible_grant',
-            'pruefstatus':'offen','protokoll_21':PDF}
+            'pruefstatus':'offen','protokoll_21':PDF,
+            'textauszug':'Ich erteile Frau Köktürk einen Ordnungsruf.'}
 
 
 def write_csv(path,columns,rows):
@@ -65,6 +67,7 @@ class CrossSourceAuditTests(unittest.TestCase):
         self.assertEqual(metric['multiple_measure_person_session_keys'],1)
         self.assertEqual(cases[0]['bestaetigte_massnahmen_teilbestand'],'2')
         self.assertEqual(cases[0]['parser_fundstellen'],'1')
+        self.assertIn('Köktürk',cases[0]['textauszug'])
         self.assertEqual(cases[0]['prioritaet'],'hoch')
         self.assertEqual(cases[0]['typ'],'person_sitzung_ohne_einzelereignisabgleich')
 
@@ -85,6 +88,7 @@ class CrossSourceAuditTests(unittest.TestCase):
         self.assertEqual(len(cases),1)
         self.assertEqual(cases[0]['prioritaet'],'mittel')
         self.assertEqual(cases[0]['person'],'')
+        self.assertIn('Ordnungsruf', cases[0]['textauszug'])
         self.assertEqual(cases[0]['dip_urspruengliche_erteilungen_stichprobe'],'')
 
     def test_unattributed_grant_text_needs_high_priority_review(self):

@@ -21,7 +21,7 @@ from wp21_scan import HOST
 FIELDS = ('fall_id', 'prioritaet', 'typ', 'sitzung', 'person', 'xml_zeile',
           'bestaetigte_massnahmen_teilbestand', 'dip_urspruengliche_erteilungen_stichprobe',
           'parser_person_sitzung_vorhanden', 'parser_fundstellen',
-          'xml_textstellen_in_sitzung', 'grund', 'protokoll', 'dip_index')
+          'xml_textstellen_in_sitzung', 'grund', 'textauszug', 'protokoll', 'dip_index')
 VALID_CLASSES = {'possible_grant','named_group_confirmation','appeal_or_retrospective',
                  'warning_or_conditional','retrospective_reference','mention_or_unclear'}
 MAX_ROWS = 20000
@@ -40,9 +40,15 @@ def csv_rows(path, required):
     return rows
 
 
+def safe_excerpt(value):
+    if not isinstance(value,str) or len(value)>1200:
+        raise ValueError('Audit: Ungültiger oder überlanger Quellentext')
+    return ' '.join(value.split())[:550]
+
+
 def scan_lines(path, last):
     rows = csv_rows(path, {'hinweis_id','sitzung','xml_zeile','klasse',
-                           'xml_quelle','pdf_quelle','status'})
+                           'xml_quelle','pdf_quelle','status','textstelle'})
     keyed = {}
     ids = set()
     for row in rows:
@@ -61,6 +67,7 @@ def scan_lines(path, last):
                 or row['pdf_quelle'] != f'{HOST}/21{session:03d}.pdf'
                 or ident in ids):
             raise ValueError('Audit: Ungültiger, fremder oder doppelter XML-Hinweis')
+        safe_excerpt(row['textstelle'])
         ids.add(ident)
         keyed[(session,line)] = keyed.get((session,line),[]) + [row]
     return keyed, len(rows)
@@ -68,7 +75,7 @@ def scan_lines(path, last):
 
 def person_hints(path, last):
     rows = csv_rows(path, {'hinweis_id','sitzung','xml_zeile','person_vorschlag',
-                           'klassifikation','pruefstatus','protokoll_21'})
+                           'klassifikation','pruefstatus','protokoll_21','textauszug'})
     by_person=defaultdict(list)
     lines=defaultdict(list)
     ids=set()
@@ -88,6 +95,7 @@ def person_hints(path, last):
                 or row['protokoll_21'] != f'{HOST}/21{session:03d}.pdf'
                 or ident in ids):
             raise ValueError('Audit: Ungültiger oder doppelter Parser-Hinweis')
+        safe_excerpt(row['textauszug'])
         ids.add(ident)
         key=(session,person)
         by_person[key].append(row)
@@ -167,14 +175,16 @@ def build_cases(verified, dip, parser, xml_lines, last):
             # Session-level count MUST NOT imply attribution to this person.
             'xml_textstellen_in_sitzung':str(xml_by_session[session]),
             'grund':reason,
+            # Only person-linked parser evidence; never borrow an unrelated
+            # text mention elsewhere in the same plenary sitting.
+            'textauszug':safe_excerpt(proposed[0]['textauszug']) if proposed else '',
             'protokoll':f'{HOST}/21{session:03d}.pdf',
             'dip_index':dip['official_index'] if dip_row else '',
         })
     # Every XML text location without any person-linked parser event remains
     # visible. Warnings/appeals are not missed grants by default.
-    parser_lines={line for line in xml_lines if line in {loc
-                   for rows in parser.values() for loc in
-                   [(int(p['sitzung']),int(p['xml_zeile'])) for p in rows]}}
+    parser_lines={(int(p['sitzung']),int(p['xml_zeile']))
+                  for entries in parser.values() for p in entries}
     unlinked=0
     for (session,line),rows in sorted(xml_lines.items()):
         if (session,line) in parser_lines:
@@ -193,6 +203,7 @@ def build_cases(verified, dip, parser, xml_lines, last):
             'parser_person_sitzung_vorhanden':'nein',
             'parser_fundstellen':'0','xml_textstellen_in_sitzung':'1',
             'grund':'XML-Klasse: '+categories+'; ohne sichere Person/Einzelmaßnahme',
+            'textauszug':safe_excerpt(' | '.join(row['textstelle'] for row in rows)),
             'protokoll':f'{HOST}/21{session:03d}.pdf','dip_index':'',
         })
     priority={'hoch':0,'mittel':1,'niedrig':2}
