@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   original-xml-context:
-    name: 16 anonyme Hochprioritaetsfundstellen als Original-XML-Pruefakte sammeln
+    name: 13 verbliebene anonyme Hochprioritaetsfundstellen als Original-XML-Pruefakte sammeln
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -33,7 +33,7 @@ jobs:
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
       - name: Anonyme Quellenanalyse mit 9 isolierten Negativpruefungen absichern
         run: python -m unittest -v tests.test_wp21_anonyme_quellen
-      - name: Amtliche XML-Originale zu allen 16 Fundstellen laden und einordnen
+      - name: Amtliche XML-Originale zu allen 13 verbliebenen Fundstellen laden und einordnen
         run: |
           python wp21_anonyme_quellen.py \
             --cache .audit/anonymous_xml \
@@ -57,15 +57,15 @@ jobs:
           import json,os
           from pathlib import Path
           d=json.loads(Path('.audit/anonymous_context.json').read_text())
-          if (d['anonymous_review_cases']!=16
-                  or d['protocols_examined']!=13
+          if (d['anonymous_review_cases']!=13
+                  or d['protocols_examined']!=12
                   or d['auto_confirmed_sanctions']!=0
                   or d['auto_identified_recipients']!=0):
               raise ValueError('Anonyme Quellenpruefakte unvollstaendig')
           lines=[
-              '## Original-XML-Quellenakten: 16 noch anonyme Erteilungsstellen',
-              '- Amtliche Protokolle: 13',
-              '- Anonyme Orte: 16',
+              '## Original-XML-Quellenakten: 13 noch anonyme Erteilungsstellen',
+              '- Amtliche Protokolle: 12',
+              '- Anonyme Orte: 13',
               '- Automatisch zugeordnete Personen: 0',
               '- Automatisch bestaetigte oder aufgehobene Massnahmen: 0',
               '- Alle Kontextstellen und Rednerwechsel stehen im JSON-Artefakt.',
