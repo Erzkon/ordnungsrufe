@@ -30,13 +30,15 @@ PRONOUN_GRANT = re.compile(
     r'\b(?:erteile\s+ich\s+Ihnen|ich\s+Ihnen\s+einen\s+Ordnungsruf\s+erteilen|'
     r'ich\s+Ihnen\s+einen\s+Ordnungsruf\s+erteile|'
     r'Sie\s+kriegen\s+jetzt\s+von\s+mir|'
+    r'bekommen\s+Sie\s+jetzt\s+von\s+mir|'
     r'erhalten\s+Sie\s+jetzt\s+von\s+mir)\b',re.I)
 # A different speaking turn or distinct chair interjection can change who
 # "Sie" addresses; stop rather than fill in a name.
 SPEAKER_INTRO = re.compile(
     r'\b(?:hat\s+jetzt\s+das\s+Wort\s+der\s+Abgeordnete|'
     r'für\s+die\s+Fraktion\s+Die\s+Linke\s+hat\s+jetzt\s+das\s+Wort'
-    r'\s+der\s+Abgeordnete)\s+',re.I)
+    r'\s+der\s+Abgeordnete|'
+    r'Die\s+nächste\s+Rednerin\s+in\s+dieser\s+Debatte\s+ist)\s+',re.I)
 QUOTED_REASON = re.compile(r'[„"](?P<reason>[^“"]{4,50})[“"]')
 
 
@@ -258,11 +260,24 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
             continue
         reasons=[m.group('reason').casefold() for m in QUOTED_REASON.finditer(txt)
                  if len(m.group('reason').strip())>=4]
+        # The verbatim misconduct in the original 21/067 Gebel grant
+        # ("rassistischen Dreck") is not surrounded by quotation marks.
+        # Require the same marked phrase in a nearby actual speaker turn;
+        # never infer Kathrin Gebel from the insult to her in earlier pages.
+        if not reasons and re.search(
+                r'\bfür\s+die\s+Bemerkung,\s+der\s+Kanzler\s+würde\s+'
+                r'rassistischen\s+Dreck\b',txt,re.I):
+            reasons=['rassistischen Dreck']
         if len(reasons)!=1:
             continue
-        previous=paragraphs[i-1] if i else None
-        if not previous or not any(re.search(r'(?<!\w)'+re.escape(reason)+r'(?!\w)',
-                                          previous[1],re.I) for reason in reasons):
+        relevant_before=[
+            (before,spoken) for before,spoken in paragraphs[max(0,i-5):i]
+            if 0<line-int(before.sourceline)<=18 and
+            any(re.search(r'(?<!\w)'+re.escape(reason)+r'(?!\w)',
+                          spoken,re.I) for reason in reasons)
+            and issuer_context(before)[1]=='speech_marker'
+        ]
+        if len(relevant_before)!=1:
             continue
         introductions=[]
         for before,spoken in paragraphs[max(0,i-SPEAKER_INTRO_MAX_PARAGRAPHS):i]:
