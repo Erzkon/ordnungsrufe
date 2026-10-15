@@ -62,6 +62,17 @@ STOPWORDS = {'ich', 'sie', 'ihnen', 'er', 'einen', 'ein', 'eine', 'einem', 'dem'
              'hat', 'haben', 'zur', 'ordnung', 'ordnungsruf', 'im', 'des', 'zu', 'diesen'}
 
 
+def split_sentences(text):
+    """Do not break a sanction clause at an abbreviated name or office.
+
+    XML speeches routinely contain 'der Abgeordneten Dr. Paula Piechotta
+    einen Ordnungsruf erteilen'. Splitting at Dr. loses the grammatical
+    recipient and creates a false parser-negative.
+    """
+    return re.split(
+        r'(?<!Dr\.)(?<!Prof\.)(?<!Abg\.)(?<=[.!?])\s+(?=[A-ZÄÖÜ])', text)
+
+
 def action_match(text):
     """Keep punctuation inside quoted interjections from splitting a grant.
 
@@ -110,7 +121,7 @@ def classify(text):
         return 'named_group_confirmation'
     # Sentence-level classification avoids mixing independent historic and
     # current statements within a single long transcript paragraph.
-    sentences = re.split(r'(?<=[.!?])\s+(?=[A-ZÄÖÜ])', text)
+    sentences = split_sentences(text)
     positive = []
     for sentence in sentences:
         if not action_match(sentence):
@@ -216,7 +227,7 @@ def _grant_scopes(text):
     Ordnung'. Looking only at the *last* sentence lost named recipients.
     """
     scopes = []
-    for sentence in re.split(r'(?<=[.!?])\s+(?=[A-ZÄÖÜ])', text):
+    for sentence in split_sentences(text):
         if (action_match(sentence) and not THREAT.search(sentence)
                 and not FUTURE_ONLY.search(sentence) and not GENERIC_FUTURE.search(sentence)):
             scopes.append(sentence)
@@ -269,7 +280,7 @@ def _subject_antecedent(text, scope, index):
             return [person]
     prefix = text[:text.find(scope)] if text.find(scope) >= 0 else ''
     # Last two sentences only, and no inferencing across XML paragraphs.
-    sentences = re.split(r'(?<=[.!?])\s+(?=[A-ZÄÖÜ])', prefix.strip())
+    sentences = split_sentences(prefix.strip())
     near = ' '.join(sentences[-2:])[-650:]
     referents = []
     patterns = (
@@ -298,7 +309,7 @@ def _third_person_antecedent(text, scope, index):
         return []
     at = text.find(scope)
     prefix = text[:at].strip() if at >= 0 else ''
-    sentences = re.split(r'(?<=[.!?])\s+(?=[A-ZÄÖÜ])', prefix)
+    sentences = split_sentences(prefix)
     prior = sentences[-1] if sentences else ''
     # A subject must open that immediately preceding sentence, not be an
     # arbitrary mentioned injured party or the presiding officer.
@@ -504,7 +515,7 @@ def persons_for_grant(text, index):
         # Sie kriegen einen Ordnungsruf.' Direct present-tense only.
         if re.search(r'\b(?:Sie\s+kriegen|Sie\s+bekommen)\b', scope, re.I):
             prefix = text[:text.find(scope)]
-            prior = re.split(r'(?<=[.!?])\s+(?=[A-ZÄÖÜ])', prefix.strip())[-1]
+            prior = split_sentences(prefix.strip())[-1]
             m = re.match(r'^(?:Der\s+Abgeordnete|Die\s+Abgeordnete|'
                          r'Herr|Frau(?:\s+Kollegin)?)\s+', prior, re.I)
             if m:
