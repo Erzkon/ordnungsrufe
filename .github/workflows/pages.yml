@@ -20,6 +20,8 @@ on:
       - 'wp21_dip_live_probe.py'
       - 'wp21_premerge_dryrun.py'
       - 'wp21_vollstaendigkeit.py'
+      - 'wp21_fallkontext.py'
+      - 'wp21_source_regression.py'
       - 'parser.py'
       - 'tests/**'
       - 'WP21.md'
@@ -38,6 +40,8 @@ on:
       - 'wp21_dip_live_probe.py'
       - 'wp21_premerge_dryrun.py'
       - 'wp21_vollstaendigkeit.py'
+      - 'wp21_fallkontext.py'
+      - 'wp21_source_regression.py'
       - 'parser.py'
       - 'docs/**'
       - 'daten/**'
@@ -329,6 +333,23 @@ jobs:
         with:
           name: wp21-vollstaendigkeit-${{ github.run_id }}
           path: wp21_vollstaendigkeit_faelle.csv
+          if-no-files-found: error
+          retention-days: 30
+      - name: Amtliche XML-Kontexte für nicht erkannte DIP-Positivfälle zusammenstellen
+        if: github.event_name != 'pull_request' && steps.completeness.outcome == 'success'
+        id: context
+        continue-on-error: true
+        run: |
+          python wp21_fallkontext.py \
+            --cache .cache/wp21 \
+            --audit-cases wp21_vollstaendigkeit_faelle.csv \
+            --output wp21_dip_xml_fallkontext.json
+      - name: Vollständige Kontextbelege für die fachliche Nachprüfung archivieren
+        if: github.event_name != 'pull_request' && steps.context.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-dip-xml-kontext-${{ github.run_id }}
+          path: wp21_dip_xml_fallkontext.json
           if-no-files-found: error
           retention-days: 30
       - name: Quellenabgleich nicht erfolgreich
