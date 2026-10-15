@@ -90,6 +90,29 @@ def normalize_position(raw):
         raise ValueError('DIP-Position: unerwartete Textfelder')
     # Only use the explicit description of the procedural step.
     text = ' '.join(step.split())[:650]
+    # The official endpoint's "vorgangsposition" field is often only a
+    # category ("Ordnungsruf"). The actual description is in "titel" and
+    # sometimes in nested "aktivitaet_anzeige" entries. Check all three
+    # metadata sources, but never infer legal outcome from a keyword.
+    activities = raw.get('aktivitaet_anzeige') or []
+    if not isinstance(activities,list) or len(activities)>50:
+        raise ValueError('DIP-Position: Aktivitäten im unerwarteten Format')
+    activity_text=[]
+    for activity in activities:
+        if not isinstance(activity,dict):
+            raise ValueError('DIP-Position: Aktivität kein Objekt')
+        for field in ('titel','aktivitaetsart'):
+            fragment=activity.get(field) or ''
+            if not isinstance(fragment,str):
+                raise ValueError('DIP-Position: Aktivitätsbeschreibung ungültig')
+            activity_text.append(fragment[:500])
+    signal_fields=[]
+    if LEGAL.search(step):
+        signal_fields.append('vorgangsposition')
+    if LEGAL.search(title):
+        signal_fields.append('titel')
+    if LEGAL.search(' '.join(activity_text)):
+        signal_fields.append('aktivitaet_anzeige')
     updated = iso(utc(raw['aktualisiert']))
     date = raw.get('datum') or ''
     if date:
@@ -97,7 +120,8 @@ def normalize_position(raw):
     return {
         'id': ident, 'parent_id': parent, 'updated': updated, 'date': date,
         'title': ' '.join(title.split())[:250], 'step': text,
-        'kind': 'moegliche_rechtsfolge' if LEGAL.search(text) else 'verfahrensschritt',
+        'kind': 'moegliche_rechtsfolge' if signal_fields else 'verfahrensschritt',
+        'signal_fields':signal_fields,
         'afterword': bool(raw.get('nachtrag', False)),
         'source': 'https://dip.bundestag.de/vorgang/' + parent,
     }
