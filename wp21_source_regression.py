@@ -12,6 +12,14 @@ from parser import candidates, events, iter_session_text, speaker_index
 from wp21_scan import safe_parse
 
 SOURCE_FRAGMENTS = {
+    # Source-named 21/014 Reichardt interjection and two directly rebuked
+    # preceding named XML speaker turns in 21/037 and 21/039.
+    (14, 'dann muss ich ihnen leider einen ordnungsruf erteilen dafür'):
+        ('linked_hint','Reichardt'),
+    (37, 'erteile ihnen hiermit einen ordnungsruf für die verwendung'):
+        ('linked_hint','Gürpinar'),
+    (39, 'im übrigen erteile ich ihnen einen ordnungsruf dafür'):
+        ('linked_hint','Rathert'),
     # 21/040 has TWO distinct first/second pairs involving two MPs,
     # not one three-grant series: Sichert 8715+8719, Gottschalk 8990+8992.
     (40, 'ich erteile ihnen jetzt einen ordnungsruf, weil sie mit dem finger'):
@@ -144,6 +152,8 @@ def run(folder):
                            'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_',
                            'redeblock_sprecher_xmlzeile_',
                            'vorherige_rede_und_einleitung_xmlzeile_',
+                           'namenszwischenruf_schwaetzer_xmlzeile_',
+                           'wortgleiche_rede_und_anrede_xmlzeile_',
                            'erstes_erteilungswort_redner_sichert_xmlzeile_',
                            'zweitvergabe_zu_benanntem_zwischenruf_xmlzeile_',
                            'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_'))):
