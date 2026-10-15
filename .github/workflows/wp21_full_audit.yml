@@ -1,12 +1,9 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# Isolated full revalidation after additional original-DIP source
-# recovery; revert to opt-in as soon as the run has passed.
+# Latest independent 100-session revalidation was run in PR #4.
+# Keep all further complete-source re-fetches opt-in. The lightweight
+# official XML and unit-test workflows remain automatic for every PR change.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
