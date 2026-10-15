@@ -13,6 +13,7 @@ on:
       - 'wp21_rechtsfolgen.py'
       - 'wp21_betriebsbericht.py'
       - 'wp21_benchmark.py'
+      - 'wp21_dip_kontrolle.py'
       - 'tests/**'
       - 'WP21.md'
       - 'QUELLENABGLEICH.md'
@@ -23,6 +24,7 @@ on:
       - 'wp21_rechtsfolgen.py'
       - 'wp21_betriebsbericht.py'
       - 'wp21_benchmark.py'
+      - 'wp21_dip_kontrolle.py'
       - 'docs/**'
       - 'daten/**'
       - 'export_webdaten.py'
@@ -67,6 +69,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_wp21_refresh.py' -v
           python -m unittest discover -s tests -p 'test_wp21_betrieb.py' -v
           python -m unittest discover -s tests -p 'test_wp21_benchmark.py' -v
+          python -m unittest discover -s tests -p 'test_wp21_dip_kontrolle.py' -v
       - name: Quellenbasierte Positiv- und Negativkontrollen gegen historische Referenz pruefen
         run: python wp21_benchmark.py --output wp21_regression_audit.json
       - name: Quellenbenchmark mit konkreten Gegenbeispielen archivieren
@@ -76,6 +79,8 @@ jobs:
           path: wp21_regression_audit.json
           if-no-files-found: error
           retention-days: 30
+      - name: Unabhaengige DIP-Positivstichprobe mit belegtem Anfangsbestand vergleichen
+        run: python wp21_dip_kontrolle.py --report docs/data/dip_kontrolle_21.json
       - name: Historische und aktuelle Quellenlisten gegen veroeffentlichte JSONs pruefen
         run: |
           python export_webdaten.py --check
@@ -97,6 +102,7 @@ jobs:
             docs/data/hinweise_21.json
             docs/data/autopruefung_21.json
             docs/data/rechtsfolgen_21.json
+            docs/data/dip_kontrolle_21.json
           key: wp21-feed-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             wp21-feed-
@@ -144,6 +150,23 @@ jobs:
       - name: Meldung bei fehlgeschlagener Rechtsfolgenpruefung
         if: github.event_name != 'pull_request' && steps.rechtsfolgen.outcome == 'failure'
         run: echo '::warning::Rechtsfolgen-Signalprüfung fehlgeschlagen; keine automatische Ruecknahme.'
+      - name: Amtliche DIP-Positivkontrollen mit aktuellen Parser-Hinweisen abgleichen
+        if: github.event_name != 'pull_request' && steps.autopruefung.outcome == 'success'
+        id: dipcontrol
+        continue-on-error: true
+        run: |
+          python wp21_dip_kontrolle.py \
+            --proposals wp21_autopruefung.csv \
+            --candidates wp21_dip_pruefliste.csv \
+            --report docs/data/dip_kontrolle_21.json
+      - name: Vergleichsliste aus amtlicher DIP-Positivstichprobe archivieren
+        if: github.event_name != 'pull_request' && steps.dipcontrol.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-dip-referenzvergleich-${{ github.run_id }}
+          path: wp21_dip_pruefliste.csv
+          if-no-files-found: error
+          retention-days: 30
       - name: Meldung bei fehlgeschlagener Vorpruefung
         if: github.event_name != 'pull_request' && steps.autopruefung.outcome == 'failure'
         run: echo '::warning::Automatischer Personenabgleich fehlgeschlagen; bestätigte Zahlen bleiben unverändert.'
@@ -185,6 +208,7 @@ jobs:
             docs/data/hinweise_21.json
             docs/data/autopruefung_21.json
             docs/data/rechtsfolgen_21.json
+            docs/data/dip_kontrolle_21.json
           if-no-files-found: error
           retention-days: 30
       - name: Website-Artefakt zur Veroeffentlichung uebertragen
