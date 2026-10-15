@@ -1,12 +1,9 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# Run one isolated full-dataset validation for the three original
-# previously unrecognised WP21 cases; the workflow returns to opt-in after.
+# The complete real-XML source pass was independently verified on PR #4
+# (Actions 38763883647). Keep expensive 100+ document rescans opt-in;
+# normal PRs use the smaller 27-case live original-XML regression suite.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
