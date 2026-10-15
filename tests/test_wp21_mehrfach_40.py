@@ -17,6 +17,9 @@ S_WARNING=('– Und wenn Sie lachen – und ich weiß, wer gelacht hat –, '
            'erteile ich Ihnen gleich fürs Lachen den nächsten Ordnungsruf.')
 S_SECOND=('– Ich erteile Ihnen auch für den Widerspruch gerade einen '
           'zweiten Ordnungsruf; das kann ich.')
+JANICH_INTERJECTION=(
+    '(Beifall des Abg. Luigi Pantisano [Die Linke] – '
+    'Steffen Janich [AfD]: Also fürs Lachen einen Ordnungsruf! Danke!)')
 G_FIRST=('Herr Kollege Gottschalk, ich erteile Ihnen jetzt einen '
          'Ordnungsruf für die Verwendung des Wortes „pfui“.')
 G_SECOND=('Denn das ist unparlamentarisches Verhalten. Und ich erteile '
@@ -33,6 +36,9 @@ def build(speeches):
                f'<nachname>{escape(last)}</nachname>'
                '</name></redner></p>']
         for who,spoken in segments:
+            if who == 'comment':
+                parts.append('<kommentar>'+escape(spoken)+'</kommentar>')
+                continue
             if who == 'speaker_switch':
                 parts.append('<p klasse="redner"><redner id="9999999">'
                              '<name><vorname>Andere</vorname>'
@@ -44,8 +50,11 @@ def build(speeches):
                 parts.append('<name>'+escape(who)+'</name>')
             parts.append('<p>'+escape(spoken)+'</p>')
         rede.append('<rede>\n'+'\n'.join(parts)+'\n</rede>')
+    janich=('<vorsprann><redner id="11009991"><name>'
+            '<vorname>Steffen</vorname><nachname>Janich</nachname>'
+            '</name></redner></vorsprann>')
     xml=('<dbtplenarprotokoll wahlperiode="21" sitzung-nr="40" '
-         'sitzung-datum="15.10.2026"><sitzungsverlauf>'
+         'sitzung-datum="15.10.2026">'+janich+'<sitzungsverlauf>'
          '<tagesordnungspunkt>\n'+'\n'.join(rede)+
          '\n</tagesordnungspunkt></sitzungsverlauf></dbtplenarprotokoll>')
     root=etree.fromstring(xml.encode())
@@ -60,20 +69,21 @@ def analyze(speeches):
 
 
 class SeparateOriginalMeasuresTests(unittest.TestCase):
-    def test_sichert_two_original_issuing_lines_not_three(self):
+    def test_sichert_first_and_janich_second_are_distinct_recipients(self):
         result,hints=analyze([('11004892','Martin','Sichert',[
             (None,'Sie sollten sich schämen für Ihre Heuchelei!'),
-            (CHAIR,S_FIRST),(CHAIR,S_WARNING),(CHAIR,S_SECOND),
+            (CHAIR,S_FIRST),(CHAIR,S_WARNING),
+            ('comment',JANICH_INTERJECTION),(CHAIR,S_SECOND),
             (None,'Wir brauchen eine klare Anwendung des Rechts.')
         ])])
         self.assertEqual([x['person'] for x in result],
-                         ['Martin Sichert','Martin Sichert'])
+                         ['Martin Sichert','Steffen Janich'])
         self.assertEqual(len({x['line'] for x in result}),2)
         self.assertTrue(all(x['status']=='review_required' for x in result))
         self.assertTrue(result[0]['zuordnungsmethode'].startswith(
-            'erstes_ordnungsrufpaar_zweiter_xmlzeile_'))
+            'erstes_erteilungswort_redner_sichert_xmlzeile_'))
         self.assertTrue(result[1]['zuordnungsmethode'].startswith(
-            'zweites_ordnungsrufpaar_erster_xmlzeile_'))
+            'zweitvergabe_zu_benanntem_zwischenruf_xmlzeile_'))
         self.assertFalse(any(x['text']==S_WARNING for x in result))
         self.assertEqual(sum(x['classification']=='possible_grant'
                              for x in hints),2)
@@ -92,13 +102,15 @@ class SeparateOriginalMeasuresTests(unittest.TestCase):
             'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_'))
         self.assertEqual(result[1]['text'],G_SECOND)
 
-    def test_two_speakers_each_two_measures_are_never_combined(self):
+    def test_two_grant_contexts_have_three_different_recipient_names(self):
         result,_=analyze([
-            ('11004892','Martin','Sichert',[(CHAIR,S_FIRST),(CHAIR,S_SECOND)]),
+            ('11004892','Martin','Sichert',[
+                (CHAIR,S_FIRST),('comment',JANICH_INTERJECTION),
+                (CHAIR,S_SECOND)]),
             ('11005753','Kay','Gottschalk',[(CHAIR,G_FIRST),(CHAIR,G_SECOND)])])
         self.assertEqual(len(result),4)
         self.assertEqual([x['person'] for x in sorted(result,key=lambda e:int(e['line']))],
-                         ['Martin Sichert','Martin Sichert',
+                         ['Martin Sichert','Steffen Janich',
                           'Kay Gottschalk','Kay Gottschalk'])
 
     def test_second_without_first_does_not_infer_person(self):
@@ -160,6 +172,32 @@ class SeparateOriginalMeasuresTests(unittest.TestCase):
         ])])
         self.assertEqual(len(result),1)
         self.assertEqual(result[0]['person'],'Kay Gottschalk')
+
+    def test_sichert_speech_block_without_named_janich_interjection_is_not_enough(self):
+        result,_=analyze([('11004892','Martin','Sichert',[
+            (CHAIR,S_FIRST),(CHAIR,S_WARNING),(CHAIR,S_SECOND)])])
+        self.assertEqual(result,[])
+
+    def test_applause_only_pantisano_does_not_steal_recipient(self):
+        result,_=analyze([('11004892','Martin','Sichert',[
+            (CHAIR,S_FIRST),
+            ('comment','(Beifall des Abg. Luigi Pantisano [Die Linke])'),
+            (CHAIR,S_SECOND)])])
+        self.assertEqual(result,[])
+
+    def test_janich_name_without_explicit_interjection_does_not_link_second(self):
+        result,_=analyze([('11004892','Martin','Sichert',[
+            (CHAIR,S_FIRST),
+            ('comment','(Zuruf des Abg. Steffen Janich [AfD])'),
+            (CHAIR,S_SECOND)])])
+        self.assertEqual(result,[])
+
+    def test_janich_interjection_not_same_as_explicit_first_for_sichert(self):
+        result,_=analyze([('11004892','Martin','Sichert',[
+            (CHAIR,S_FIRST),('comment',JANICH_INTERJECTION),(CHAIR,S_SECOND)])])
+        self.assertEqual([x['person'] for x in sorted(result,key=lambda r:r['line'])],
+                         ['Martin Sichert','Steffen Janich'])
+        self.assertEqual(len({x['line'] for x in result}),2)
 
 
 if __name__=='__main__':
