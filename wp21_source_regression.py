@@ -38,6 +38,8 @@ SOURCE_FRAGMENTS = {
     # as the offended colleague. Only a separate actual issuing clause can
     # prove a grant to her; this paragraph must never propose her.
     (67, 'dass sie der kollegin gebel'): ('false_victim', 'Gebel'),
+    (67, 'für die bemerkung, der kanzler würde rassistischen dreck'):
+        ('linked_hint','Gebel'),
     (68, 'möchte ich der abgeordneten dr. paula piechotta'): ('named_hint','Piechotta'),
     (71, 'erteile ich ihnen, herr jünger'): ('named_hint','Jünger'),
     (77, 'und für dieses persönliche bekommen sie jetzt von mir einen ordnungsruf'): ('linked_hint','Reichardt'),

@@ -303,6 +303,43 @@ class CrossParagraphReviewLinks(unittest.TestCase):
             [('Bernd','Baumann'),('Martin','Hess')],57)
         self.assertEqual(found,[])
 
+    def test_21067_gebel_is_real_second_sanction_not_earlier_victim(self):
+        _,found=parse([
+            (CHAIR,[
+                'Die nächste Rednerin in dieser Debatte ist Kathrin Gebel '
+                'für die Fraktion Die Linke.',
+                '– doch, wirklich –: In der Befragung der Bundesregierung '
+                'gerade eben gibt der Kanzler hier rassistischen Dreck von sich',
+                'und missbraucht allen Ernstes dieses Thema.',
+                'Frau Kollegin, für die Bemerkung, der Kanzler würde '
+                'rassistischen Dreck von sich geben – was wirklich '
+                'unglaublich ist –, bekommen Sie jetzt von mir einen Ordnungsruf.'])],
+            [('Kathrin','Gebel'),('Kerstin','Przygodda')],67)
+        self.assertEqual([x['person'] for x in found],['Kathrin Gebel'])
+        self.assertEqual(found[0]['status'],'review_required')
+        self.assertTrue(found[0]['zuordnungsmethode'].startswith(
+            'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_'))
+
+    def test_21067_reported_wuerde_without_actual_grant_stays_non_sanction(self):
+        from parser import classify
+        self.assertNotEqual(
+            classify('Wenn der Kanzler rassistischen Dreck von sich geben '
+                     'würde, müsste ich Ihnen dafür einen Ordnungsruf erteilen.'),
+            'possible_grant')
+
+    def test_21067_offence_without_previous_speaker_quote_not_linked(self):
+        _,found=parse([
+            (CHAIR,[
+                'Die nächste Rednerin in dieser Debatte ist Kathrin Gebel '
+                'für die Fraktion Die Linke.',
+                'Die betroffene Person fordert besondere Schutzmaßnahmen.',
+                'Frau Kollegin, für die Bemerkung, der Kanzler würde '
+                'rassistischen Dreck von sich geben – was wirklich '
+                'unglaublich ist –, bekommen Sie jetzt von mir einen Ordnungsruf.'])],
+            [('Kathrin','Gebel')],67)
+        self.assertEqual(found,[])
+
+
 
 if __name__=='__main__':
     unittest.main()
