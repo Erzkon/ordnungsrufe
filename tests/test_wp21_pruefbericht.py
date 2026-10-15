@@ -34,7 +34,7 @@ class PrioritizedBriefTests(unittest.TestCase):
         output=create_brief([row()],summary())
         self.assertIn('XML-Zeile 1414',output)
         self.assertIn('Noch keine sichere Person',output)
-        self.assertIn('keine Änderung',output.lower())
+        self.assertIn('keine änderung',output.lower())
         self.assertIn('keine bestätigten ordnungsrufe',output.lower())
 
     def test_known_missing_parser_kept_separate(self):
@@ -54,7 +54,7 @@ class PrioritizedBriefTests(unittest.TestCase):
                  dip_urspruengliche_erteilungen_stichprobe='1',
                  parser_person_sitzung_vorhanden='ja',
                  bestaetigte_massnahmen_teilbestand='0')
-        self.assertIn('nicht einzeln bestätigt',category(case))
+        self.assertIn('ohne einzeln bestätigten',category(case))
         self.assertIn('kuratierte',create_brief([case],summary()).lower())
 
     def test_mismatched_high_tally_rejected(self):
