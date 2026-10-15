@@ -33,6 +33,13 @@ def build(speeches):
                f'<nachname>{escape(last)}</nachname>'
                '</name></redner></p>']
         for who,spoken in segments:
+            if who == 'speaker_switch':
+                parts.append('<p klasse="redner"><redner id="9999999">'
+                             '<name><vorname>Andere</vorname>'
+                             '<nachname>Person</nachname></name>'
+                             '</redner></p>')
+                parts.append('<p>'+escape(spoken)+'</p>')
+                continue
             if who is not None:
                 parts.append('<name>'+escape(who)+'</name>')
             parts.append('<p>'+escape(spoken)+'</p>')
@@ -113,7 +120,7 @@ class SeparateOriginalMeasuresTests(unittest.TestCase):
     def test_intervening_new_speech_marker_not_safely_same_addressee(self):
         result,_=analyze([('11004892','Martin','Sichert',[
             (CHAIR,S_FIRST),
-            (None,'Ich widerspreche dieser Sichtweise.'),
+            ('speaker_switch','Ich widerspreche dieser Sichtweise.'),
             (CHAIR,S_SECOND)
         ])])
         self.assertEqual(result,[])

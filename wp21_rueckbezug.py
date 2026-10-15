@@ -519,6 +519,8 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
         earlier=[
             (el,text) for el,text in paragraphs[max(0,i-6):i]
             if 0<second_line-int(el.sourceline)<=12
+            and el.getparent() is second.getparent()
+            and _chair(el,issuer_context)==chair
             and classify(text)=='possible_grant'
         ]
         if len(earlier)!=1:
