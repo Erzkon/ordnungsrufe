@@ -5,6 +5,7 @@ A paragraph or neighbor can be an addressee, the chair, an injured person, or
 another MP. Context is *never* an inferred recipient or confirmed sanction.
 """
 import argparse
+import csv
 import json
 import re
 from pathlib import Path
@@ -12,6 +13,7 @@ from pathlib import Path
 from parser import (candidates, events, issuer_context, iter_session_text,
                     normal, speaker_index)
 from wp21_dip_kontrolle import REFERENCE, reference
+from wp21_autopruefung import norm
 from wp21_scan import HOST, fetch, safe_parse
 
 DEFAULT_SESSIONS = (52,53,57,61,65,67,68,71,77,90,93,94)
@@ -86,16 +88,50 @@ def examine(root, session, person_names):
     return results
 
 
-def collect(cache, sessions=DEFAULT_SESSIONS, source=REFERENCE):
+def targeted_gaps(audit_csv, ref):
+    """Read only high-confidence *scope keys* from an unverified audit queue.
+
+    Keys not present in the independently curated DIP positive sample are
+    rejected, and entries that already have a parser person hint are skipped.
+    This has no bearing on sanctions or subsequent legal reversals.
+    """
+    official={(x['session'],norm(x['person'])) for x in ref['entries']}
+    with Path(audit_csv).open(encoding='utf-8-sig',newline='') as stream:
+        reader=csv.DictReader(stream)
+        expected={'typ','sitzung','person','dip_urspruengliche_erteilungen_stichprobe',
+                  'parser_person_sitzung_vorhanden'}
+        if not reader.fieldnames or not expected.issubset(reader.fieldnames):
+            raise ValueError('Prüfqueue ist unvollständig')
+        found=set()
+        for row in reader:
+            if (row['typ']!='person_sitzung_ohne_einzelereignisabgleich'
+                    or not row['dip_urspruengliche_erteilungen_stichprobe']
+                    or row['parser_person_sitzung_vorhanden']!='nein'):
+                continue
+            try:
+                key=(int(row['sitzung']),norm(row['person']))
+            except (TypeError,ValueError) as exc:
+                raise ValueError('Prüfqueue mit ungültiger Sitzung') from exc
+            if key not in official or key in found:
+                raise ValueError('Unbekannte oder doppelte DIP-Referenz in Prüfqueue')
+            found.add(key)
+            if len(found)>200:
+                raise ValueError('Zu viele DIP-Positivreferenzen')
+    return found
+
+
+def collect(cache, sessions=DEFAULT_SESSIONS, source=REFERENCE, audit_cases=None):
     ref=reference(source)
     chosen=set(sessions)
-    if not chosen or any(type(x)!=int or not 1<=x<=450 for x in chosen):
+    if any(type(x)!=int or not 1<=x<=450 for x in chosen) or not chosen:
         raise ValueError('Unzulässige Sitzung für Quellendiagnose')
+    gaps=targeted_gaps(audit_cases,ref) if audit_cases is not None else None
     grouped={}
     for item in ref['entries']:
-        if item['session'] in chosen:
+        key=(item['session'],norm(item['person']))
+        if (key in gaps if gaps is not None else item['session'] in chosen):
             grouped.setdefault(item['session'],[]).append(item['person'])
-    if set(grouped)!=chosen:
+    if gaps is None and set(grouped)!=chosen:
         raise ValueError('Keine kuratierte DIP-Positivreferenz zu einer Zielsitzung')
     records=[]
     for session,names in sorted(grouped.items()):
@@ -121,9 +157,11 @@ def main():
     ap.add_argument('--cache',type=Path,default=Path('.audit/targeted_xml'))
     ap.add_argument('--sessions',type=str,default=','.join(map(str,DEFAULT_SESSIONS)))
     ap.add_argument('--output',type=Path,default=Path('.audit/targeted_context.json'))
+    ap.add_argument('--audit-cases',type=Path,
+                    help='Optionale vollständige Audit-CSV; nur darin nicht erkannte DIP-Positivfälle')
     args=ap.parse_args()
     sessions=tuple(int(s.strip()) for s in args.sessions.split(','))
-    result=collect(args.cache,sessions=sessions)
+    result=collect(args.cache,sessions=sessions,audit_cases=args.audit_cases)
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print('Nur Quellenkontext:',result['person_session_targets'],
