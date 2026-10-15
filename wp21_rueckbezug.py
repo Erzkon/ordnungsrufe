@@ -91,6 +91,28 @@ def _unique_prior_full_name(surname, index, paragraphs, grant_line):
     return {**next(iter(found.values())),'identity_status':'matched_xml_person'}
 
 
+def _same_named_xml_speaker(element, person):
+    """Require the independently marked XML speaker for the quoted remark.
+
+    A speech paragraph belongs to the nearest preceding <p klasse="redner">
+    in the same <rede>, not to a random nearby politician or chair text.
+    Cross-rede and missing/ambiguous speaker IDs always fail closed.
+    """
+    if not person.get('person_id'):
+        return False
+    parent=element.getparent()
+    if parent is None or parent.tag!='rede':
+        return False
+    for previous in element.itersiblings(preceding=True):
+        if previous.tag=='p' and previous.get('klasse')=='redner':
+            candidates=previous.xpath('.//redner[@id]')
+            return (len(candidates)==1 and
+                    candidates[0].get('id')==person['person_id'])
+        if previous.tag=='name':
+            return False
+    return False
+
+
 def infer_source_linked_hints(paragraphs, index, local_lines):
     """Yield (original grant element, identified person), never recap events.
 
@@ -296,6 +318,12 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
         if len(introductions)!=1:
             continue
         source_line,who=introductions[0]
+        # Crucially: the insult/exclamation must have been spoken by this
+        # exact XML redner ID. The chair's introduction alone does not
+        # establish who spoke after a possible intervening speaker switch.
+        if not all(_same_named_xml_speaker(el,who)
+                   for el,_ in relevant_before):
+            continue
         proposals.append((element,_with_method(
             [who],f'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_{source_line}')[0]))
         used.add(line)
