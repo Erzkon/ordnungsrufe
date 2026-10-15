@@ -60,6 +60,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_wp21_feed.py' -v
           python -m unittest discover -s tests -p 'test_wp21_autopruefung.py' -v
           python -m unittest discover -s tests -p 'test_wp21_rechtsfolgen.py' -v
+          python -m unittest discover -s tests -p 'test_wp21_refresh.py' -v
       - name: Historische und aktuelle Quellenlisten gegen veroeffentlichte JSONs pruefen
         run: |
           python export_webdaten.py --check
