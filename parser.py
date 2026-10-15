@@ -23,11 +23,13 @@ ACTION = re.compile(
     r'\bOrdnungsruf\b[^.!?]{0,180}?\b(?:erteile|erteilen|erhält|erhalten|bekommen|bekommt|kriegen|kriegt)\b|'
     r'\b(?:rufe|rufen)\b[^.!?]{0,110}?\bzur\s+Ordnung\b|'
     r'\bOrdnungsrufe\s+gehen\s+an\b|'
-    r'\b(?:Das\s+ist\s+jetzt|das\s+ist)\s+ein\s+Ordnungsruf\s+für\s+Sie\b', re.I)
+    r'\b(?:Das\s+ist\s+jetzt|das\s+ist)\s+ein\s+Ordnungsruf\s+für\s+Sie\b|'
+    r'\b(?:Sie\s+haben|haben\s+Sie)\s+(?:jetzt\s+)?(?:Ihren|einen)\s+Ordnungsruf\b|'
+    r'\b(?:Dafür|deshalb)\s+gibt\s+es\s+(?:den\s+(?:nächsten|zweiten)|einen)\s+Ordnungsruf\b', re.I)
 THREAT = re.compile(
     r'\b(?:behalte\s+(?:ich\s+)?mir|vorbehalten|drohe|angedroht|'
     r'würde|würden|könnte|könnten|hätte|hätten|'
-    r'falls|wenn|sonst|andernfalls|im\s+Wiederholungsfall|'
+    r'falls|wenn|sonst|ansonsten|andernfalls|im\s+Wiederholungsfall|'
     r'nächste[nmrs]?\s+Mal|das\s+nächste\s+Mal|als\s+Nächstes)\b', re.I)
 APPEAL = re.compile(r'\b(?:Einspruch|zurücknehmen|nicht\s+zurück|zurückgenommen|zurückgezogen|aufgehoben|gegen\s+den\s+Ordnungsruf)\b', re.I)
 # A announced future sanction is not a sanction imposed. Preserve it for review.
@@ -410,6 +412,22 @@ def persons_for_grant(text, index):
             named = _name_at(pre_action,lead_in.end(),index)
             if named:
                 return _with_method([named], 'benannter_bezug_im_selben_satz')
+        # Official 21/057: "Der Abgeordnete Kneller erhält von mir einen
+        # Ordnungsruf." Grammatical subject and recipient are identical.
+        direct_subject = re.match(
+            r'^(?:Der|Die)\s+Abgeordnete(?:r|n)?\s+', scope, re.I)
+        if direct_subject:
+            remainder = scope[direct_subject.end():]
+            name_span = re.match(
+                r'[\wÀ-žÄÖÜäöüß\-]+(?:\s+[\wÀ-žÄÖÜäöüß\-]+){0,3}', remainder)
+            if name_span:
+                tail = remainder[name_span.end():]
+                if re.match(
+                    r'^\s+(?:erhält|bekommt|kriegt)\b[^.!?]{0,100}'
+                    r'\beinen\s+Ordnungsruf\b', tail, re.I):
+                    who = _name_at(scope, direct_subject.end(), index)
+                    if who:
+                        return _with_method([who], 'explizites_empfaenger_subjekt')
         # An explicit recipient in the issuing clause outranks every name in
         # an explanation or later paraphrase.
         against = _sanction_against(scope, index)
