@@ -9,6 +9,7 @@ on:
       - 'wp21_rueckbezug.py'
       - 'tests/test_wp21_rueckbezug.py'
       - 'tests/test_wp21_remaining_identities.py'
+      - 'tests/test_wp21_mehrfach_40.py'
       - 'wp21_fallkontext.py'
       - 'parser.py'
       - 'tests/test_wp21_originalformulierungen.py'
@@ -42,7 +43,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from wp21_scan import fetch
-          for number in (15,22,23,25,27,43,50,69,74,75,82):
+          for number in (15,22,23,25,27,40,43,50,69,74,75,82):
               data=fetch(number,Path('.audit/targeted_xml'))
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')

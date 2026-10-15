@@ -12,6 +12,18 @@ from parser import candidates, events, iter_session_text, speaker_index
 from wp21_scan import safe_parse
 
 SOURCE_FRAGMENTS = {
+    # 21/040 has TWO distinct first/second pairs involving two MPs,
+    # not one three-grant series: Sichert 8715+8719, Gottschalk 8990+8992.
+    (40, 'ich erteile ihnen jetzt einen ordnungsruf, weil sie mit dem finger'):
+        ('linked_hint','Sichert'),
+    (40, 'ich erteile ihnen auch für den widerspruch gerade einen zweiten ordnungsruf'):
+        ('linked_hint','Sichert'),
+    (40, 'herr kollege gottschalk, ich erteile ihnen jetzt einen ordnungsruf'):
+        ('named_hint','Gottschalk'),
+    (40, 'und ich erteile ihnen einen zweiten ordnungsruf dafür'):
+        ('linked_hint','Gottschalk'),
+    (40, 'wenn sie lachen – und ich weiß, wer gelacht hat'):
+        ('conditional_warning',None),
     # Three remaining independent DIP-positive references, with exact XML
     # recipients supported by named speech blocks / formal introductions.
     (52, 'herr kollege, dafür, dass sie der kollegin inkompetenz'):
@@ -131,7 +143,10 @@ def run(folder):
                            'vorsitz_direkte_anrede_xmlzeile_',
                            'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_',
                            'redeblock_sprecher_xmlzeile_',
-                           'vorherige_rede_und_einleitung_xmlzeile_'))):
+                           'vorherige_rede_und_einleitung_xmlzeile_',
+                           'erstes_ordnungsrufpaar_zweiter_xmlzeile_',
+                           'zweites_ordnungsrufpaar_erster_xmlzeile_',
+                           'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_'))):
                     raise AssertionError(f'Beleggebundener Personen-Prüfhinweis '
                                          f'21/{session} fehlt oder uneindeutig: '
                                          f'{cls=} {names=} {people=}')
@@ -143,6 +158,25 @@ def run(folder):
                 'classification':cls,'people_as_unverified_parser_hints':names,
                 'status':'checked_against_original_xml_not_effective_sanctions',
             }
+    # The conditional laughter threat at line 8717 is not a third
+    # sanction. Similarly, 8990 is already a named first grant; 8992 adds
+    # only a source-linked review identity to the separate second grant.
+    if 40 in roots:
+        path=Path(folder)/'21040.xml'
+        rows=list(events(path,index=index,root=roots[40]))
+        pairs={
+            8715:'Martin Sichert',8719:'Martin Sichert',
+            8990:'Kay Gottschalk',8992:'Kay Gottschalk',
+        }
+        for line,who in pairs.items():
+            seen=[row for row in rows if int(row['line'])==line]
+            if (len(seen)!=1 or seen[0]['person']!=who
+                    or seen[0]['status']!='review_required'):
+                raise AssertionError(
+                    f'Unabhängige 21/040-Erteilungsstellen nicht korrekt '
+                    f'getrennt: Zeile {line}, erwartet {who}, gefunden {seen}')
+        if any(int(row['line'])==8717 for row in rows):
+            raise AssertionError('21/040 bedingte Lachandrohung als Erteilung erfasst')
     if len(results)!=len(SOURCE_FRAGMENTS):
         raise AssertionError('Unvollständige reale XML-Testabdeckung')
     print(f'{len(results)} Original-XML-Paragraf-Regressionskontrollen OK; '
