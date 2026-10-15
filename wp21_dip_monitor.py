@@ -48,10 +48,12 @@ def iso(dt):
     return dt.astimezone(timezone.utc).isoformat(timespec='seconds')
 
 
-def request_page(params, key, opener=None, sleep=time.sleep):
+def request_page(params, key, opener=None, sleep=time.sleep, endpoint=API):
     opener = opener or build_opener(NoRedirect())
     args = urlencode(params)
-    url = API + '?' + args
+    if endpoint not in (API, 'https://search.dip.bundestag.de/api/v1/vorgangsposition'):
+        raise ValueError('DIP-Endpunkt nicht zugelassen')
+    url = endpoint + '?' + args
     req = Request(url, headers={
         'Authorization': 'ApiKey ' + key,
         'Accept': 'application/json',
