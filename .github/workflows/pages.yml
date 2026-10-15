@@ -50,6 +50,12 @@ on:
     # Täglich um 06:23 UTC (Sommer-/Winterzeit in Deutschland beachten).
     - cron: '23 6 * * *'
   workflow_dispatch:
+    inputs:
+      vollstaendiger_dip_trockenlauf:
+        description: 'Amtlichen DIP-Erstlauf vollstaendig und isoliert testweise ausfuehren'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -98,7 +104,7 @@ jobs:
         if: steps.dipprobe.outcome == 'failure'
         run: echo '::warning::DIP-Endpunkt/Schnittstellenformat nicht bestätigt; automatische Zähler bleiben unverändert.'
       - name: Gesamte bisherige DIP-21.-WP-Historie isoliert vor Merge testweise verarbeiten
-        if: github.event_name == 'pull_request' && steps.dipprobe.outcome == 'success'
+        if: github.event_name == 'workflow_dispatch' && inputs.vollstaendiger_dip_trockenlauf == true && steps.dipprobe.outcome == 'success'
         id: dipdryrun
         continue-on-error: true
         timeout-minutes: 25
@@ -106,7 +112,7 @@ jobs:
           DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
         run: python wp21_premerge_dryrun.py --output wp21_premerge_dryrun.json
       - name: Ersten kompletten DIP-API-Durchlauf als Prüfprotokoll archivieren
-        if: github.event_name == 'pull_request' && steps.dipdryrun.outcome == 'success'
+        if: github.event_name == 'workflow_dispatch' && steps.dipdryrun.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: wp21-vollstaendiger-dip-trockenlauf-${{ github.run_id }}
@@ -114,7 +120,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Warnung bei fehlgeschlagenem historischem DIP-Trockenlauf
-        if: github.event_name == 'pull_request' && steps.dipdryrun.outcome == 'failure'
+        if: github.event_name == 'workflow_dispatch' && steps.dipdryrun.outcome == 'failure'
         run: echo '::warning::Vollständige DIP-Erstladung noch nicht erfolgreich validiert; keine automatische Zählung.'
       - name: Quellenbasierte Positiv- und Negativkontrollen gegen historische Referenz pruefen
         run: python wp21_benchmark.py --output wp21_regression_audit.json
