@@ -12,6 +12,18 @@ from parser import candidates, events, iter_session_text, speaker_index
 from wp21_scan import safe_parse
 
 SOURCE_FRAGMENTS = {
+    # Separately validate previously unrecognised direct recipients and
+    # strict negative/hypothetical language in the real official transcripts.
+    (15, 'ich erteile einen ordnungsruf an herrn lamely'): ('named_hint','Lamely'),
+    (22, 'wer dreimal einen ordnungsruf erhält'): ('conditional_warning', None),
+    (23, 'ich erteile hier noch einen nachträglichen ordnungsruf'): ('named_hint','Hilse'),
+    (25, 'dann bekommt man ja einen ordnungsruf'): ('conditional_warning', None),
+    (43, 'herrn frohnmaier erteile ich einen ordnungsruf'): ('named_hint','Frohnmaier'),
+    (43, 'ich müsste ihnen theoretisch einen ordnungsruf erteilen'): ('conditional_warning', None),
+    (50, 'ich erteile dem bundestagsabgeordneten martin reichardt einen ordnungsruf'): ('named_hint','Reichardt'),
+    (74, 'muss ich ihnen dafür jetzt einen ordnungsruf erteilen'): ('conditional_warning', None),
+    (75, 'da ich es nicht zuordnen kann, kann ich keinen ordnungsruf erteilen'): ('conditional_warning', None),
+    (82, 'ob sie dafür auch schon einen ordnungsruf'): ('conditional_warning', None),
     (52, 'kollegin inkompetenz'): ('false_victim', None),
     (53, 'möchte ich der abgeordneten reichinnek'): ('named_hint', 'Reichinnek'),
     (57, 'sie kriegen jetzt von mir einen ordnungsruf dafür'): ('unassigned', None),

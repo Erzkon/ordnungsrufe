@@ -34,6 +34,16 @@ jobs:
       - name: Kuratierte DIP-Sitzungen mit amtlichem XML und Sprecher-Kontext untersuchen
         run: |
           python wp21_fallkontext.py --output .audit/targeted_context.json
+      - name: Zusätzliche offizielle Original-XMLs für Positiv- und Negativproben laden
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from wp21_scan import fetch
+          for number in (15,22,23,25,43,50,74,75,82):
+              data=fetch(number,Path('.audit/targeted_xml'))
+              if data is None:
+                  raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
+          PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
       - name: Bytes der bestätigten Zähler unverändert
