@@ -20,6 +20,7 @@ on:
       - 'wp21_dip_live_probe.py'
       - 'wp21_premerge_dryrun.py'
       - 'wp21_vollstaendigkeit.py'
+      - 'wp21_pruefbericht.py'
       - 'wp21_fallkontext.py'
       - 'wp21_source_regression.py'
       - 'parser.py'
@@ -40,6 +41,7 @@ on:
       - 'wp21_dip_live_probe.py'
       - 'wp21_premerge_dryrun.py'
       - 'wp21_vollstaendigkeit.py'
+      - 'wp21_pruefbericht.py'
       - 'wp21_fallkontext.py'
       - 'wp21_source_regression.py'
       - 'parser.py'
@@ -333,6 +335,23 @@ jobs:
         with:
           name: wp21-vollstaendigkeit-${{ github.run_id }}
           path: wp21_vollstaendigkeit_faelle.csv
+          if-no-files-found: error
+          retention-days: 30
+      - name: Fachliche Quellen-Prüfakte für hoch priorisierte Fälle erzeugen
+        if: github.event_name != 'pull_request' && steps.completeness.outcome == 'success'
+        id: highpriority
+        continue-on-error: true
+        run: |
+          python wp21_pruefbericht.py \
+            --cases wp21_vollstaendigkeit_faelle.csv \
+            --report docs/data/vollstaendigkeit_21.json \
+            --output wp21_hochprioritaet_bericht.md
+      - name: Hochpriorisierte Quellen-Prüfakte als Artefakt archivieren
+        if: github.event_name != 'pull_request' && steps.highpriority.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-hochprioritaet-${{ github.run_id }}
+          path: wp21_hochprioritaet_bericht.md
           if-no-files-found: error
           retention-days: 30
       - name: Amtliche XML-Kontexte für nicht erkannte DIP-Positivfälle zusammenstellen
