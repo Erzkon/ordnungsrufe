@@ -588,4 +588,14 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
         proposals.append((second,_with_method(
             [janich],f'zweitvergabe_zu_benanntem_zwischenruf_xmlzeile_{int(comment.sourceline)}')[0]))
         used.update((first_line,second_line))
+    # Three additional original-source, bounded recipient proposals.
+    # They remain review hints: a named XML comment in 21/014 and
+    # a speaker's own precise offence plus the direct chair response
+    # in 21/037 and 21/039. Never use a generic enclosing redner ID.
+    from wp21_quellen_adressaten import source_recipient_links
+    for grant,who in source_recipient_links(paragraphs,index,assigned | used):
+        line=int(grant.sourceline)
+        if line not in assigned and line not in used:
+            proposals.append((grant,who))
+            used.add(line)
     return proposals
