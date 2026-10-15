@@ -99,7 +99,7 @@ def extract_proposals(files, reviewed):
             direct = (identity == 'matched_xml_person'
                       and bool(re.fullmatch(r'\d{8}', person_id))
                       and method in ('explizit_gegen', 'expliziter_dativ',
-                                     'benannter_empfaenger')
+                                     'benannter_empfaenger', 'explizites_empfaenger_subjekt')
                       and item['evidence_type'] == 'possible_grant'
                       and not any(pattern.search(text) for pattern in
                                   (THREAT, APPEAL, FUTURE_ONLY, GENERIC_FUTURE, PAST)))
