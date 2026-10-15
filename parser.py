@@ -42,6 +42,19 @@ GENERIC_FUTURE = re.compile(
     r'\b(?:der\s+Nächste|jeder|wer\s+das\s+tut|jeder,?\s+der\s+das\s+tut)\b'
     r'[^.!?]{0,130}\b(?:bekommt|kriegt|erhält|erteilen)\b'
     r'[^.!?]{0,80}\bOrdnungsruf\b', re.I)
+# Strict negative/hypothetical expressions are still reviewable mentions,
+# but must not be reported as an actual issuing act (nor auto-verified).
+# Each is tied to a sourced 21st-term XML paragraph.
+NOT_ISSUED = re.compile(
+    r'\b(?:kann\s+ich\s+keinen\s+Ordnungsruf\s+erteilen|'
+    r'müsste\s+Ihnen\s+theoretisch\s+einen\s+Ordnungsruf\s+erteilen|'
+    r'bekommt\s+man\s+ja\s+einen\s+Ordnungsruf|'
+    r'Wer\s+dreimal\s+einen\s+Ordnungsruf\s+erhält|'
+    r'ob\s+sie\s+dafür\s+(?:auch\s+)?schon\s+einen\s+Ordnungsruf)'
+    r'\b', re.I)
+ISSUANCE_QUESTION = re.compile(
+    r'\bMuss\s+ich\s+Ihnen[^?]{0,85}\bOrdnungsruf\s+erteilen\s*\?', re.I)
+
 PAST = re.compile(r'\b(?:letzten\s+Sitzung|vorigen\s+Sitzung|damals|bereits\s+erteilt|vorhin\s+erteilt|soeben\s+erteilt|früher\s+erteilt)\b', re.I)
 # Names begin with an actual capital letter even when the surrounding prefix is
 # matched case-insensitively. Do not consume arbitrary following prose.
@@ -50,7 +63,7 @@ NAME_PARTICLE = r'(?-i:von|de|der|van)'
 NAME_SPAN = r'(?:' + NAME_PARTICLE + r'\s+)?' + NAME_WORD + r'(?:\s+(?:' + NAME_PARTICLE + r'|' + NAME_WORD + r')){0,3}'
 RECIPIENT = re.compile(
     r'\b(?:dem|der|den|einem|einer)\s+(?:(?:fraktionslosen?|fraktionslose[nr]?|Herrn|Frau)\s+)?'
-    r'(?:Abgeordneten|Abgeordnete|Kollegen|Kollegin)\s+', re.I)
+    r'(?:Bundestagsabgeordneten|Abgeordneten|Abgeordnete|Kollegen|Kollegin)\s+', re.I)
 ADDRESS = re.compile(
     r'\b(?:Herr|Frau|Herrn)\s+(?:(?:Kollege|Kollegin|Kollegen|Abgeordneter|Abgeordnete)\s+)?'
     r'(' + NAME_SPAN + r')', re.I)
@@ -128,7 +141,8 @@ def classify(text):
     for sentence in sentences:
         if not action_match(sentence):
             continue
-        if FUTURE_ONLY.search(sentence) or GENERIC_FUTURE.search(sentence):
+        if (FUTURE_ONLY.search(sentence) or GENERIC_FUTURE.search(sentence)
+                or NOT_ISSUED.search(sentence) or ISSUANCE_QUESTION.search(sentence)):
             continue
         if THREAT.search(sentence):
             # If "vorbehalten" and a new grant appear in a single sentence,
@@ -143,7 +157,9 @@ def classify(text):
         positive.append(sentence)
     if positive:
         return 'possible_grant'
-    if THREAT.search(text) or FUTURE_ONLY.search(text) or GENERIC_FUTURE.search(text):
+    if (THREAT.search(text) or FUTURE_ONLY.search(text)
+            or GENERIC_FUTURE.search(text) or NOT_ISSUED.search(text)
+            or ISSUANCE_QUESTION.search(text)):
         return 'warning_or_conditional'
     if APPEAL.search(text):
         return 'appeal_or_retrospective'
@@ -231,7 +247,9 @@ def _grant_scopes(text):
     scopes = []
     for sentence in split_sentences(text):
         if (action_match(sentence) and not THREAT.search(sentence)
-                and not FUTURE_ONLY.search(sentence) and not GENERIC_FUTURE.search(sentence)):
+                and not FUTURE_ONLY.search(sentence) and not GENERIC_FUTURE.search(sentence)
+                and not NOT_ISSUED.search(sentence)
+                and not ISSUANCE_QUESTION.search(sentence)):
             scopes.append(sentence)
     # Prefer full 'Ordnungsruf' language over an immediate paraphrase.
     return sorted(scopes, key=lambda s: (0 if re.search(r'\bOrdnungsruf\b', s, re.I) else 1,
@@ -415,6 +433,32 @@ def _vocative_people(text, index):
     return results
 
 
+def _named_issuer_recipient(scope, index):
+    """Only direct grammatical recipients of an issuance clause.
+
+    Original 21/015: 'Ich erteile einen Ordnungsruf an Herrn Lamely'.
+    21/023: 'Ich erteile ... einen nachträglichen Ordnungsruf, in dem
+    Fall dem Abgeordneten Karsten Hilse'.
+    21/043: 'Herrn Frohnmaier erteile ich einen Ordnungsruf'.
+    An addressee inferred from a preceding paragraph is deliberately NOT used.
+    """
+    front = re.match(
+        r'^\s*[–—-]?\s*Herrn\s+(' + NAME_SPAN +
+        r')\s+erteile\s+ich\s+einen\s+Ordnungsruf\b', scope, re.I)
+    if front:
+        who = candidate_name(front.group(1), index)
+        return _with_method([who], 'expliziter_empfaenger_vorangestellt') if who else []
+    after = re.search(
+        r'\b(?:ich\s+erteile|erteile\s+ich)\b[^.!?]{0,145}?'
+        r'\beinen\s+(?:nachträglichen\s+)?Ordnungsruf\s*,?\s*'
+        r'(?:in\s+dem\s+Fall\s+)?'
+        r'(?:an\s+(?:Herrn|Frau)|(?:dem|der)\s+Abgeordneten)\s+', scope, re.I)
+    if after:
+        who = _name_at(scope, after.end(), index)
+        return _with_method([who], 'expliziter_empfaenger_nach_erteilung') if who else []
+    return []
+
+
 def persons_for_grant(text, index):
     # The later, named roll-call confirms recipients of an earlier anonymous
     # group sanction; do not also emit people for its initial unnamed grant.
@@ -494,6 +538,9 @@ def persons_for_grant(text, index):
         objects = _object_people(scope, index)
         if objects:
             return _with_method(_same_person_list(objects), 'expliziter_dativ')
+        issued_recipient = _named_issuer_recipient(scope, index)
+        if issued_recipient:
+            return issued_recipient
 
         # Address may precede a reported interruption, with the actual grant
         # in the following sentence. Only consider direct vocatives BEFORE

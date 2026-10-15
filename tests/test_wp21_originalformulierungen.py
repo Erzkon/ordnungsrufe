@@ -167,5 +167,71 @@ class OriginalWording(unittest.TestCase):
         self.assertEqual(persons, [])
 
 
+    def test_original_21015_name_after_issued_ordnungsruf(self):
+        hints, people = observed(
+            'Ich erteile einen Ordnungsruf an Herrn Lamely, der von einer '
+            '„Lüge“ gesprochen hat.', name='Test Lamely', session=15)
+        self.assertEqual(hints[0]['classification'], 'possible_grant')
+        self.assertEqual([x['person'] for x in people], ['Test Lamely'])
+        self.assertEqual(people[0]['zuordnungsmethode'],
+                         'expliziter_empfaenger_nach_erteilung')
+
+    def test_original_21023_postposed_dative_after_ordnungsruf(self):
+        hints, people = observed(
+            'Bevor wir jetzt mit der Rednerliste fortfahren, habe ich noch '
+            'etwas aus letzter Woche nachzuholen. Ich erteile hier noch einen '
+            'nachträglichen Ordnungsruf, in dem Fall dem Abgeordneten '
+            'Karsten Hilse der Fraktion der AfD, für die herabwürdigenden '
+            'Äußerungen gegenüber der Fraktion Bündnis 90/Die Grünen.',
+            name='Karsten Hilse', session=23)
+        self.assertEqual(hints[0]['classification'], 'possible_grant')
+        self.assertEqual([x['person'] for x in people], ['Karsten Hilse'])
+
+    def test_original_21043_fronted_herrn_frohnmaier(self):
+        hints, people = observed(
+            '– Herrn Frohnmaier erteile ich einen Ordnungsruf.',
+            name='Markus Frohnmaier', session=43)
+        self.assertEqual(hints[0]['classification'], 'possible_grant')
+        self.assertEqual([x['person'] for x in people], ['Markus Frohnmaier'])
+        self.assertEqual(people[0]['zuordnungsmethode'],
+                         'expliziter_empfaenger_vorangestellt')
+
+    def test_original_21050_bundestagsabgeordneten_dative(self):
+        hints, people = observed(
+            'Ich erteile dem Bundestagsabgeordneten Martin Reichardt '
+            'einen Ordnungsruf. Er hat den Abgeordneten Ralf Stegner '
+            'als Hetzer bezeichnet.',
+            name='Martin Reichardt', session=50)
+        self.assertEqual(hints[0]['classification'], 'possible_grant')
+        self.assertEqual([x['person'] for x in people], ['Martin Reichardt'])
+
+    def test_unsafe_generic_references_not_issued(self):
+        examples = [
+            ('Da ich es nicht zuordnen kann, kann ich keinen Ordnungsruf '
+             'erteilen.', 75),
+            ('Muss ich Ihnen dafür jetzt einen Ordnungsruf erteilen? '
+             'Ich habe nichts verstanden.', 74),
+            ('Ich müsste Ihnen theoretisch einen Ordnungsruf erteilen,', 43),
+            ('Aber dann bekommt man ja einen Ordnungsruf, wie unsere '
+             'Vorsitzende.', 25),
+            ('Wer dreimal einen Ordnungsruf erhält, gegen den wird '
+             'automatisch ein Ordnungsgeld verhängt.', 22),
+            ('Ich weiß nicht, ob sie dafür auch schon einen Ordnungsruf '
+             'oder ein Strafgeld bekommen hat.', 82)
+        ]
+        for text,session in examples:
+            with self.subTest(session=session):
+                hints, people = observed(text, session=session)
+                self.assertNotEqual(hints[0]['classification'], 'possible_grant')
+                self.assertEqual(people, [])
+
+    def test_explicit_recipient_outside_issuing_clause_not_an_event(self):
+        hints,people = observed(
+            'An Herrn Lamely sollten Sie denken. Einen Ordnungsruf '
+            'hätte man hier erteilen können.', name='Test Lamely',session=15)
+        self.assertNotEqual(hints[0]['classification'], 'possible_grant')
+        self.assertEqual(people, [])
+
+
 if __name__=='__main__':
     unittest.main()
