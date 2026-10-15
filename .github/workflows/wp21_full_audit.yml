@@ -1,8 +1,12 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# Expensive full source scans already passed on the PR. Future complete
-# rescans are opt-in; ordinary PR checks use the smaller original-XML suite.
+# Run one isolated full-dataset validation for the three original
+# previously unrecognised WP21 cases; the workflow returns to opt-in after.
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
@@ -45,6 +49,8 @@ jobs:
             --verified daten/wirksame_ordnungsrufe_21wp.csv \
             --candidates .audit/parser.csv \
             --report .audit/parser.json
+      - name: 27 tatsächliche amtliche XML-Textstellen als Regression testen
+        run: python wp21_source_regression.py --folder .audit/xml
       - name: Unabhängige DIP-Positivstichprobe mit echtem XML-Lauf abgleichen
         run: |
           python wp21_dip_kontrolle.py \
