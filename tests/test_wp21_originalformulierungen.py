@@ -73,6 +73,37 @@ class OriginalWording(unittest.TestCase):
         self.assertEqual(hints[0]['classification'],'possible_grant')
         self.assertEqual(persons,[])
 
+    def test_official_21053_quoted_exclamation_does_not_hide_named_dative(self):
+        hints, persons=observed(
+            'Bevor wir diesen Tagesordnungspunkt abschließen, möchte ich der '
+            'Abgeordneten Reichinnek einen Ordnungsruf für den Zwischenruf '
+            '„Lügnerin!“ erteilen.',
+            name='Heidi Reichinnek',session=53)
+        self.assertEqual(hints[0]['classification'],'possible_grant')
+        self.assertEqual(len(persons),1)
+        self.assertEqual(persons[0]['person'],'Heidi Reichinnek')
+        self.assertEqual(persons[0]['zuordnungsmethode'],'expliziter_dativ')
+        self.assertEqual(persons[0]['status'],'review_required')
+
+    def test_official_21068_quoted_interruption_with_exclamation(self):
+        hints, persons=observed(
+            'Bevor wir die Debatte fortsetzen, möchte ich der Abgeordneten '
+            'Dr. Paula Piechotta einen Ordnungsruf erteilen für den '
+            'Zwischenruf „Feigling!“.',name='Paula Piechotta',session=68)
+        self.assertEqual(hints[0]['classification'],'possible_grant')
+        self.assertEqual(len(persons),1)
+        self.assertEqual(persons[0]['person'],'Paula Piechotta')
+        self.assertEqual(persons[0]['status'],'review_required')
+
+    def test_quoted_mention_or_conditional_still_cannot_confirm_a_grant(self):
+        for example in (
+            'Die Formulierung „Ordnungsruf!“ allein ist noch keine Erteilung.',
+            'Wenn Sie das wiederholen, möchte ich Ihnen für „Lügner!“ '
+            'einen Ordnungsruf erteilen.'):
+            hints, persons=observed(example)
+            self.assertNotEqual(hints[0]['classification'],'possible_grant')
+            self.assertEqual(persons,[])
+
     def test_rescission_is_not_a_fresh_grant(self):
         hints, persons=observed('Der Ordnungsruf wurde aufgehoben.')
         self.assertNotEqual(hints[0]['classification'],'possible_grant')

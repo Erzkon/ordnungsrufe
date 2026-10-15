@@ -62,6 +62,21 @@ STOPWORDS = {'ich', 'sie', 'ihnen', 'er', 'einen', 'ein', 'eine', 'einem', 'dem'
              'hat', 'haben', 'zur', 'ordnung', 'ordnungsruf', 'im', 'des', 'zu', 'diesen'}
 
 
+def action_match(text):
+    """Keep punctuation inside quoted interjections from splitting a grant.
+
+    Parliamentary grants can read 'Ordnungsruf für „Feigling!“ erteilen'.
+    The quoted exclamation is evidence of the reason, not a sentence
+    boundary between the sanction noun and its issuance verb. Substitute
+    ONLY !/? within complete German quote pairs, preserving string length
+    and match offsets. All other punctuation and warning guards stay.
+    """
+    quoted = re.compile(r'„[^“”]*[“”]')
+    normalized = quoted.sub(
+        lambda match: match.group().replace('!', ' ').replace('?', ' '), text)
+    return ACTION.search(normalized)
+
+
 def normal(text):
     return ' '.join(text.split())
 
@@ -98,7 +113,7 @@ def classify(text):
     sentences = re.split(r'(?<=[.!?])\s+(?=[A-ZÄÖÜ])', text)
     positive = []
     for sentence in sentences:
-        if not ACTION.search(sentence):
+        if not action_match(sentence):
             continue
         if FUTURE_ONLY.search(sentence) or GENERIC_FUTURE.search(sentence):
             continue
@@ -202,7 +217,7 @@ def _grant_scopes(text):
     """
     scopes = []
     for sentence in re.split(r'(?<=[.!?])\s+(?=[A-ZÄÖÜ])', text):
-        if (ACTION.search(sentence) and not THREAT.search(sentence)
+        if (action_match(sentence) and not THREAT.search(sentence)
                 and not FUTURE_ONLY.search(sentence) and not GENERIC_FUTURE.search(sentence)):
             scopes.append(sentence)
     # Prefer full 'Ordnungsruf' language over an immediate paraphrase.
@@ -298,7 +313,7 @@ def _third_person_antecedent(text, scope, index):
 
 def _sanction_against(text, index):
     """Explicit object: 'erteile ... gegen die Abgeordnete X einen Ordnungsruf'."""
-    if not ACTION.search(text):
+    if not action_match(text):
         return []
     match = re.search(
         r'\bgegen\s+(?:die|den)\s+(?:Abgeordnete[nr]?|Kollegin|Kollegen)\s+',
@@ -311,7 +326,7 @@ def _sanction_against(text, index):
 
 def _object_people(text, index):
     results = []
-    action = ACTION.search(text)
+    action = action_match(text)
     if not action:
         return []
     # People first mentioned AFTER 'Ordnungsruf' commonly appear in the reason
@@ -406,7 +421,7 @@ def persons_for_grant(text, index):
                 same_subject = _name_at(scope,m_sub.end(),index)
         # 'Herr Brandner wird sich das schon denken: ... erteile ich Ihnen'
         # is a direct, named lead-in to a present-tense sanction.
-        pre_action = scope[:ACTION.search(scope).start()]
+        pre_action = scope[:action_match(scope).start()]
         lead_in = re.match(r'^(?:[–—]\s*)?(?:Herr|Frau)\s+',pre_action,re.I)
         if lead_in and re.search(r'\bwird\s+sich\s+das\s+schon\s+denken\b',pre_action,re.I):
             named = _name_at(pre_action,lead_in.end(),index)
@@ -472,7 +487,7 @@ def persons_for_grant(text, index):
         # named person may be in a separate immediately preceding clause).
         addresses = _vocative_people(scope, index)
         if addresses:
-            before = [a for a in addresses if a[0] <= (ACTION.search(scope).start())]
+            before = [a for a in addresses if a[0] <= (action_match(scope).start())]
             return _with_method([(before[-1] if before else addresses[-1])[1]], 'direkte_anrede')
 
         for pattern in (
