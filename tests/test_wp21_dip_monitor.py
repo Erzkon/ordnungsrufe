@@ -166,6 +166,18 @@ class DIPMonitorTests(unittest.TestCase):
                     key='test',load=fetch_bad)
             self.assertEqual(original,[x.read_bytes() for x in (state,report,changes)])
 
+    def test_missing_from_full_term_retires_only_after_full_refresh(self):
+        one=relevant_item(entry(900,'Ordnungsruf Herr Test'))
+        original={'last_success_utc':iso(NOW-timedelta(days=1)),
+                  'items':{'900':{**one,'active':True}}}
+        rolling,report,_=evolve(original,[],NOW)
+        self.assertTrue(rolling['items']['900']['active'])
+        self.assertEqual(report['missing_from_complete_term'],0)
+        full,report,changes=evolve(original,[],NOW,complete_term=True)
+        self.assertFalse(full['items']['900']['active'])
+        self.assertEqual(report['missing_from_complete_term'],1)
+        self.assertEqual(changes[0]['change'],'nicht_mehr_im_gesamtbestand')
+
     def test_reclassification_keeps_history_not_silent_deletion(self):
         old=relevant_item(entry(900,'Ordnungsruf'))
         earlier={'last_success_utc':iso(NOW-timedelta(days=1)),
