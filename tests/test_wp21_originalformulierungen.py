@@ -109,5 +109,63 @@ class OriginalWording(unittest.TestCase):
         self.assertNotEqual(hints[0]['classification'],'possible_grant')
         self.assertEqual(persons,[])
 
+
+    def test_21052_insulted_colleague_is_not_a_recipient(self):
+        hints, persons = observed(
+            'Herr Kollege, dafür, dass Sie der Kollegin Inkompetenz und noch '
+            'mehr vorgeworfen haben, erteile ich Ihnen hiermit einen '
+            'Ordnungsruf. Denn es war ein persönlicher Angriff direkt '
+            'auf die Kollegin.', name='Martin Hess', session=52)
+        self.assertEqual(hints[0]['classification'], 'possible_grant')
+        self.assertEqual(persons, [])
+
+    def test_21067_insulted_named_colleague_is_not_sanctioned(self):
+        hints, persons = observed(
+            'Frau Kollegin, dafür, dass Sie der Kollegin Gebel '
+            '„pathologischen Männerhass“ vorgeworfen haben, '
+            'erhalten Sie jetzt von mir einen Ordnungsruf.',
+            name='Kathrin Gebel', session=67)
+        self.assertEqual(hints[0]['classification'], 'possible_grant')
+        self.assertEqual(persons, [])
+
+    def test_21065_named_interruption_sanction_is_review_candidate(self):
+        hints, persons = observed(
+            'Ich muss, bevor ich die nächste Rednerin aufrufe, noch mal '
+            'zurückkommen zu Tagesordnungspunkt 8. Da gab es bei der Rede '
+            'des Abgeordneten Ronald Gläser einen Zwischenruf des '
+            'Abgeordneten Pantisano aus der Linksfraktion mit klarem Bezug '
+            'auf die AfD: „Faschisten seid ihr! Mehr nicht!“ '
+            'Das belege ich jetzt hiermit mit einem Ordnungsruf.',
+            name='Luigi Pantisano', session=65)
+        self.assertEqual(hints[0]['classification'], 'possible_grant')
+        self.assertEqual(len(persons), 1)
+        self.assertEqual(persons[0]['person'], 'Luigi Pantisano')
+        self.assertEqual(persons[0]['zuordnungsmethode'],
+                         'benannter_zwischenruf_im_absatz')
+        self.assertEqual(persons[0]['status'], 'review_required')
+
+    def test_das_belege_ich_without_unique_quoted_actor_is_unassigned(self):
+        hints, persons = observed(
+            'Zwei Kollegen riefen dazwischen. Das belege ich jetzt hiermit '
+            'mit einem Ordnungsruf.', session=65)
+        self.assertEqual(hints[0]['classification'], 'possible_grant')
+        self.assertEqual(persons, [])
+
+    def test_two_named_interrupters_must_not_be_arbitrarily_attributed(self):
+        _, persons = observed(
+            'Da gab es einen Zwischenruf des Abgeordneten Pantisano und '
+            'des Abgeordneten Gläser: „Faschisten!“ Das belege ich jetzt '
+            'hiermit mit einem Ordnungsruf.',
+            name='Luigi Pantisano', session=65)
+        self.assertEqual(persons, [])
+
+    def test_21061_future_possible_sanction_not_an_imposed_grant(self):
+        hints, persons = observed(
+            'Für das Lachen können Sie gleich auch einen Ordnungsruf bekommen.',
+            session=61)
+        self.assertEqual(hints[0]['classification'], 'warning_or_conditional')
+        self.assertEqual(persons, [])
+
+
 if __name__=='__main__':
     unittest.main()
