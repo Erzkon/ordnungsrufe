@@ -22,6 +22,17 @@ def fixture(rows, people=(), session=94):
     for chair,utterances in rows:
         if chair == 'speaker':
             marker='<p klasse="redner">Andere Abgeordnete</p>'
+        elif chair.startswith('speaker:'):
+            full=chair.partition(':')[2]
+            who=[(i,first,last) for i,(first,last) in enumerate(people)
+                 if first+' '+last==full]
+            if len(who)!=1:
+                raise ValueError('Unique fixture speaker is required')
+            ix,first,last=who[0]
+            marker=(f'<p klasse="redner"><redner id="{1000+ix}">'
+                    f'<name><vorname>{escape(first)}</vorname>'
+                    f'<nachname>{escape(last)}</nachname></name>'
+                    f'</redner></p>')
         else:
             marker=f'<name>{escape(chair)}</name>'
         children='\n'.join(f'<p>{escape(utterance)}</p>' for utterance in utterances)
@@ -240,13 +251,13 @@ class CrossParagraphReviewLinks(unittest.TestCase):
 
     def test_eddis_requires_full_original_interruption_and_one_intro(self):
         _,found=parse([
-            (SECOND,[
-                'Für die Fraktion Die Linke hat jetzt das Wort '
-                'der Abgeordnete Mirze Edis.',
-                'Nein. Meine Mutter hat mir verboten, mit Faschisten zu reden.',
-                'Herr Kollege, ich bitte Sie um etwas Mäßigung. '
-                'Dafür muss ich Ihnen einen Ordnungsruf erteilen: '
-                'für die Bezeichnung „Faschisten“ gegenüber der AfD-Fraktion.'])],
+            (SECOND,['Für die Fraktion Die Linke hat jetzt das Wort '
+                     'der Abgeordnete Mirze Edis.']),
+            ('speaker:Mirze Edis',[
+                'Nein. Meine Mutter hat mir verboten, mit Faschisten zu reden.']),
+            (SECOND,['Herr Kollege, ich bitte Sie um etwas Mäßigung. '
+                     'Dafür muss ich Ihnen einen Ordnungsruf erteilen: '
+                     'für die Bezeichnung „Faschisten“ gegenüber der AfD-Fraktion.'])],
             [('Mirze','Edis')],71)
         self.assertEqual([x['person'] for x in found],['Mirze Edis'])
         self.assertTrue(found[0]['zuordnungsmethode'].startswith(
@@ -305,15 +316,15 @@ class CrossParagraphReviewLinks(unittest.TestCase):
 
     def test_21067_gebel_is_real_second_sanction_not_earlier_victim(self):
         _,found=parse([
-            (CHAIR,[
-                'Die nächste Rednerin in dieser Debatte ist Kathrin Gebel '
-                'für die Fraktion Die Linke.',
+            (CHAIR,['Die nächste Rednerin in dieser Debatte ist Kathrin Gebel '
+                    'für die Fraktion Die Linke.']),
+            ('speaker:Kathrin Gebel',[
                 '– doch, wirklich –: In der Befragung der Bundesregierung '
                 'gerade eben gibt der Kanzler hier rassistischen Dreck von sich',
-                'und missbraucht allen Ernstes dieses Thema.',
-                'Frau Kollegin, für die Bemerkung, der Kanzler würde '
-                'rassistischen Dreck von sich geben – was wirklich '
-                'unglaublich ist –, bekommen Sie jetzt von mir einen Ordnungsruf.'])],
+                'und missbraucht allen Ernstes dieses Thema.']),
+            (CHAIR,['Frau Kollegin, für die Bemerkung, der Kanzler würde '
+                    'rassistischen Dreck von sich geben – was wirklich '
+                    'unglaublich ist –, bekommen Sie jetzt von mir einen Ordnungsruf.'])],
             [('Kathrin','Gebel'),('Kerstin','Przygodda')],67)
         self.assertEqual([x['person'] for x in found],['Kathrin Gebel'])
         self.assertEqual(found[0]['status'],'review_required')
@@ -337,6 +348,19 @@ class CrossParagraphReviewLinks(unittest.TestCase):
                 'rassistischen Dreck von sich geben – was wirklich '
                 'unglaublich ist –, bekommen Sie jetzt von mir einen Ordnungsruf.'])],
             [('Kathrin','Gebel')],67)
+        self.assertEqual(found,[])
+
+
+    def test_21067_quote_by_other_xml_speaker_cannot_attribute_to_gebel(self):
+        _,found=parse([
+            (CHAIR,['Die nächste Rednerin in dieser Debatte ist Kathrin Gebel '
+                    'für die Fraktion Die Linke.']),
+            ('speaker:Kerstin Przygodda',[
+                'Der Kanzler gibt rassistischen Dreck von sich.']),
+            (CHAIR,['Frau Kollegin, für die Bemerkung, der Kanzler würde '
+                    'rassistischen Dreck von sich geben – was wirklich '
+                    'unglaublich ist –, bekommen Sie jetzt von mir einen Ordnungsruf.'])],
+            [('Kathrin','Gebel'),('Kerstin','Przygodda')],67)
         self.assertEqual(found,[])
 
 
