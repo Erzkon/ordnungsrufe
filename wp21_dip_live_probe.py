@@ -92,9 +92,23 @@ def probe(load=request_page, key=PUBLIC_KEY):
         source = response.read(MAX_SIZE+1)
     root = safe_parse(source,94)
     candidates = review_rows(root,94)
+    # An independent live XML-to-person-parser consistency check on the
+    # original transcript: parser lines must come from an XML review location,
+    # not from an accidental fabricated/misaligned reference. This is
+    # detection coverage, never an effectiveness or sanction-count claim.
+    from pathlib import Path
+    from parser import events, speaker_index
+    people = list(events(Path('21094.xml'), index=speaker_index([root]), root=root))
+    xml_lines = {int(row['xml_zeile']) for row in candidates}
+    unmatched = [str(row['line']) for row in people if int(row['line']) not in xml_lines]
+    if unmatched:
+        raise ValueError('Parser-Personenhinweise ohne zugehörige XML-Textstellen: ' +
+                         ', '.join(unmatched[:5]))
     result['Originalprotokoll_21_094']={
         'bytes':len(source),
         'text_locations':len(candidates),
+        'parser_person_hints':len(people),
+        'parser_locations_without_xml_candidate':len(unmatched),
         'date':root.get('sitzung-datum')
     }
     return result
