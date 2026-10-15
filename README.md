@@ -122,3 +122,36 @@ den letzten erfolgreichen Datenstand nicht.
   Vergaben, Rücknahmen und Einspruchsentscheidungen.
 - Die echte DIP-Laufzeit/Endpunkt-Verfügbarkeit ist erst beim
   ersten GitHub-Actions-Lauf nach dem späteren Merge zu prüfen.
+
+
+## Gebündeltes Automatisierungspaket im Entwicklungs-PR
+
+Im offenen Entwicklungs-PR werden die aus der amtlichen Bundestags-DIP-API
+ermittelten **Vorgänge UND zugehörigen Vorgangspositionen** über ihre
+eindeutigen DIP-IDs verknüpft. Spätere Einspruchs-/Entscheidungstexte
+werden als **Prüfsignale** gespeichert, nie direkt als wirksame
+Aufhebung. Auf der Website erscheint eine begrenzte, nach
+Prüfbedarf sortierte Quellenvorgangsliste mit Links zu DIP.
+Der vollständige JSON-Datensatz steht in GitHub Actions
+zum Abruf bereit. Die bestätigten Zahlen werden durch den
+Workflow weder erweitert noch vermindert.
+
+Der GitHub-Actions-Workflow überwacht alle Quellen auf fehlende
+oder veraltete Daten und kann bei längerem Quellenausfall
+automatisch **ein offenes GitHub-Issue** zur Störung anlegen.
+Bei erfolgreichem neuem Quellenlauf schließt er es.
+Voraussetzung ist, dass **Issues im Repository aktiviert**
+sind; der auf \`main\` beschränkte Überwachungsjob
+verwendet nur das benötigte \`issues:write\`-Recht.
+Es ist keine manuelle tägliche Action-Ausführung geplant.
+
+Alle Prüfpfade sind durch Offline-Tests abgesichert.
+Ein gesonderter CI-Test bestätigt zusätzlich vor dem
+Merge mit echten DIP-Antworten, dass die beiden
+Endpunkte erreichbar sind und ein Verfahrensschritt
+tatsächlich auf seinen Ursprungs-Vorgang verweist.
+Die erste **vollständige** Aktualisierung aller
+relevanten DIP-Daten und XML-Protokolle muss nach
+dem gemeinsamen Merge noch im Betrieb kontrolliert werden.
+Die genaue Methodik und Sicherheitsgrenzen stehen
+in [WP21.md](WP21.md).
