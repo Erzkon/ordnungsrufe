@@ -1,13 +1,11 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# One isolated full 100-protocol audit after first independent
-# source-linked recipient evidence for 21/014, 21/037 and 21/039.
-# Revert this change to manual-only once the complete audit is checked.
+# Full official original-XML rescan successful 15 Oct 2026:
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/38810552136
+# 100 sessions; 182 review cases, 28 high priority, 42 authentic XML
+# regressions and byte-identical confirmed statistical data. Expensive
+# full-source scans opt-in; targeted original XML CI stays automatic.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
