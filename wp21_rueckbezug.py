@@ -65,15 +65,15 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
     # when exactly N otherwise anonymous issuance locations of the same
     # presiding chair precede the confirmation within a tightly bounded window.
     for element,txt in paragraphs:
-        marker=_chair(element,issuer_context)
-        if not marker:
-            continue
         matches=[]
         for pattern,count in ((RETRO_SINGLE,1),(RETRO_TWO,2)):
             m=pattern.search(txt)
             if m:
                 matches.append((m,count))
         if len(matches)!=1:
+            continue
+        marker=_chair(element,issuer_context)
+        if not marker:
             continue
         match,expected=matches[0]
         who=candidate_name(match.group('name'),index)
