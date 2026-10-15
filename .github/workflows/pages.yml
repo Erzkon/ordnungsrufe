@@ -16,6 +16,7 @@ on:
       - 'wp21_dip_kontrolle.py'
       - 'wp21_dip_monitor.py'
       - 'wp21_dip_positionen.py'
+      - 'wp21_pruefqueue.py'
       - 'parser.py'
       - 'tests/**'
       - 'WP21.md'
@@ -30,6 +31,7 @@ on:
       - 'wp21_dip_kontrolle.py'
       - 'wp21_dip_monitor.py'
       - 'wp21_dip_positionen.py'
+      - 'wp21_pruefqueue.py'
       - 'parser.py'
       - 'docs/**'
       - 'daten/**'
@@ -78,6 +80,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_wp21_dip_kontrolle.py' -v
           python -m unittest discover -s tests -p 'test_wp21_dip_monitor.py' -v
           python -m unittest discover -s tests -p 'test_wp21_dip_positionen.py' -v
+          python -m unittest discover -s tests -p 'test_wp21_pruefqueue.py' -v
           python -m unittest discover -s tests -p 'test_wp21_originalformulierungen.py' -v
           python -m pytest -q tests/test_parser.py
       - name: Quellenbasierte Positiv- und Negativkontrollen gegen historische Referenz pruefen
@@ -127,6 +130,7 @@ jobs:
             docs/data/dip_kontrolle_21.json
             docs/data/dip_live_21.json
             docs/data/dip_positionen_21.json
+            docs/data/dip_prueffalle_21.json
           key: wp21-feed-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             wp21-feed-
@@ -154,6 +158,24 @@ jobs:
             --position-state .cache/dip21/positionen.json \
             --report docs/data/dip_positionen_21.json \
             --changes wp21_dip_positionen_aenderungen.json
+      - name: Amtliche DIP-Vorgänge mit ihren Verfahrensschritten verknüpfen
+        if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
+        id: dipqueue
+        continue-on-error: true
+        run: |
+          python wp21_pruefqueue.py \
+            --vorgang-state .cache/dip21/state.json \
+            --position-state .cache/dip21/positionen.json \
+            --report docs/data/dip_prueffalle_21.json \
+            --full wp21_dip_verknuepfte_faelle.json
+      - name: Vollständige verknüpfte DIP-Prüffälle archivieren
+        if: github.event_name != 'pull_request' && steps.dipqueue.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-dip-verknuepfte-prueffalle-${{ github.run_id }}
+          path: wp21_dip_verknuepfte_faelle.json
+          if-no-files-found: error
+          retention-days: 30
       - name: DIP-Vorgangspositionen-Änderungen archivieren
         if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
         uses: actions/upload-artifact@v4
@@ -267,6 +289,7 @@ jobs:
           WP21_RECHTSFOLGEN_OUTCOME: ${{ steps.rechtsfolgen.outcome }}
           WP21_DIP_OUTCOME: ${{ steps.diplive.outcome }}
           WP21_DIPPOSITIONS_OUTCOME: ${{ steps.dippositions.outcome }}
+          WP21_DIPQUEUE_OUTCOME: ${{ steps.dipqueue.outcome }}
         run: python wp21_betriebsbericht.py --data docs/data
       - name: Verwendeten Website-Stand archivieren
         if: github.event_name != 'pull_request'
@@ -283,6 +306,7 @@ jobs:
             docs/data/dip_kontrolle_21.json
             docs/data/dip_live_21.json
             docs/data/dip_positionen_21.json
+            docs/data/dip_prueffalle_21.json
           if-no-files-found: error
           retention-days: 30
       - name: Website-Artefakt zur Veroeffentlichung uebertragen
