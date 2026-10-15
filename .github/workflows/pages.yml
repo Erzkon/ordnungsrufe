@@ -331,6 +331,67 @@ jobs:
           if-no-files-found: error
           retention-days: 2
 
+  quellenwache:
+    name: DIP- und XML-Quellenzustand ueberwachen
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: pruefen
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: docs-fuer-pages
+          path: docs
+      - name: Quellenstand strukturiert pruefen
+        run: python wp21_betriebsbericht.py --data docs/data --json-output wp21_health.json
+      - name: Bei längerem Quellenausfall einmaligen GitHub-Vorgang öffnen oder schließen
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const audit = JSON.parse(fs.readFileSync('wp21_health.json','utf8'));
+            if (audit.schema !== 'wp21-health-v1' || !audit.sources) {
+              throw new Error('Ungültige Quellenüberwachung');
+            }
+            const marker = '<!-- ordnungsruf-wp21-data-sources -->';
+            const bad = Object.entries(audit.sources)
+              .filter(([name,data]) => data.state !== 'fresh')
+              .map(([name,data]) => '- ' + name + ': ' + data.state +
+                   ' (letzter Stand ' + (data.date || 'unbekannt') + ')');
+            const {owner,repo} = context.repo;
+            const existingIssues = await github.paginate(github.rest.issues.listForRepo,{
+              owner,repo,state:'open',per_page:100
+            });
+            const existing = existingIssues.find(x=>!x.pull_request &&
+              (x.body || '').includes(marker));
+            if (bad.length === 0) {
+              if (existing) {
+                await github.rest.issues.update({owner,repo,issue_number:existing.number,
+                  state:'closed', state_reason:'completed'});
+              }
+              core.info('Alle Quellen sind aktuell.');
+              return;
+            }
+            const body = marker + '\nAutomatisch erkannte fehlende oder veraltete Quellenberichte:' +
+              '\n\n' + bad.join('\n') +
+              '\n\nDies ist keine Aussage über Ordnungsrufe. Der letzte erfolgreiche ' +
+              'Datenstand bleibt verfügbar; geprüfte Zähler werden nicht geändert.' +
+              '\n\nDetails: https://github.com/' + owner + '/' + repo + '/actions';
+            if (existing) {
+              if ((existing.body || '') !== body) {
+                await github.rest.issues.update({owner,repo,
+                  issue_number:existing.number,body});
+              }
+            } else {
+              await github.rest.issues.create({owner,repo,
+                title:'Automatischer Quellencheck: Datenstand prüfen',body});
+            }
+
   veroeffentlichen:
     name: Statische Website bereitstellen
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
