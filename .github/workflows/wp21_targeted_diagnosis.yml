@@ -50,6 +50,26 @@ jobs:
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
           PY
+      - name: 21/040 namentlichen Janich-Zwischenruf im Original-XML strukturell prüfen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from lxml import etree
+          from wp21_scan import safe_parse
+          root=safe_parse(Path('.audit/targeted_xml/21040.xml').read_bytes(),40)
+          for node in root.iter():
+              if not node.sourceline or not 8698<=node.sourceline<=8723:
+                  continue
+              txt=' '.join(''.join(node.itertext()).split())
+              if (node.tag in ('p','kommentar','zwischenruf','name','rede','redner')
+                      and ('Janich' in txt or
+                           node.sourceline in (8715,8717,8719))):
+                  print('JANICH_XML',node.tag,node.sourceline,
+                        'class=',node.get('klasse'),
+                        'parent=',node.getparent().tag if node.getparent() is not None else '',
+                        'xml=',etree.tostring(node,encoding='unicode')[:1850],
+                        flush=True)
+          PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
       - name: Erst-/Zweiterteilungspaare WP21/040 gesondert pruefen
