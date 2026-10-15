@@ -234,12 +234,21 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
         if not marker:
             continue
         candidate=None
+        intervening_speech=[]
         for previous,previous_text in reversed(
                 paragraphs[max(0,i-CHAIR_VOCATIVE_MAX_PARAGRAPHS):i]):
             distance=line-int(previous.sourceline)
             if not 0<distance<=CHAIR_VOCATIVE_XML_LINES:
                 break
-            if _chair(previous,issuer_context)!=marker:
+            who_chairs=_chair(previous,issuer_context)
+            if who_chairs!=marker:
+                # 21/061: "Herr von Zons." – the MP replies briefly –
+                # then the same chair grants "erteile ich Ihnen".
+                # This is safe as *review evidence* only if every intervening
+                # utterance is explicitly stamped with the SAME XML redner ID.
+                if issuer_context(previous)[1]=='speech_marker':
+                    intervening_speech.append(previous)
+                    continue
                 break
             if classify(previous_text)=='possible_grant':
                 break
@@ -258,7 +267,9 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
                     previous_text,re.I)):
                 break
             name=candidate_name(match.group('name'),index)
-            if name and name['identity_status']=='matched_xml_person':
+            if (name and name['identity_status']=='matched_xml_person'
+                    and all(_same_named_xml_speaker(p,name)
+                            for p in intervening_speech)):
                 candidate=(name,int(previous.sourceline))
             break
         if candidate:
