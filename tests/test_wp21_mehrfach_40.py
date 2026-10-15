@@ -39,6 +39,11 @@ def build(speeches):
             if who == 'comment':
                 parts.append('<kommentar>'+escape(spoken)+'</kommentar>')
                 continue
+            if who == 'chair_continuation':
+                # Official XML 8717/8718/8719 has ONE chair turn with
+                # a between-paragraph reaction but no new chair name marker.
+                parts.append('<p>'+escape(spoken)+'</p>')
+                continue
             if who == 'speaker_switch':
                 parts.append('<p klasse="redner"><redner id="9999999">'
                              '<name><vorname>Andere</vorname>'
@@ -73,7 +78,7 @@ class SeparateOriginalMeasuresTests(unittest.TestCase):
         result,hints=analyze([('11004892','Martin','Sichert',[
             (None,'Sie sollten sich schämen für Ihre Heuchelei!'),
             (CHAIR,S_FIRST),(CHAIR,S_WARNING),
-            ('comment',JANICH_INTERJECTION),(CHAIR,S_SECOND),
+            ('comment',JANICH_INTERJECTION),('chair_continuation',S_SECOND),
             (None,'Wir brauchen eine klare Anwendung des Rechts.')
         ])])
         self.assertEqual([x['person'] for x in result],
@@ -106,7 +111,7 @@ class SeparateOriginalMeasuresTests(unittest.TestCase):
         result,_=analyze([
             ('11004892','Martin','Sichert',[
                 (CHAIR,S_FIRST),('comment',JANICH_INTERJECTION),
-                (CHAIR,S_SECOND)]),
+                ('chair_continuation',S_SECOND)]),
             ('11005753','Kay','Gottschalk',[(CHAIR,G_FIRST),(CHAIR,G_SECOND)])])
         self.assertEqual(len(result),4)
         self.assertEqual([x['person'] for x in sorted(result,key=lambda e:int(e['line']))],
@@ -114,13 +119,13 @@ class SeparateOriginalMeasuresTests(unittest.TestCase):
                           'Kay Gottschalk','Kay Gottschalk'])
 
     def test_second_without_first_does_not_infer_person(self):
-        result,_=analyze([('11004892','Martin','Sichert',[(CHAIR,S_SECOND)])])
+        result,_=analyze([('11004892','Martin','Sichert',[('chair_continuation',S_SECOND)])])
         self.assertEqual(result,[])
 
     def test_separate_rede_speaker_context_does_not_borrow_old_first(self):
         result,_=analyze([
             ('11004892','Martin','Sichert',[(CHAIR,S_FIRST)]),
-            ('11005753','Kay','Gottschalk',[(CHAIR,S_SECOND)])])
+            ('11005753','Kay','Gottschalk',[('chair_continuation',S_SECOND)])])
         self.assertEqual(result,[])
 
     def test_two_different_chairs_do_not_make_a_pair(self):
@@ -133,7 +138,7 @@ class SeparateOriginalMeasuresTests(unittest.TestCase):
         result,_=analyze([('11004892','Martin','Sichert',[
             (CHAIR,S_FIRST),
             ('speaker_switch','Ich widerspreche dieser Sichtweise.'),
-            (CHAIR,S_SECOND)
+            ('chair_continuation',S_SECOND)
         ])])
         self.assertEqual(result,[])
 
@@ -153,7 +158,7 @@ class SeparateOriginalMeasuresTests(unittest.TestCase):
         result,_=analyze([('11004892','Martin','Sichert',[
             (CHAIR,S_FIRST),
             (CHAIR,'Ich erteile Ihnen einen weiteren Ordnungsruf.'),
-            (CHAIR,S_SECOND)
+            ('chair_continuation',S_SECOND)
         ])])
         self.assertEqual(result,[])
 
@@ -175,26 +180,26 @@ class SeparateOriginalMeasuresTests(unittest.TestCase):
 
     def test_sichert_speech_block_without_named_janich_interjection_is_not_enough(self):
         result,_=analyze([('11004892','Martin','Sichert',[
-            (CHAIR,S_FIRST),(CHAIR,S_WARNING),(CHAIR,S_SECOND)])])
+            (CHAIR,S_FIRST),(CHAIR,S_WARNING),('chair_continuation',S_SECOND)])])
         self.assertEqual(result,[])
 
     def test_applause_only_pantisano_does_not_steal_recipient(self):
         result,_=analyze([('11004892','Martin','Sichert',[
             (CHAIR,S_FIRST),
             ('comment','(Beifall des Abg. Luigi Pantisano [Die Linke])'),
-            (CHAIR,S_SECOND)])])
+            ('chair_continuation',S_SECOND)])])
         self.assertEqual(result,[])
 
     def test_janich_name_without_explicit_interjection_does_not_link_second(self):
         result,_=analyze([('11004892','Martin','Sichert',[
             (CHAIR,S_FIRST),
             ('comment','(Zuruf des Abg. Steffen Janich [AfD])'),
-            (CHAIR,S_SECOND)])])
+            ('chair_continuation',S_SECOND)])])
         self.assertEqual(result,[])
 
     def test_janich_interjection_not_same_as_explicit_first_for_sichert(self):
         result,_=analyze([('11004892','Martin','Sichert',[
-            (CHAIR,S_FIRST),('comment',JANICH_INTERJECTION),(CHAIR,S_SECOND)])])
+            (CHAIR,S_FIRST),('comment',JANICH_INTERJECTION),('chair_continuation',S_SECOND)])])
         self.assertEqual([x['person'] for x in sorted(result,key=lambda r:r['line'])],
                          ['Martin Sichert','Steffen Janich'])
         self.assertEqual(len({x['line'] for x in result}),2)
