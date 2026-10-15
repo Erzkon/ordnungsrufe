@@ -125,8 +125,8 @@ class DIPMonitorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)
             paths=(root/'state.json',root/'report.json',root/'changes.json')
-            start=datetime(2026,10,15,7,tzinfo=timezone.utc)
-            next_month=datetime(2026,11,1,7,tzinfo=timezone.utc)
+            start=datetime(2026,8,15,7,tzinfo=timezone.utc)
+            next_month=datetime(2026,9,6,7,tzinfo=timezone.utc)
             seen=[]
             def load(p,k):
                 seen.append(dict(p))
@@ -151,10 +151,10 @@ class DIPMonitorTests(unittest.TestCase):
             root=Path(td)
             files=(root/'state.json',root/'report.json',root/'changes.json')
             old={'schema':'dip21-incremental-v1',
-                 'last_success_utc':iso(NOW),'items':{}}
+                 'last_success_utc':iso(NOW-timedelta(days=1)),'items':{}}
             files[0].write_text(json.dumps(old),encoding='utf-8')
             requested=[]
-            result=run(*files,now=NOW+timedelta(days=1),key='test',
+            result=run(*files,now=NOW,key='test',
                        load=lambda p,k:(requested.append(p) or
                                         {'numFound':0,'documents':[],'cursor':None}))
             self.assertTrue(result['full_term_refresh'])
