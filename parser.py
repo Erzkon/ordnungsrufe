@@ -688,7 +688,7 @@ def events(path, index=None, root=None):
         if key not in seen:
             seen.add(key)
             found.append(event)
-    yield from sorted(found,key=lambda row:(int(row['line']),row['person']))
+    yield from found
 
 
 def neighboring_paragraphs(root):
