@@ -443,9 +443,10 @@ def persons_for_grant(text, index):
         prefix = text[:sanction.start()]
         interruption = re.search(
             r'\beinen\s+Zwischenruf\s+des\s+Abgeordneten\s+', prefix, re.I)
-        if (interruption and len(re.findall(
-                r'\bdes\s+Abgeordneten\s+', prefix, re.I)) == 1
-                and len(re.findall(r'\bZwischenruf\b',prefix,re.I)) == 1
+        if (interruption
+                and len(re.findall(r'\bZwischenruf\b', prefix, re.I)) == 1
+                and not re.search(r'\bund\s+des\s+Abgeordneten\b',
+                                  prefix[interruption.end():], re.I)
                 and re.search(r':\s*[„“]',prefix[interruption.end():])):
             person = _name_at(prefix, interruption.end(), index)
             if person:
