@@ -12,6 +12,7 @@ on:
       - 'wp21_autopruefung.py'
       - 'wp21_rechtsfolgen.py'
       - 'wp21_betriebsbericht.py'
+      - 'wp21_benchmark.py'
       - 'tests/**'
       - 'WP21.md'
       - 'QUELLENABGLEICH.md'
@@ -21,6 +22,7 @@ on:
       - 'wp21_autopruefung.py'
       - 'wp21_rechtsfolgen.py'
       - 'wp21_betriebsbericht.py'
+      - 'wp21_benchmark.py'
       - 'docs/**'
       - 'daten/**'
       - 'export_webdaten.py'
@@ -64,6 +66,16 @@ jobs:
           python -m unittest discover -s tests -p 'test_wp21_rechtsfolgen.py' -v
           python -m unittest discover -s tests -p 'test_wp21_refresh.py' -v
           python -m unittest discover -s tests -p 'test_wp21_betrieb.py' -v
+          python -m unittest discover -s tests -p 'test_wp21_benchmark.py' -v
+      - name: Quellenbasierte Positiv- und Negativkontrollen gegen historische Referenz pruefen
+        run: python wp21_benchmark.py --output wp21_regression_audit.json
+      - name: Quellenbenchmark mit konkreten Gegenbeispielen archivieren
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-quellenbenchmark-${{ github.run_id }}
+          path: wp21_regression_audit.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Historische und aktuelle Quellenlisten gegen veroeffentlichte JSONs pruefen
         run: |
           python export_webdaten.py --check
