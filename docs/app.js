@@ -230,16 +230,18 @@ async function showAutoTriage() {
     const audit = await response.json();
     const fields = ['gescannte_sitzungen','bereits_einzeln_belegte_massnahmen',
       'davon_referenz_person_sitzung_erkannt','davon_referenz_person_sitzung_nicht_erkannt',
-      'offene_personenhinweise','automatisch_freigegebene_ordnungsrufe'];
+      'offene_personenhinweise','referenz_person_sitzung_kombinationen',
+      'referenz_mehrfachvergaben_ohne_parser_nachweis','automatisch_freigegebene_ordnungsrufe'];
     if (audit.wahlperiode !== 21 || audit.status !== 'automatische_vorpruefung_ohne_freigabe' ||
         fields.some(key => !Number.isInteger(audit[key]) || audit[key] < 0) ||
         audit.automatisch_freigegebene_ordnungsrufe !== 0 ||
-        audit.davon_referenz_person_sitzung_erkannt + audit.davon_referenz_person_sitzung_nicht_erkannt !== audit.bereits_einzeln_belegte_massnahmen) {
+        audit.davon_referenz_person_sitzung_erkannt + audit.davon_referenz_person_sitzung_nicht_erkannt !== audit.referenz_person_sitzung_kombinationen) {
       throw new Error('Ungültiger Prüfbericht');
     }
     status.textContent = 'Automatischer Qualitätsabgleich: ' +
       audit.davon_referenz_person_sitzung_erkannt + ' von ' +
-      audit.bereits_einzeln_belegte_massnahmen + ' bereits belegten Maßnahmen mindestens nach Person/Sitzung wiedererkannt; ' +
+      audit.referenz_person_sitzung_kombinationen + ' eindeutigen Person/Sitzung-Kombinationen wiedererkannt (aus ' +
+      audit.bereits_einzeln_belegte_massnahmen + ' einzeln belegten Maßnahmen); ' +
       audit.offene_personenhinweise + ' weitere automatische Personenhinweise zur Prüfung. ' +
       'Dies ist kein Nachweis für richtige Einzelzuordnung. Keine automatische Freigabe für die Ranglisten.';
   } catch (_) {
