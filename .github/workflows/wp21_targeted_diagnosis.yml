@@ -1,0 +1,60 @@
+name: Gezielte DIP-Positivreferenz XML-Kontextdiagnose
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_targeted_diagnosis.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  targeted-wp21-review:
+    name: Amtliche Original-XMLs zu bekannten Parser-Lücken prüfen
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: XML-Abhängigkeiten bereitstellen
+        run: python -m pip install -r requirements.txt
+      - name: SHA256 der bestätigten Daten vor Vergleich
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Kuratierte DIP-Sitzungen mit amtlichem XML und Sprecher-Kontext untersuchen
+        run: |
+          python wp21_fallkontext.py --output .audit/targeted_context.json
+      - name: Bytes der bestätigten Zähler unverändert
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Begrenzte Prüfkontexte als Artefakt bereitstellen
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-targeted-context-${{ github.run_id }}
+          path: .audit/targeted_context.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+      - name: Nicht bestätigte Personen-Kontexte ausgeben
+        if: success()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          doc=json.loads(Path('.audit/targeted_context.json').read_text(encoding='utf-8'))
+          rows=['## Amtlicher XML-Quellenkontext (ohne Auto-Freigabe)',
+            f"- XML-Sitzungen: {doc['sessions_loaded']}",
+            f"- Personen/Sitzung-Zielreferenzen: {doc['person_session_targets']}",
+            '- Belegstellen sind Such- und Prüfhinweise, keine zugeordneten Sanktionen.',
+            '- Bestätigte Statistikdateien blieben bytegleich.']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as stream:
+            stream.write('\n'.join(rows)+'\n')
+          print('\n'.join(rows))
+          PY
