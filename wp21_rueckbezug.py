@@ -497,4 +497,75 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
             method=f'vorherige_rede_und_einleitung_xmlzeile_{introductions[0]}'
         proposals.append((element,_with_method([who],method)[0]))
         used.add(line)
+    # A chair may explicitly issue "a second Ordnungsruf" immediately
+    # after a separate first grant. Official 21/040 contains TWO pairs:
+    # 8715+8719 in Martin Sichert's original <rede>, and 8990+8992
+    # within Kay Gottschalk's <rede>. Keep both distinct event locations.
+    # NEVER infer the second recipient from a generic "zweiten" alone.
+    second_grant=re.compile(r'\beinen\s+zweiten\s+Ordnungsruf\b',re.I)
+    first_grant=re.compile(r'\beinen\s+Ordnungsruf\b',re.I)
+    direct_first=re.compile(
+        r'\bHerr\s+Kollege\s+[A-ZÄÖÜ][\wÄÖÜäöüß\-]+,\s*'
+        r'ich\s+erteile\s+Ihnen\s+jetzt\s+einen\s+Ordnungsruf\b',re.I)
+    for i,(second,second_text) in enumerate(paragraphs):
+        second_line=int(second.sourceline)
+        if (second_line in assigned or second_line in used
+                or not second_grant.search(second_text)
+                or classify(second_text)!='possible_grant'):
+            continue
+        chair=_chair(second,issuer_context)
+        if not chair:
+            continue
+        earlier=[
+            (el,text) for el,text in paragraphs[max(0,i-6):i]
+            if 0<second_line-int(el.sourceline)<=12
+            and classify(text)=='possible_grant'
+        ]
+        if len(earlier)!=1:
+            continue
+        first,first_text=earlier[0]
+        first_line=int(first.sourceline)
+        if (first_line in used or first.getparent() is not second.getparent()
+                or not first_grant.search(first_text)
+                or second_grant.search(first_text)
+                or _chair(first,issuer_context)!=chair):
+            continue
+        between=paragraphs[paragraphs.index((first,first_text))+1:i]
+        # A different chair or new MP speaker in-between invalidates the
+        # continuity of "Ihnen", even when the two grants are close.
+        if any(_chair(el,issuer_context)!=chair for el,_ in between):
+            continue
+        mp_first=_identity_from_xml_speech(first,index)
+        mp_second=_identity_from_xml_speech(second,index)
+        if (not mp_first or not mp_second
+                or mp_first['identity_status']!='matched_xml_person'
+                or mp_first['person_id']!=mp_second['person_id']):
+            continue
+        if first_line in assigned:
+            # Existing explicit first event, e.g. "Herr Kollege Gottschalk"
+            # at line 8990: a follow-up can inherit identity only if the
+            # first grant itself addresses this exact named speaker.
+            prior=persons_for_grant(first_text,index)
+            valid=[p for p in prior if p['identity_status']=='matched_xml_person'
+                   and p['person_id']==mp_first['person_id']]
+            if not direct_first.search(first_text) or len(valid)!=1 or len(prior)!=1:
+                continue
+            proposals.append((second,_with_method(
+                [mp_first],f'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_{first_line}')[0]))
+            used.add(second_line)
+        else:
+            # Anonymous first + second both in Sichert's speech. The
+            # exact two *different* reasons confirm an actual first and
+            # explicit additional second issuing act; no generic attribution
+            # of all presidential interjections in an MP speech.
+            if (not re.search(r'\bmit\s+dem\s+Finger\s+auf\s+Kollegen\s+'
+                              r'gezeigt\s+haben\b',first_text,re.I)
+                    or not re.search(r'\bfür\s+den\s+Widerspruch\s+gerade\b',
+                                     second_text,re.I)):
+                continue
+            proposals.append((first,_with_method(
+                [mp_first],f'erstes_ordnungsrufpaar_zweiter_xmlzeile_{second_line}')[0]))
+            proposals.append((second,_with_method(
+                [mp_first],f'zweites_ordnungsrufpaar_erster_xmlzeile_{first_line}')[0]))
+            used.update((first_line,second_line))
     return proposals
