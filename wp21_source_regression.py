@@ -32,7 +32,6 @@ SOURCE_FRAGMENTS = {
     (82, 'ob sie dafür auch schon einen ordnungsruf'): ('conditional_warning', None),
     (52, 'kollegin inkompetenz'): ('false_victim', None),
     (53, 'möchte ich der abgeordneten reichinnek'): ('named_hint', 'Reichinnek'),
-    (57, 'sie kriegen jetzt von mir einen ordnungsruf dafür'): ('unassigned', None),
     (61, 'für das lachen können sie gleich'): ('conditional_warning', None),
     (65, 'das belege ich jetzt hiermit mit einem ordnungsruf'): ('named_hint', 'Pantisano'),
     # Deliberate independently surfaced *conflict*: 21/067 names Gebel
