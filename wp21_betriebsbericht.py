@@ -18,6 +18,8 @@ EXPECTED = {
                             'letzter_Quellenscan_utc'),
     'dip_live_21.json': ('status', 'dip_vorgangsmonitor_ohne_freigabe',
                          'last_success_utc'),
+    'dip_positionen_21.json': ('status', 'dip_positionen_ohne_rechtswirkung',
+                             'last_success_utc'),
 }
 
 
@@ -56,6 +58,7 @@ def markdown(results, outcomes=None):
         'autopruefung_21.json':'Automatische Personen-Vorprüfung',
         'rechtsfolgen_21.json':'Einspruchs-/Rücknahme-Signale',
         'dip_live_21.json':'DIP: aktuelle Vorgangsmetadaten',
+        'dip_positionen_21.json':'DIP: Vorgangspositionen und Folgeschritte',
     }
     status = {'fresh':'aktuell', 'stale':'veraltet',
               'missing':'fehlt', 'invalid':'ungültig'}
@@ -76,7 +79,8 @@ def markdown(results, outcomes=None):
                   f"- XML-Scan: {outcomes.get('scan','unbekannt')}",
                   f"- Personen-Vorprüfung: {outcomes.get('autopruefung','unbekannt')}",
                   f"- Rechtsfolgen-Suche: {outcomes.get('rechtsfolgen','unbekannt')}",
-                  f"- DIP-API-Abgleich: {outcomes.get('dip','unbekannt')}"]
+                  f"- DIP-API-Abgleich: {outcomes.get('dip','unbekannt')}",
+                  f"- DIP-Folgeschritte: {outcomes.get('dippositions','unbekannt')}"]
     warnings=[name for name in EXPECTED if results[name]['state']!='fresh']
     if warnings:
         lines += ['', '**Achtung:** Mindestens ein Bericht ist nicht aktuell '
@@ -94,7 +98,7 @@ def main():
     opts=ap.parse_args()
     results=inspect(opts.data)
     outcomes={key:os.environ.get(f'WP21_{key.upper()}_OUTCOME','unbekannt')
-              for key in ('scan','autopruefung','rechtsfolgen','dip')}
+              for key in ('scan','autopruefung','rechtsfolgen','dip','dippositions')}
     report=markdown(results,outcomes)
     target=os.environ.get('GITHUB_STEP_SUMMARY')
     if target:
