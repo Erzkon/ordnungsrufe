@@ -244,11 +244,17 @@ def run(state_file, report_file, changes_file, *, now=None, key=None, load=reque
         raise ValueError('DIP-API-Key ungültig')
     previous = load_state(state_file)
     last = utc(previous['last_success_utc']) if previous['last_success_utc'] else START
-    since = max(START, last - timedelta(days=LOOKBACK_DAYS))
-    # On the first run, acquire the full WP21 update history (no hidden gaps).
+    # Monthly full re-check: DIP can backdate a correction or a cache can
+    # retain a previously stale result. The first Sunday of each month
+    # refreshes the entire term, while ordinary days use a 30-day overlap.
+    # The caller can also force a full rescan for recovery/debugging.
+    full_refresh = (previous['last_success_utc'] is None or
+                    (now.day <= 7 and now.weekday() == 6))
+    since = START if full_refresh else max(START, last - timedelta(days=LOOKBACK_DAYS))
     documents, pages = paginate(since, key, load=load, max_pages=max_pages)
     state,report,changes=evolve(previous,documents,now)
     report.update({'request_since_utc':iso(since), 'api_pages':pages,
+                   'full_term_refresh':full_refresh,
                    'changed_documents_scanned':len(documents)})
     # All network pages and validation have succeeded. Only now replace files.
     artifacts = [(Path(state_file),state),(Path(report_file),report)]
