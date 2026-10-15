@@ -36,6 +36,31 @@ def _chair(element, issuer_context):
     return name if kind == 'chair_marker' and CHAIR.search(name) else None
 
 
+
+def _unique_prior_full_name(surname, index, paragraphs, grant_line):
+    """Disambiguate identical surnames ONLY using a unique earlier full name.
+
+    In 21/077 both Martin and Truels Reichardt occur. An unqualified chair
+    confirmation naming 'Herr Reichardt' is ambiguous. Require one unique
+    earlier full-name introduction, never a later one or random mentioned MP.
+    """
+    identities=list(index[0].get(surname.casefold(), {}).values())
+    if len(identities)<2:
+        return None
+    found={}
+    for element,text in paragraphs:
+        line=int(element.sourceline)
+        if not 0<grant_line-line<=180:
+            continue
+        for person in identities:
+            full=person['person']
+            if re.search(r'(?<!\w)'+re.escape(full)+r'(?!\w)',text,re.I):
+                found[full.casefold()]=person
+    if len(found)!=1:
+        return None
+    return {**next(iter(found.values())),'identity_status':'matched_xml_person'}
+
+
 def infer_source_linked_hints(paragraphs, index, local_lines):
     """Yield (original grant element, identified person), never recap events.
 
@@ -76,12 +101,19 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
         if not marker:
             continue
         match,expected=matches[0]
-        who=candidate_name(match.group('name'),index)
-        if not who or who['identity_status']!='matched_xml_person':
-            continue
         recap_line=int(element.sourceline)
         nearby=[el for el,_,chair in issued
                 if chair==marker and 0<recap_line-int(el.sourceline)<=WINDOW_XML_LINES]
+        if len(nearby)!=expected:
+            continue
+        who=candidate_name(match.group('name'),index)
+        if not who or who['identity_status']!='matched_xml_person':
+            # With homonymous MPs, use only a unique preceding FULL name.
+            who=_unique_prior_full_name(
+                match.group('name'),index,paragraphs,min(
+                    int(el.sourceline) for el in nearby))
+        if not who or who['identity_status']!='matched_xml_person':
+            continue
         # Do not take arbitrary N from a bigger candidate set: that would
         # silently misattribute a different person's grant.
         if len(nearby)!=expected or any(int(el.sourceline) in used for el in nearby):
