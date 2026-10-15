@@ -357,7 +357,12 @@ def _object_people(text, index):
         # Kollegin X ... vorgeworfen haben, erteile/erhalten Sie ...".
         prior_clause = text[max(0, match.start()-90):match.start()]
         offense_clause = text[match.end():(term.start() if term else len(text))]
-        if (re.search(r'\b(?:dass|weil)\s+Sie\s*
+        if (re.search(r'\b(?:dass|weil)\s+Sie\s*$', prior_clause, re.I)
+                and re.search(r'\b(?:vorgeworfen|unterstellt|beleidigt|'
+                              r'beschimpft|bezichtigt|angegriffen)\b',
+                              offense_clause, re.I)):
+            continue
+        # Recipient must be syntactically connected to the issuing verb.
         between = text[max(0,match.start()-110):match.start()]
         after = text[match.end():match.end()+135]
         near_action = (
