@@ -10,6 +10,7 @@ on:
       - 'export_wp21.py'
       - 'wp21_scan.py'
       - 'wp21_autopruefung.py'
+      - 'wp21_rechtsfolgen.py'
       - 'tests/**'
       - 'WP21.md'
       - 'QUELLENABGLEICH.md'
@@ -17,6 +18,7 @@ on:
   pull_request:
     paths:
       - 'wp21_autopruefung.py'
+      - 'wp21_rechtsfolgen.py'
       - 'docs/**'
       - 'daten/**'
       - 'export_webdaten.py'
@@ -57,6 +59,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_wp21.py' -v
           python -m unittest discover -s tests -p 'test_wp21_feed.py' -v
           python -m unittest discover -s tests -p 'test_wp21_autopruefung.py' -v
+          python -m unittest discover -s tests -p 'test_wp21_rechtsfolgen.py' -v
       - name: Historische und aktuelle Quellenlisten gegen veroeffentlichte JSONs pruefen
         run: |
           python export_webdaten.py --check
@@ -77,6 +80,7 @@ jobs:
             docs/data/scan_21.json
             docs/data/hinweise_21.json
             docs/data/autopruefung_21.json
+            docs/data/rechtsfolgen_21.json
           key: wp21-feed-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             wp21-feed-
@@ -103,6 +107,27 @@ jobs:
             --verified daten/wirksame_ordnungsrufe_21wp.csv \
             --candidates wp21_autopruefung.csv \
             --report docs/data/autopruefung_21.json
+      - name: Einsprueche und moegliche Ruecknahmen als Pruefhinweise sammeln
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: rechtsfolgen
+        continue-on-error: true
+        run: |
+          python wp21_rechtsfolgen.py \
+            --cache-dir .cache/wp21 \
+            --source-summary docs/data/scan_21.json \
+            --candidates wp21_rechtsfolgen_hinweise.csv \
+            --report docs/data/rechtsfolgen_21.json
+      - name: Ruecknahme- und Einspruchs-Hinweise archivieren
+        if: github.event_name != 'pull_request' && steps.rechtsfolgen.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-rechtsfolgen-${{ github.run_id }}
+          path: wp21_rechtsfolgen_hinweise.csv
+          if-no-files-found: error
+          retention-days: 30
+      - name: Meldung bei fehlgeschlagener Rechtsfolgenpruefung
+        if: github.event_name != 'pull_request' && steps.rechtsfolgen.outcome == 'failure'
+        run: echo '::warning::Rechtsfolgen-Signalprüfung fehlgeschlagen; keine automatische Ruecknahme.'
       - name: Meldung bei fehlgeschlagener Vorpruefung
         if: github.event_name != 'pull_request' && steps.autopruefung.outcome == 'failure'
         run: echo '::warning::Automatischer Personenabgleich fehlgeschlagen; bestätigte Zahlen bleiben unverändert.'
@@ -136,6 +161,7 @@ jobs:
             docs/data/scan_21.json
             docs/data/hinweise_21.json
             docs/data/autopruefung_21.json
+            docs/data/rechtsfolgen_21.json
           if-no-files-found: error
           retention-days: 30
       - name: Website-Artefakt zur Veroeffentlichung uebertragen
