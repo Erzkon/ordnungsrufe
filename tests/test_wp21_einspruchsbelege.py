@@ -71,8 +71,6 @@ class OfficialAppealEvidenceTests(unittest.TestCase):
         self.assertIn('Einspruch am 2026-01-15',text)
         self.assertIn('amtlicher Beschlussbericht',text)
         self.assertIn('**Manuelle Entscheidung:** offen',text)
-        self.assertIn('nicht automatisch',text.lower() if 'nicht automatisch' in text.lower() else
-                      'nicht automatisch') if False else None
 
     def test_non_matching_case_does_not_borrow_other_appeal(self):
         text=create_brief([case(67,'Kathrin Gebel')],report())
