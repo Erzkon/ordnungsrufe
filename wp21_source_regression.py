@@ -17,7 +17,7 @@ SOURCE_FRAGMENTS = {
     (40, 'ich erteile ihnen jetzt einen ordnungsruf, weil sie mit dem finger'):
         ('linked_hint','Sichert'),
     (40, 'ich erteile ihnen auch für den widerspruch gerade einen zweiten ordnungsruf'):
-        ('linked_hint','Sichert'),
+        ('linked_hint','Janich'),
     (40, 'herr kollege gottschalk, ich erteile ihnen jetzt einen ordnungsruf'):
         ('named_hint','Gottschalk'),
     (40, 'und ich erteile ihnen einen zweiten ordnungsruf dafür'):
@@ -144,8 +144,8 @@ def run(folder):
                            'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_',
                            'redeblock_sprecher_xmlzeile_',
                            'vorherige_rede_und_einleitung_xmlzeile_',
-                           'erstes_ordnungsrufpaar_zweiter_xmlzeile_',
-                           'zweites_ordnungsrufpaar_erster_xmlzeile_',
+                           'erstes_erteilungswort_redner_sichert_xmlzeile_',
+                           'zweitvergabe_zu_benanntem_zwischenruf_xmlzeile_',
                            'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_'))):
                     raise AssertionError(f'Beleggebundener Personen-Prüfhinweis '
                                          f'21/{session} fehlt oder uneindeutig: '
@@ -165,7 +165,7 @@ def run(folder):
         path=Path(folder)/'21040.xml'
         rows=list(events(path,index=index,root=roots[40]))
         pairs={
-            8715:'Martin Sichert',8719:'Martin Sichert',
+            8715:'Martin Sichert',8719:'Steffen Janich',
             8990:'Kay Gottschalk',8992:'Kay Gottschalk',
         }
         for line,who in pairs.items():
@@ -177,6 +177,11 @@ def run(folder):
                     f'getrennt: Zeile {line}, erwartet {who}, gefunden {seen}')
         if any(int(row['line'])==8717 for row in rows):
             raise AssertionError('21/040 bedingte Lachandrohung als Erteilung erfasst')
+        comments=[n for n in roots[40].iter('kommentar') if n.sourceline==8718]
+        if (len(comments)!=1 or
+                'Steffen Janich [AfD]: Also fürs Lachen einen Ordnungsruf!'
+                not in ' '.join(''.join(comments[0].itertext()).split())):
+            raise AssertionError('Namentlicher Janich-Zwischenruf 21/040 fehlt')
     if len(results)!=len(SOURCE_FRAGMENTS):
         raise AssertionError('Unvollständige reale XML-Testabdeckung')
     print(f'{len(results)} Original-XML-Paragraf-Regressionskontrollen OK; '
