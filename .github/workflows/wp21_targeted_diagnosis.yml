@@ -8,6 +8,7 @@ on:
       - 'wp21_source_regression.py'
       - 'wp21_rueckbezug.py'
       - 'tests/test_wp21_rueckbezug.py'
+      - 'tests/test_wp21_remaining_identities.py'
       - 'wp21_fallkontext.py'
       - 'parser.py'
       - 'tests/test_wp21_originalformulierungen.py'
@@ -45,36 +46,6 @@ jobs:
               data=fetch(number,Path('.audit/targeted_xml'))
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
-          PY
-      - name: Noch ungeklärte XML-Sprecherkette 52, 65, 67 isoliert nachvollziehen
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from wp21_scan import safe_parse
-          from parser import iter_session_text,issuer_context
-          for n,anchors in ((52,(3749,)),(65,(2044,2046)),(67,(3079,))):
-              root=safe_parse(Path(f'.audit/targeted_xml/21{n:03d}.xml').read_bytes(),n)
-              ps=list(iter_session_text(root))
-              print('TRACE_START',n,flush=True)
-              selected={i for i,(el,text) in enumerate(ps)
-                        if any(abs(int(el.sourceline)-a)<9 for a in anchors)}
-              for idx in sorted(selected):
-                  el,spoken=ps[idx]
-                  source=el.getparent()
-                  near=el.xpath('./preceding-sibling::p[@klasse="redner"][1]//redner')
-                  who=(near[0].get('id') or '') if len(near)==1 else '-'
-                  tagname=('-' if len(near)!=1 else ' '.join(near[0].xpath('.//vorname/text()')+
-                                                              near[0].xpath('.//nachname/text()')))
-                  issuer,kind=issuer_context(el)
-                  print('TRACE',n,el.sourceline,kind,issuer[:52],
-                        'SPEAKER',who,tagname,
-                        'TXT',' '.join(spoken.split())[:280],flush=True)
-              for keyword in ({52:('Inkompetenz','Antifa'),65:('Reichardt',),
-                               67:('pathologischen Männerhass','Gebel')}[n]):
-                  hit=[(el.sourceline,text[:220]) for el,text in ps
-                       if any(0<=int(el.sourceline)-a<65 for a in anchors)
-                       and keyword.casefold() in text.casefold()]
-                  print('TERM',n,keyword,hit[:10],flush=True)
           PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
