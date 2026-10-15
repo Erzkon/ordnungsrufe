@@ -76,3 +76,22 @@ Betriebsbericht über Quellenstand, Vorprüfung, Rechtsfolgensignale und
 fehlende oder veraltete Daten. Die freigegebene Statistik wird dabei nicht
 überschrieben. Die neuen Prüfungen sind auch in der GitHub-Testpipeline
 mit synthetischen Positiv- und Negativfällen abgesichert.
+
+
+## Quellenbasierte Erkennungsvalidierung (noch ohne automatisches Zählen)
+
+Der CI-Lauf überprüft echte Textstellen aus dem Originalprotokoll **20/214**
+gegen die vollständig belegten Einträge dieser Sitzung. Der Test umfasst
+direkte Erteilung, Gruppenruf, spätere namentliche Bestätigung und eine
+Erwähnung, die **keine** zusätzliche Maßnahme darstellt.
+Er ist ein kleiner Regressionstest, keine repräsentative Erkennungsquote.
+
+Eine separate, amtlich in DIP dokumentierte **positive Teilstichprobe** zur
+21. Wahlperiode wird täglich gegen die ausgegebene Personen-Prüfliste
+abgeglichen. Sie enthält zum Quellenstand 15.10.2026 ausgewählte
+24 Person/Sitzung-Kombinationen und 25 ursprünglich berichtete Ordnungsrufe,
+von denen die bestehende geprüfte Teilmenge acht umfasst. Die übrigen
+17 sind **Prüflücken**, keine automatischen neuen Einträge und nicht
+notwendigerweise noch wirksame Maßnahmen. Die positiven Kontrollen sind
+bewusst *keine* vollständige amtliche Statistik.
+Details und Grenzen: [WP21.md](WP21.md).
