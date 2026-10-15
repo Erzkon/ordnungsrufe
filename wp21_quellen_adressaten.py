@@ -118,8 +118,10 @@ def source_recipient_links(paragraphs,index,excluded):
         if not possible:
             continue
         previous,previous_text=possible[-1]
-        if (grant.getparent() is previous.getparent()
-                or not 0<line-int(previous.sourceline)<=5):
+        # Chair interjections can occur inside the named MP's <rede>.
+        # Only the verbatim MP-spoken offence + matching redner-ID,
+        # together with the direct chair rebuke, support this hint.
+        if not 0<line-int(previous.sourceline)<=5:
             continue
         unique={}
         for p,t in possible:
