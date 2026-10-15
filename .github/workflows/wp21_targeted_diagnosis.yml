@@ -7,6 +7,8 @@ on:
       - '.github/workflows/wp21_targeted_diagnosis.yml'
       - 'wp21_source_regression.py'
       - 'wp21_rueckbezug.py'
+      - 'wp21_quellen_adressaten.py'
+      - 'tests/test_wp21_quellen_adressaten.py'
       - 'tests/test_wp21_rueckbezug.py'
       - 'tests/test_wp21_remaining_identities.py'
       - 'tests/test_wp21_mehrfach_40.py'
@@ -69,60 +71,6 @@ jobs:
                         'parent=',node.getparent().tag if node.getparent() is not None else '',
                         'xml=',etree.tostring(node,encoding='unicode')[:1850],
                         flush=True)
-          PY
-      - name: Quellenkette von 21/014, 21/026, 21/037 und 21/039 untersuchen
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from wp21_scan import safe_parse
-          from parser import issuer_context,iter_session_text,speaker_index,events
-          for session,source in ((14,2311),(26,3436),(37,5923),(39,4341)):
-              root=safe_parse(Path(f'.audit/targeted_xml/21{session:03d}.xml').read_bytes(),session)
-              nodes=list(iter_session_text(root))
-              print('SESSION',session,'source',source)
-              for i,(p,txt) in enumerate(nodes):
-                  if abs(int(p.sourceline)-source)>20:continue
-                  tag=p.getparent()
-                  issuer,kind=issuer_context(p)
-                  preceding=[]
-                  if tag is not None:
-                      for sib in p.itersiblings(preceding=True):
-                          if sib.tag in ('name','kommentar') or (
-                                  sib.tag=='p' and sib.get('klasse')=='redner'):
-                              preceding.append(f"{sib.tag}:{sib.get('klasse')}:{' '.join(''.join(sib.itertext()).split())[:90]}")
-                              if len(preceding)>=3:break
-                  print('XMLTRACE',session,int(p.sourceline),kind,
-                        issuer[:45], 'rede=',tag.tag if tag is not None else '',
-                        'prev=',preceding[:2],
-                        'txt=',txt[:220],flush=True)
-              for ev in events(Path(f'21{session:03d}.xml'),
-                               root=root,index=speaker_index([root])):
-                  if abs(int(ev['line'])-source)<=20:
-                      print('CURRENT_HINT',session,ev['line'],ev['person'],
-                            ev['zuordnungsmethode'],flush=True)
-          PY
-      - name: Originalsprecher-Verknuepfung 14 37 39 diagnostizieren
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from parser import issuer_context,iter_session_text,speaker_index,classify
-          from wp21_scan import safe_parse
-          from wp21_quellen_adressaten import source_recipient_links,_identity_from_xml_speech
-          for session,target in ((14,2311),(37,5923),(39,4341)):
-              root=safe_parse(Path(f'.audit/targeted_xml/21{session:03d}.xml').read_bytes(),session)
-              paragraphs=list(iter_session_text(root))
-              index=speaker_index([root])
-              i=next(i for i,(p,t) in enumerate(paragraphs) if p.sourceline==target)
-              print('RECIP_TRACE',session,'proposals',
-                    [(el.sourceline,x['person'],x.get('zuordnungsmethode'))
-                     for el,x in source_recipient_links(paragraphs,index,set())],flush=True)
-              for j,(p,txt) in enumerate(paragraphs[max(0,i-12):i+1],start=max(0,i-12)):
-                  if target-int(p.sourceline)>22:continue
-                  w=_identity_from_xml_speech(p,index)
-                  who,kind=issuer_context(p)
-                  print('RECIP_DETAIL',session,int(p.sourceline),kind,
-                        w and (w['person'],w['person_id']),classify(txt),
-                        repr(txt[:160]),flush=True)
           PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml

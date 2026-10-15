@@ -24,14 +24,19 @@ def fixture(chair=True,sentences=None):
 
 
 class AnonymousSourceDossierTests(unittest.TestCase):
-    def test_13_remaining_original_high_priority_locations(self):
-        self.assertEqual(len(TARGETS),12)
-        self.assertEqual(sum(map(len,TARGETS.values())),13)
+    def test_10_remaining_original_high_priority_locations(self):
+        self.assertEqual(len(TARGETS),9)
+        self.assertEqual(sum(map(len,TARGETS.values())),10)
         self.assertEqual(len({(session,line) for session,items in TARGETS.items()
-                             for line in items}),13)
+                             for line in items}),10)
 
     def test_verified_wp21_040_pairs_have_separate_source_linked_dossier(self):
         self.assertNotIn(40,TARGETS)
+
+    def test_linked_exact_xml_sources_no_longer_treated_as_anonymous(self):
+        self.assertNotIn(14,TARGETS)
+        self.assertNotIn(37,TARGETS)
+        self.assertNotIn(39,TARGETS)
 
     def test_anonymous_grant_context_keeps_source_line_not_a_person(self):
         root,line=fixture()
