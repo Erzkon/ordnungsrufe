@@ -42,7 +42,8 @@ class TestWebsiteContract(unittest.TestCase):
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',
-                    'wp21-legal-detail','wp21-triage-detail'):
+                    'wp21-legal-detail','wp21-triage-detail',
+                    'wp21-coverage-detail'):
             self.assertIn(id_,self.identifiers)
 
     def test_main_confirmation_labels_not_reused_for_unverified_cases(self):
