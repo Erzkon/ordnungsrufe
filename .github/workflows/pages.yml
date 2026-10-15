@@ -81,6 +81,8 @@ jobs:
           retention-days: 30
       - name: Unabhaengige DIP-Positivstichprobe mit belegtem Anfangsbestand vergleichen
         run: python wp21_dip_kontrolle.py --report docs/data/dip_kontrolle_21.json
+      - name: Website-JavaScript auf Syntaxfehler pruefen
+        run: node --check docs/app.js
       - name: Historische und aktuelle Quellenlisten gegen veroeffentlichte JSONs pruefen
         run: |
           python export_webdaten.py --check
