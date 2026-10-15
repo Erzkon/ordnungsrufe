@@ -34,7 +34,7 @@ REI_GRANT=('Jetzt ist gut. Ich mache hier nicht jeden Quatsch mit. '
 
 
 def paragraph(text):
-    return '<p>'+escape(text)+'</p>'
+    return '\n<p>'+escape(text)+'</p>\n'
 
 
 def chair_block(name,*texts):
