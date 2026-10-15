@@ -93,7 +93,7 @@ class ExactMultipleOriginalSourceTests(unittest.TestCase):
     def test_mismatched_speaker_id_is_not_allowed(self):
         root,reference,warning=original_pairs()
         invalid=copy.deepcopy(reference)
-        invalid['Kay Gottschalk']['person_id']='11004892'
+        invalid['Kay Gottschalk']['person_id']='99999999'
         with self.assertRaisesRegex(ValueError,'XML-Sprecher nicht eindeutig'):
             inspect(root,invalid,warning)
 
@@ -113,7 +113,7 @@ class ExactMultipleOriginalSourceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Erst-/Zweiterteilung ungültig'):
             inspect(root,invalid,warning)
         invalid=copy.deepcopy(ref)
-        invalid['Kay Gottschalk']['second']+=999
+        invalid['Kay Gottschalk']['second']=invalid['Kay Gottschalk']['first']+8
         with self.assertRaisesRegex(ValueError,'Originalfundstelle'):
             inspect(root,invalid,warning)
 
