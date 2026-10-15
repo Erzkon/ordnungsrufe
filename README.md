@@ -155,3 +155,12 @@ relevanten DIP-Daten und XML-Protokolle muss nach
 dem gemeinsamen Merge noch im Betrieb kontrolliert werden.
 Die genaue Methodik und Sicherheitsgrenzen stehen
 in [WP21.md](WP21.md).
+
+
+Für verzögert gemeldete DIP-Änderungen wird am **ersten Sonntag
+jedes Monats ein vollständiger Neuabgleich seit Beginn der
+21. Wahlperiode** ausgeführt. Die täglichen Abfragen nutzen
+ansonsten 30 Tage Überlappung. Fehlende Altvorgänge werden
+nicht aufgrund eines kurzen Änderungsfensters fälschlich gelöscht.
+Die vollständige dreistufige DIP-Verarbeitung wird zusätzlich
+mit einem isolierten End-to-End-Test überprüft.
