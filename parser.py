@@ -418,13 +418,15 @@ def persons_for_grant(text, index):
             r'^(?:Der|Die)\s+Abgeordnete(?:r|n)?\s+', scope, re.I)
         if direct_subject:
             remainder = scope[direct_subject.end():]
-            name_span = re.match(
-                r'[\wÀ-žÄÖÜäöüß\-]+(?:\s+[\wÀ-žÄÖÜäöüß\-]+){0,3}', remainder)
-            if name_span:
-                tail = remainder[name_span.end():]
-                if re.match(
-                    r'^\s+(?:erhält|bekommt|kriegt)\b[^.!?]{0,100}'
-                    r'\beinen\s+Ordnungsruf\b', tail, re.I):
+            verb = re.search(r'\s+(?:erhält|bekommt|kriegt)\b', remainder, re.I)
+            if verb:
+                name_fragment = remainder[:verb.start()].strip()
+                tail = remainder[verb.end():]
+                # The entire grammatical subject must look like a name, not
+                # free prose that happens to mention a politician.
+                if (1 <= len(name_fragment.split()) <= 4
+                        and re.fullmatch(r'[\wÀ-žÄÖÜäöüß\- ]+', name_fragment)
+                        and re.search(r'^[^.!?]{0,100}\beinen\s+Ordnungsruf\b', tail, re.I)):
                     who = _name_at(scope, direct_subject.end(), index)
                     if who:
                         return _with_method([who], 'explizites_empfaenger_subjekt')
