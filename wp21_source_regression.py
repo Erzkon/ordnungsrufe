@@ -12,6 +12,14 @@ from parser import candidates, events, iter_session_text, speaker_index
 from wp21_scan import safe_parse
 
 SOURCE_FRAGMENTS = {
+    # Three remaining independent DIP-positive references, with exact XML
+    # recipients supported by named speech blocks / formal introductions.
+    (52, 'herr kollege, dafür, dass sie der kollegin inkompetenz'):
+        ('linked_hint','Hess'),
+    (65, 'jetzt ist gut. ich mache hier nicht jeden quatsch mit. herr reichardt'):
+        ('full_identity','Martin Reichardt'),
+    (67, 'frau kollegin, dafür, dass sie der kollegin gebel'):
+        ('linked_hint','Przygodda'),
     (57, 'sie kriegen jetzt von mir einen ordnungsruf dafür'): ('linked_hint','Baumann'),
     (61, 'für die bezeichnung von frau brosius-gersdorf'): ('linked_hint','Zons'),
     (71, 'dafür muss ich ihnen einen ordnungsruf erteilen'): ('linked_hint','Edis'),
@@ -95,6 +103,16 @@ def run(folder):
                         name.casefold().endswith(person.casefold()) for name in names):
                     raise AssertionError(f'Explizite Person als Prüfhinweis fehlt 21/{session}: '
                                          f'{cls=} {names=}')
+            elif expect=='full_identity':
+                if (cls != 'possible_grant' or len(people)!=1
+                        or people[0]['person']!=person
+                        or people[0]['identity_status']!='matched_xml_person'
+                        or not people[0]['zuordnungsmethode'].startswith(
+                            'vollname_vorsitz_einleitung_xmlzeile_')
+                        or people[0]['status']!='review_required'):
+                    raise AssertionError(f'Nicht eindeutig mit formaler '
+                                         f'Original-XML-Einleitung verknüpft '
+                                         f'21/{session}: {cls=} {people=}')
             elif expect=='unassigned':
                 if cls != 'possible_grant' or people:
                     raise AssertionError(f'Pronomen ohne Namen nicht sicher; 21/{session}: '
@@ -111,7 +129,9 @@ def run(folder):
                           ('namensbestaetigung_xmlzeile_',
                            'vorherige_direkte_anrede_xmlzeile_',
                            'vorsitz_direkte_anrede_xmlzeile_',
-                           'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_'))):
+                           'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_',
+                           'redeblock_sprecher_xmlzeile_',
+                           'vorherige_rede_und_einleitung_xmlzeile_'))):
                     raise AssertionError(f'Beleggebundener Personen-Prüfhinweis '
                                          f'21/{session} fehlt oder uneindeutig: '
                                          f'{cls=} {names=} {people=}')
