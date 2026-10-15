@@ -5,6 +5,8 @@ Use in CI only as an observable warning, since remote availability and the
 public API key are beyond this repository's control.
 """
 import sys
+from datetime import datetime, timedelta, timezone
+from urllib.request import Request, urlopen
 
 from wp21_dip_monitor import PUBLIC_KEY, request_page
 from wp21_dip_positionen import API_POSITIONS
@@ -37,6 +39,31 @@ def probe(load=request_page, key=PUBLIC_KEY):
         if item['parent_id'] != '330701':
             raise ValueError('Amtliche Verfahrensposition verweist auf falschen Vorgang')
     result['Vorgangspositions-Verknuepfung'] = {'linked_positions':len(linked)}
+    # Validate the incremental filter actually used by the scheduled workflow.
+    from wp21_dip_monitor import iso
+    params = {
+        'f.wahlperiode':'21',
+        'f.aktualisiert.start':iso(datetime.now(timezone.utc)-timedelta(days=2))
+    }
+    latest = load(params,key)
+    if not isinstance(latest,dict) or type(latest.get('numFound')) is not int or not isinstance(latest.get('documents'),list):
+        raise ValueError('DIP-Aktualisierungsfilter nicht verwendbar')
+    result['Aktualisierungsfilter'] = {'matches':latest['numFound'],
+                                       'first_page':len(latest['documents'])}
+    # Exercise the same strict XML validator and review parser as production,
+    # but for ONE archived protocol only; never touch reviewed datasets.
+    from wp21_scan import safe_parse, review_rows, HOST, MAX_SIZE
+    request = Request(HOST+'/21094.xml',
+                      headers={'User-Agent':'OrdnungsrufCounter/0.7 (GitHub CI)'})
+    with urlopen(request,timeout=35) as response:
+        source = response.read(MAX_SIZE+1)
+    root = safe_parse(source,94)
+    candidates = review_rows(root,94)
+    result['Originalprotokoll_21_094']={
+        'bytes':len(source),
+        'text_locations':len(candidates),
+        'date':root.get('sitzung-datum')
+    }
     return result
 
 
