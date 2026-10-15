@@ -97,7 +97,7 @@ def paginate(since, key, load=request_page, max_pages=1200):
         next_cursor = result.get('cursor')
         if (not isinstance(docs, list) or len(docs) > 100
                 or type(number) is not int or not 0 <= number <= 300000
-                or not isinstance(next_cursor, str)):
+                or not isinstance(next_cursor, (str, type(None)))):
             raise ValueError('DIP: unerwartetes Listenschema')
         if total is None:
             total = number
