@@ -12,6 +12,8 @@ from parser import candidates, events, iter_session_text, speaker_index
 from wp21_scan import safe_parse
 
 SOURCE_FRAGMENTS = {
+    (27, 'nach durchsicht des protokolls muss ich feststellen'): ('named_hint','Koch'),
+    (69, 'werden sie auch dafür einen ordnungsruf bekommen'): ('conditional_warning',None),
     # Separately validate previously unrecognised direct recipients and
     # strict negative/hypothetical language in the real official transcripts.
     (15, 'ich erteile einen ordnungsruf an herrn lamely'): ('named_hint','Lamely'),

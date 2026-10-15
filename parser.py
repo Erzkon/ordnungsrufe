@@ -37,7 +37,8 @@ APPEAL = re.compile(r'\b(?:Einspruch|zurücknehmen|nicht\s+zurück|zurückgenomm
 FUTURE_ONLY = re.compile(
     r'\b(?:werde|werden|wird)\b[^.!?]{0,120}\b(?:Ordnungsruf\s+erteilen|'
     r'erteilen[^.!?]{0,60}Ordnungsruf)\b|'
-    r'\bkönnen\s+Sie\s+(?:gleich\s+)?(?:auch\s+)?(?:einen\s+)?Ordnungsruf\s+bekommen\b', re.I)
+    r'\bkönnen\s+Sie\s+(?:gleich\s+)?(?:auch\s+)?(?:einen\s+)?Ordnungsruf\s+bekommen\b|'
+    r'\bwerden\s+Sie\b[^.!?]{0,100}\bOrdnungsruf\s+bekommen\b', re.I)
 GENERIC_FUTURE = re.compile(
     r'\b(?:der\s+Nächste|jeder|wer\s+das\s+tut|jeder,?\s+der\s+das\s+tut)\b'
     r'[^.!?]{0,130}\b(?:bekommt|kriegt|erhält|erteilen)\b'
@@ -331,6 +332,20 @@ def _third_person_antecedent(text, scope, index):
     prefix = text[:at].strip() if at >= 0 else ''
     sentences = split_sentences(prefix)
     prior = sentences[-1] if sentences else ''
+    # Original 21/027: "Nach Durchsicht ... dass der Abgeordnete
+    # Heinrich Koch ... [the Chancellor] einen Lügenbeutel genannt hat.
+    # Dafür erteile ich ihm einen Ordnungsruf." The uniquely named actor of
+    # the misconduct is the subject of "genannt hat", not the insulted
+    # Chancellor. This is a *review hypothesis*, never a confirmed event.
+    if re.match(r'^(?:Dafür|Deshalb)\s+erteile\s+ich\s+ihm\s+einen\s+Ordnungsruf\b',
+                scope, re.I):
+        actor = re.search(r'\bdass\s+der\s+Abgeordnete\s+', prior, re.I)
+        if (actor and len(re.findall(r'\bdass\s+der\s+Abgeordnete\b',
+                                     prior, re.I)) == 1
+                and re.search(r'\bgenannt\s+hat\b', prior[actor.end():], re.I)):
+            who = _name_at(prior, actor.end(), index)
+            if who:
+                return [who]
     # A subject must open that immediately preceding sentence, not be an
     # arbitrary mentioned injured party or the presiding officer.
     m = re.match(

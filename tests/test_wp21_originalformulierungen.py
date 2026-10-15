@@ -233,5 +233,35 @@ class OriginalWording(unittest.TestCase):
         self.assertEqual(people, [])
 
 
+    def test_original_21027_unique_named_insulter_linked_to_ihm(self):
+        hints, people = observed(
+            'Damit komme ich zu dem von mir vorhin angekündigten Vorbehalt. '
+            'Nach Durchsicht des Protokolls muss ich feststellen, dass '
+            'der Abgeordnete Heinrich Koch von der AfD-Fraktion den '
+            'Bundeskanzler Merz in einem personalisierten Zusammenhang '
+            'einen „Lügenbeutel“ genannt hat. Dafür erteile ich ihm '
+            'einen Ordnungsruf.',
+            name='Heinrich Koch', session=27)
+        self.assertEqual(hints[0]['classification'], 'possible_grant')
+        self.assertEqual([p['person'] for p in people], ['Heinrich Koch'])
+        self.assertEqual(people[0]['zuordnungsmethode'],
+                         'pronomen_bezug_im_absatz')
+
+    def test_21027_no_grant_to_mentioned_victim(self):
+        _, people = observed(
+            'Nach Durchsicht des Protokolls muss ich feststellen, dass '
+            'der Abgeordnete Heinrich Koch den Bundeskanzler Merz einen '
+            '„Lügenbeutel“ genannt hat. Dafür erteile ich ihm einen '
+            'Ordnungsruf.', name='Friedrich Merz', session=27)
+        self.assertEqual([p['person'] for p in people], ['Heinrich Koch'])
+
+    def test_original_21069_future_sanction_is_not_granted(self):
+        hints, people = observed(
+            'Was ich mir ebenfalls anschaue, werden Sie auch dafür '
+            'einen Ordnungsruf bekommen.', session=69)
+        self.assertEqual(hints[0]['classification'], 'warning_or_conditional')
+        self.assertEqual(people, [])
+
+
 if __name__=='__main__':
     unittest.main()

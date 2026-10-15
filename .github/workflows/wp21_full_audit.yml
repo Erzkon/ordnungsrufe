@@ -1,12 +1,8 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# Re-validate the full available 21st-term XML sample after parser fixes.
-# PR trigger only selects workflow changes, not ordinary future parser commits.
+# Expensive full source scans already passed on the PR. Future complete
+# rescans are opt-in; ordinary PR checks use the smaller original-XML suite.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
