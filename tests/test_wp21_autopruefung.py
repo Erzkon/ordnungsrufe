@@ -109,5 +109,19 @@ class TestTriage(unittest.TestCase):
             with csv_out.open(encoding='utf-8',newline='') as stream:
                 self.assertEqual(len(list(csv.DictReader(stream))),1)
 
+    def test_twice_in_same_sitting_is_one_benchmark_key_not_two_grants(self):
+        from wp21_autopruefung import norm
+        key=(94, norm('Cansin Köktürk'))
+        reviewed={key:2}
+        proposals=[{'sitzung':'94','person_vorschlag':'Cansin Köktürk',
+                    'pruefstatus':'referenz_abgeglichen', 'prioritaet':'niedrig'}]
+        report=make_report(proposals,reviewed,2,94,'2026-10-15T06:00:00+00:00')
+        self.assertEqual(report['bereits_einzeln_belegte_massnahmen'],2)
+        self.assertEqual(report['referenz_person_sitzung_kombinationen'],1)
+        self.assertEqual(report['referenz_mehrfachvergaben_ohne_parser_nachweis'],1)
+        self.assertEqual(report['davon_referenz_person_sitzung_erkannt'],1)
+        self.assertEqual(report['davon_referenz_person_sitzung_nicht_erkannt'],0)
+        self.assertEqual(report['automatisch_freigegebene_ordnungsrufe'],0)
+
 if __name__ == '__main__':
     unittest.main()
