@@ -91,6 +91,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_wp21_dip_monitor.py' -v
           python -m unittest discover -s tests -p 'test_wp21_dip_positionen.py' -v
           python -m unittest discover -s tests -p 'test_wp21_pruefqueue.py' -v
+          python -m unittest discover -s tests -p 'test_website_contract.py' -v
           python -m unittest discover -s tests -p 'test_wp21_originalformulierungen.py' -v
           python -m pytest -q tests/test_parser.py
       - name: Echte DIP-API kurz auf Erreichbarkeit und Schema pruefen
