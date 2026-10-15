@@ -108,9 +108,17 @@ def inspect(root,expected=OFFICIAL_LINES,warning_line=WARNING_LINE,
     by_person={key:[r['xml_line'] for r in out
                     if r['recipient_review_hint']==key]
                for key in ('Martin Sichert','Steffen Janich','Kay Gottschalk')}
-    if by_person!={'Martin Sichert':[8715], 'Steffen Janich':[8719],
-                   'Kay Gottschalk':[8990,8992]}:
+    # Production locations are exact official source lines. Synthetic
+    # fixtures use independently generated lxml line numbers, but must
+    # preserve the same 1/1/2 source-person structure.
+    if (expected is OFFICIAL_LINES and by_person!={
+            'Martin Sichert':[8715],
+            'Steffen Janich':[8719],
+            'Kay Gottschalk':[8990,8992]}):
         raise ValueError('Originalfundstellen nach Personen verwechselt')
+    if [len(by_person[name]) for name in
+            ('Martin Sichert','Steffen Janich','Kay Gottschalk')]!=[1,1,2]:
+        raise ValueError('Personenspezifische Erst-/Zweiterteilungen vermischt')
     return {
         'status':'unverified_source_linked_grant_passages_with_appeal_context',
         'wahlperiode':21, 'sitzung':40,
