@@ -229,8 +229,11 @@ class CrossParagraphReviewLinks(unittest.TestCase):
 
     def test_von_zons_prior_chair_vocative_and_explicit_issuing_verb(self):
         _,found=parse([
+            ('Vizepräsident Bodo Ramelow',['Herr von Zons.']),
+            ('speaker:Ulrich von Zons',[
+                '– und die werden Ihnen das bei den nächsten Wahlen zeigen.',
+                'Vielen Dank.']),
             ('Vizepräsident Bodo Ramelow',[
-                'Herr von Zons.',
                 'Sehr geehrter Herr Abgeordneter, für die Bezeichnung '
                 'von Frau Brosius-Gersdorf als Linksextremistin '
                 'erteile ich Ihnen einen Ordnungsruf.'])],
@@ -361,6 +364,18 @@ class CrossParagraphReviewLinks(unittest.TestCase):
                     'rassistischen Dreck von sich geben – was wirklich '
                     'unglaublich ist –, bekommen Sie jetzt von mir einen Ordnungsruf.'])],
             [('Kathrin','Gebel'),('Kerstin','Przygodda')],67)
+        self.assertEqual(found,[])
+
+
+    def test_21061_intervening_speech_of_other_mp_does_not_link(self):
+        _,found=parse([
+            ('Vizepräsident Bodo Ramelow',['Herr von Zons.']),
+            ('speaker:Other Person',['Ich halte diesen Vorschlag für falsch.']),
+            ('Vizepräsident Bodo Ramelow',[
+                'Sehr geehrter Herr Abgeordneter, '
+                'für diese persönliche Bezeichnung erteile ich Ihnen '
+                'einen Ordnungsruf.'])],
+            [('Ulrich','von Zons'),('Other','Person')],61)
         self.assertEqual(found,[])
 
 
