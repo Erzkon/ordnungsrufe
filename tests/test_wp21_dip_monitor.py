@@ -121,6 +121,58 @@ class DIPMonitorTests(unittest.TestCase):
             self.assertEqual(monthly['request_since_utc'],iso(START))
             self.assertEqual(monthly['tracked_relevant_vorgaenge'],2)
 
+    def test_failed_monthly_scan_is_retried_after_first_sunday(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            paths=(root/'state.json',root/'report.json',root/'changes.json')
+            start=datetime(2026,10,15,7,tzinfo=timezone.utc)
+            next_month=datetime(2026,11,1,7,tzinfo=timezone.utc)
+            seen=[]
+            def load(p,k):
+                seen.append(dict(p))
+                if len(seen)==2:
+                    raise OSError('Erster Sonntagslauf ist ausgefallen')
+                return {'numFound':0,'documents':[],'cursor':None}
+            run(*paths,now=start,key='test',load=load)
+            before=paths[0].read_bytes()
+            with self.assertRaises(OSError):
+                run(*paths,now=next_month,key='test',load=load)
+            self.assertEqual(paths[0].read_bytes(),before)
+            retry=run(*paths,now=next_month+timedelta(days=1),key='test',load=load)
+            self.assertTrue(retry['full_term_refresh'])
+            self.assertEqual(seen[-1]['f.aktualisiert.start'],iso(START))
+            next_day=run(*paths,now=next_month+timedelta(days=2),key='test',load=load)
+            self.assertFalse(next_day['full_term_refresh'])
+            self.assertEqual(seen[-1]['f.aktualisiert.start'],
+                             iso(next_month+timedelta(days=1)-timedelta(days=30)))
+
+    def test_legacy_cache_without_watermark_fails_safe_to_full_reconciliation(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            files=(root/'state.json',root/'report.json',root/'changes.json')
+            old={'schema':'dip21-incremental-v1',
+                 'last_success_utc':iso(NOW),'items':{}}
+            files[0].write_text(json.dumps(old),encoding='utf-8')
+            requested=[]
+            result=run(*files,now=NOW+timedelta(days=1),key='test',
+                       load=lambda p,k:(requested.append(p) or
+                                        {'numFound':0,'documents':[],'cursor':None}))
+            self.assertTrue(result['full_term_refresh'])
+            self.assertEqual(requested[0]['f.aktualisiert.start'],iso(START))
+            self.assertIsNotNone(load_state(files[0])['last_full_refresh_utc'])
+
+    def test_invalid_future_full_refresh_watermark_is_rejected(self):
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/'state.json'
+            path.write_text(json.dumps({
+                'schema':'dip21-incremental-v1',
+                'last_success_utc':iso(NOW),
+                'last_full_refresh_utc':iso(NOW+timedelta(days=1)),
+                'items':{}
+            }))
+            with self.assertRaises(ValueError):
+                load_state(path)
+
     def test_regular_day_uses_rolling_overlap(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)

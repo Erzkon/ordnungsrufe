@@ -12,6 +12,17 @@ from wp21_dip_monitor import PUBLIC_KEY, request_page
 from wp21_dip_positionen import API_POSITIONS
 
 
+def recent_pagination_probe(load, key, now):
+    """Exercise real pagination through injectable transport, never publish data."""
+    from wp21_dip_monitor import paginate, relevant_item
+    recent, page_count = paginate(now-timedelta(days=1), key, load=load, max_pages=60)
+    return {
+        'documents':len(recent),
+        'pages':page_count,
+        'title_or_abstract_matches':sum(relevant_item(row) is not None for row in recent),
+    }
+
+
 def probe(load=request_page, key=PUBLIC_KEY):
     cases = [
         ('Vorgänge', {'f.wahlperiode':'21','f.id':'330701'}, None),
@@ -61,14 +72,8 @@ def probe(load=request_page, key=PUBLIC_KEY):
                                        'first_page':len(latest['documents'])}
     # A genuine multi-page trial catches schema and cursor differences hidden
     # by single-item probes. It is read-only and limited to the last 24 hours.
-    from wp21_dip_monitor import paginate, relevant_item
-    recent, page_count = paginate(datetime.now(timezone.utc)-timedelta(days=1),
-                                  key, max_pages=60)
-    relevant = sum(relevant_item(row) is not None for row in recent)
-    result['DIP_Mehrseitenprobe_24h']={
-        'documents':len(recent),'pages':page_count,
-        'title_or_abstract_matches':relevant
-    }
+    result['DIP_Mehrseitenprobe_24h'] = recent_pagination_probe(
+        load, key, datetime.now(timezone.utc))
     from wp21_dip_monitor import START
     history = load({'f.wahlperiode':'21','f.aktualisiert.start':iso(START)},key)
     if not isinstance(history,dict) or type(history.get('numFound')) is not int:

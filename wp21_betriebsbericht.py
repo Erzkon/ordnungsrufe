@@ -6,7 +6,6 @@ rather than turning into an invented 0 counter. Uses only local JSON snapshots.
 """
 import argparse
 import json
-import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path

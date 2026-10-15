@@ -159,13 +159,20 @@ def digest(row):
 def load_state(path):
     path = Path(path)
     if not path.is_file():
-        return {'last_success_utc': None, 'items': {}}
+        return {'last_success_utc': None, 'last_full_refresh_utc': None, 'items': {}}
     data = json.loads(path.read_text(encoding='utf-8'))
     if data.get('schema') != 'dip21-incremental-v1':
         raise ValueError('DIP-Zustand: unbekanntes Schema')
     timestamp = utc(data['last_success_utc'])
     if timestamp < START or timestamp > datetime.now(timezone.utc) + timedelta(minutes=10):
         raise ValueError('DIP-Zustand: ungültiger Zeitstempel')
+    # Older cache snapshots did not record a full-refresh watermark. Treat
+    # their coverage as unknown and perform a fresh, complete reconciliation
+    # once the monthly checkpoint has passed.
+    full_raw = data.get('last_full_refresh_utc')
+    full_time = utc(full_raw) if full_raw is not None else None
+    if full_time is not None and not START <= full_time <= timestamp:
+        raise ValueError('DIP-Zustand: ungültiger Vollabgleich-Zeitpunkt')
     items = data['items']
     if not isinstance(items, dict) or len(items) > MAX_MATCHES:
         raise ValueError('DIP-Zustand: ungültige Einträge')
@@ -174,7 +181,9 @@ def load_state(path):
                 or item.get('id') != ident
                 or item.get('source') != 'https://dip.bundestag.de/vorgang/' + ident):
             raise ValueError('DIP-Zustand: ungültiger Link')
-    return {'last_success_utc': iso(timestamp), 'items': items}
+    return {'last_success_utc': iso(timestamp),
+            'last_full_refresh_utc': iso(full_time) if full_time else None,
+            'items': items}
 
 
 def evolve(previous, documents, now, *, complete_term=False):
@@ -223,7 +232,10 @@ def evolve(previous, documents, now, *, complete_term=False):
     if len(merged) > MAX_MATCHES:
         raise ValueError('DIP-Snapshot überschreitet Obergrenze')
     changes.sort(key=lambda row:(row['change'], int(row['id'])),reverse=True)
-    state={'schema':'dip21-incremental-v1','last_success_utc':iso(now),'items':merged}
+    state={'schema':'dip21-incremental-v1','last_success_utc':iso(now),
+           'last_full_refresh_utc':(iso(now) if complete_term else
+                                    previous.get('last_full_refresh_utc')),
+           'items':merged}
     active=sum(row.get('active',True) for row in merged.values())
     report={
         'wahlperiode':21,
@@ -256,12 +268,17 @@ def run(state_file, report_file, changes_file, *, now=None, key=None, load=reque
         raise ValueError('DIP-API-Key ungültig')
     previous = load_state(state_file)
     last = utc(previous['last_success_utc']) if previous['last_success_utc'] else START
-    # Monthly full re-check: DIP can backdate a correction or a cache can
-    # retain a previously stale result. The first Sunday of each month
-    # refreshes the entire term, while ordinary days use a 30-day overlap.
-    # The caller can also force a full rescan for recovery/debugging.
+    # On/after the first Sunday of each month a complete reconciliation is
+    # due until it SUCCEEDS. A failed Sunday run must not silently defer
+    # backdated corrections until the following month. Older cache schemas
+    # without a watermark also need a one-time complete reconciliation.
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    first_sunday = month_start + timedelta(days=(6-month_start.weekday()) % 7)
+    last_full_raw = previous.get('last_full_refresh_utc')
+    last_full = utc(last_full_raw) if last_full_raw else None
     full_refresh = (previous['last_success_utc'] is None or
-                    (now.day <= 7 and now.weekday() == 6))
+                    (now >= first_sunday and
+                     (last_full is None or last_full < first_sunday)))
     since = START if full_refresh else max(START, last - timedelta(days=LOOKBACK_DAYS))
     documents, pages = paginate(since, key, load=load, max_pages=max_pages)
     state,report,changes=evolve(previous,documents,now,complete_term=full_refresh)
