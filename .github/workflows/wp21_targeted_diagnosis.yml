@@ -46,31 +46,6 @@ jobs:
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
           PY
-      - name: XML-Quellengrenzen für noch unklare direkte Anreden diagnostizieren
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from wp21_scan import safe_parse
-          from parser import iter_session_text, classify, issuer_context, normal
-          for number,low,high in ((61,4545,4563),(71,4745,4785),
-                                  (93,3274,3290),(67,3140,3170)):
-              source=Path(f'.audit/targeted_xml/21{number:03d}.xml').read_bytes()
-              root=safe_parse(source,number)
-              included={int(p.sourceline) for p,t in iter_session_text(root)}
-              for p in root.iter('p'):
-                  if not p.sourceline or not low<=int(p.sourceline)<=high:
-                      continue
-                  txt=normal(''.join(p.itertext()))
-                  marker,kind=issuer_context(p)
-                  speaker=p.getparent()
-                  print(f'SESSION {number} L{p.sourceline} '
-                        f'parent={speaker.tag if speaker is not None else "?"} '
-                        f'klasse={p.get("klasse")} '
-                        f'included={int(p.sourceline) in included} '
-                        f'classification={classify(txt)} '
-                        f'issuer_type={kind} marker={marker[:48]!r} '
-                        f'text={txt[:200]!r}',flush=True)
-          PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
       - name: Bytes der bestätigten Zähler unverändert
