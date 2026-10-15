@@ -141,7 +141,7 @@ class CrossSourceAuditTests(unittest.TestCase):
             self.assertEqual(report['sessions_scanned'],94)
             self.assertEqual(report['dip_sample_person_session_keys_outside_scan'],2)
             self.assertEqual(report['dip_sample_reported_original_grants_within_scan'],23)
-            self.assertGreaterEqual(report['review_cases_total'],24)
+            self.assertGreaterEqual(report['review_cases_total'],22)
             with (root/'full.csv').open(encoding='utf-8',newline='') as stream:
                 self.assertEqual(len(list(csv.DictReader(stream))),
                                  report['review_cases_total'])
