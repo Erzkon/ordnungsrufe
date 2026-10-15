@@ -177,7 +177,7 @@ def load_state(path):
     return {'last_success_utc': iso(timestamp), 'items': items}
 
 
-def evolve(previous, documents, now):
+def evolve(previous, documents, now, *, complete_term=False):
     if now.tzinfo is None:
         raise ValueError('Zeitpunkt ohne Zeitzone')
     old = previous['items']
@@ -210,6 +210,16 @@ def evolve(previous, documents, now):
         if change:
             changes.append({'id':ident,'change':change,
                             'title':new['title'],'kind':new['kind'],'source':new['source']})
+    if complete_term:
+        # Only a COMPLETE legislative-period refresh proves that an older
+        # record is no longer present in the official DIP result set.
+        # Rolling 30-day windows must NEVER deactivate absent older records.
+        for ident, before in old.items():
+            if ident not in seen and before.get('active', True):
+                merged[ident] = {**before, 'active': False}
+                changes.append({'id': ident,
+                                'change':'nicht_mehr_im_gesamtbestand',
+                                'title':before['title'], 'source':before['source']})
     if len(merged) > MAX_MATCHES:
         raise ValueError('DIP-Snapshot überschreitet Obergrenze')
     changes.sort(key=lambda row:(row['change'], int(row['id'])),reverse=True)
@@ -224,6 +234,8 @@ def evolve(previous, documents, now):
         'new_vorgaenge':sum(x['change']=='neu' for x in changes),
         'changed_vorgaenge':sum(x['change']=='aktualisiert' for x in changes),
         'no_longer_matching':sum(x['change']=='nicht_mehr_treffend' for x in changes),
+        'missing_from_complete_term':sum(x['change']=='nicht_mehr_im_gesamtbestand'
+                                         for x in changes),
         'legal_signals_total':sum(row.get('active',True) and row['kind']=='rechtsfolgen_hinweis'
                                   for row in merged.values()),
         'recent_changes':changes[:25],
@@ -252,7 +264,7 @@ def run(state_file, report_file, changes_file, *, now=None, key=None, load=reque
                     (now.day <= 7 and now.weekday() == 6))
     since = START if full_refresh else max(START, last - timedelta(days=LOOKBACK_DAYS))
     documents, pages = paginate(since, key, load=load, max_pages=max_pages)
-    state,report,changes=evolve(previous,documents,now)
+    state,report,changes=evolve(previous,documents,now,complete_term=full_refresh)
     report.update({'request_since_utc':iso(since), 'api_pages':pages,
                    'full_term_refresh':full_refresh,
                    'changed_documents_scanned':len(documents)})
