@@ -127,7 +127,7 @@ def paginate(since, key, load=request_page, max_pages=1200):
 def relevant_item(doc):
     """Keep only stable public metadata and explicit lexical evidence."""
     title = doc.get('titel', '')
-    abstract = doc.get('abstract', '')
+    abstract = doc.get('abstract') or ''
     if not isinstance(title, str) or not isinstance(abstract, str):
         raise ValueError('DIP: kein Textfeld')
     combined = (title + ' ' + abstract).strip()
