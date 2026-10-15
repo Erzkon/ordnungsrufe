@@ -203,6 +203,105 @@ class CrossParagraphReviewLinks(unittest.TestCase):
         self.assertEqual(found,[])
 
 
+    def test_baumann_immediately_previous_named_chair_address(self):
+        _,found=parse([
+            (CHAIR,['– Ich leite die Sitzung, Herr Baumann, '
+                    'so wie ich die Sitzung leiten möchte. '
+                    'Und Sie werden mir nicht vorschreiben, wie ich sie leite.',
+                    '– Sie können sich gerne aufregen, Herr Baumann.',
+                    'Sie kriegen jetzt von mir einen Ordnungsruf dafür, '
+                    'dass Sie meine Sitzungsleitung kritisiert haben.'])],
+            [('Bernd','Baumann')],57)
+        self.assertEqual([x['person'] for x in found],['Bernd Baumann'])
+        self.assertTrue(found[0]['zuordnungsmethode'].startswith(
+            'vorsitz_direkte_anrede_xmlzeile_'))
+
+    def test_von_zons_prior_chair_vocative_and_explicit_issuing_verb(self):
+        _,found=parse([
+            ('Vizepräsident Bodo Ramelow',[
+                'Herr von Zons.',
+                'Sehr geehrter Herr Abgeordneter, für die Bezeichnung '
+                'von Frau Brosius-Gersdorf als Linksextremistin '
+                'erteile ich Ihnen einen Ordnungsruf.'])],
+            [('Ulrich','von Zons'),('Frauke','Brosius-Gersdorf')],61)
+        self.assertEqual([x['person'] for x in found],['Ulrich von Zons'])
+
+    def test_bessin_presiding_address_with_reason_spanning_paragraphs(self):
+        _,found=parse([
+            ('Vizepräsident Bodo Ramelow',[
+                'Sehr geehrte Frau Abgeordnete Bessin, für die Formulierung, '
+                'dass Sie eine ganze Jugendorganisation, in der es einen '
+                'inakzeptablen Vorfall gegeben hat,',
+                'der aber zur Aufklärung gebracht worden ist, pauschal '
+                'als sozialistische Pornoorganisation bezeichnet haben,',
+                'dafür erteile ich Ihnen einen Ordnungsruf.'])],
+            [('Birgit','Bessin')],93)
+        self.assertEqual([x['person'] for x in found],['Birgit Bessin'])
+
+    def test_eddis_requires_full_original_interruption_and_one_intro(self):
+        _,found=parse([
+            (SECOND,[
+                'Für die Fraktion Die Linke hat jetzt das Wort '
+                'der Abgeordnete Mirze Edis.',
+                'Nein. Meine Mutter hat mir verboten, mit Faschisten zu reden.',
+                'Herr Kollege, ich bitte Sie um etwas Mäßigung. '
+                'Dafür muss ich Ihnen einen Ordnungsruf erteilen: '
+                'für die Bezeichnung „Faschisten“ gegenüber der AfD-Fraktion.'])],
+            [('Mirze','Edis')],71)
+        self.assertEqual([x['person'] for x in found],['Mirze Edis'])
+        self.assertTrue(found[0]['zuordnungsmethode'].startswith(
+            'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_'))
+
+    def test_quoted_interruption_not_enough_without_unique_intro(self):
+        _,found=parse([
+            (SECOND,[
+                'Nein. Meine Mutter hat mir verboten, mit Faschisten zu reden.',
+                'Dafür muss ich Ihnen einen Ordnungsruf erteilen: '
+                'für die Bezeichnung „Faschisten“ gegenüber der AfD-Fraktion.'])],
+            [('Mirze','Edis')],71)
+        self.assertEqual(found,[])
+
+    def test_sanctioned_person_not_insulted_victim(self):
+        _,found=parse([
+            (CHAIR,[
+                'Frau Kollegin, dafür, dass Sie der Kollegin Gebel '
+                '„pathologischen Männerhass“ vorgeworfen haben, '
+                'erhalten Sie jetzt von mir einen Ordnungsruf.'])],
+            [('Kathrin','Gebel'),('Kerstin','Przygodda')],67)
+        self.assertEqual(found,[])
+
+    def test_named_mp_in_report_is_not_a_direct_chair_vocative(self):
+        _,found=parse([
+            (CHAIR,[
+                'In der Sitzung sagte der Abgeordnete Martin Hess, '
+                'die Kollegin sei inkompetent.',
+                'Herr Kollege, dafür, dass Sie der Kollegin Inkompetenz '
+                'vorgeworfen haben, erteile ich Ihnen hiermit '
+                'einen Ordnungsruf.'])],
+            [('Martin','Hess')],52)
+        self.assertEqual(found,[])
+
+    def test_direct_vocative_wrong_presiding_person_cannot_link(self):
+        _,found=parse([
+            (CHAIR,['Sie können sich gerne aufregen, Herr Baumann.']),
+            (SECOND,['Sie kriegen jetzt von mir einen Ordnungsruf.'])],
+            [('Bernd','Baumann')],57)
+        self.assertEqual(found,[])
+
+    def test_prior_chair_name_only_without_direct_address_cannot_link(self):
+        _,found=parse([
+            (CHAIR,['Für die AfD-Fraktion hat jetzt Herr Baumann das Wort.',
+                    'Sie kriegen jetzt von mir einen Ordnungsruf.'])],
+            [('Bernd','Baumann')],57)
+        self.assertEqual(found,[])
+
+    def test_two_vocatives_in_prior_paragraph_cannot_assume_recipient(self):
+        _,found=parse([
+            (CHAIR,['Herr Baumann, Sie sind jetzt dran; Herr Hess, '
+                    'Sie auch. Sie kriegen jetzt von mir einen Ordnungsruf.'])],
+            [('Bernd','Baumann'),('Martin','Hess')],57)
+        self.assertEqual(found,[])
+
 
 if __name__=='__main__':
     unittest.main()
