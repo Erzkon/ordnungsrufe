@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/wp21_targeted_diagnosis.yml'
+      - 'wp21_source_regression.py'
+      - 'wp21_fallkontext.py'
+      - 'parser.py'
+      - 'tests/test_wp21_originalformulierungen.py'
   workflow_dispatch:
 
 permissions:
@@ -30,6 +34,8 @@ jobs:
       - name: Kuratierte DIP-Sitzungen mit amtlichem XML und Sprecher-Kontext untersuchen
         run: |
           python wp21_fallkontext.py --output .audit/targeted_context.json
+      - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
+        run: python wp21_source_regression.py --folder .audit/targeted_xml
       - name: Bytes der bestätigten Zähler unverändert
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
