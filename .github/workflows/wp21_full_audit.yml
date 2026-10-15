@@ -1,13 +1,10 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# Isolated revalidation of the 21/040 correction, distinguishing named
-# Janich interjection from the enclosing Sichert speech block. Restore
-# manual-only expensive source scanning immediately after successful audit.
+# Complete official XML rescan passed after the Steffen Janich / Martin
+# Sichert recipient correction in 21/040, run 38791123806 (100 protocols,
+# 182 unverified review cases / 31 high-priority). Expensive whole-term
+# downloads remain opt-in; small original-XML checks run on PR changes.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
