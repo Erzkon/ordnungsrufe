@@ -1,9 +1,13 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# Latest independent 100-session revalidation was run in PR #4.
-# Keep all further complete-source re-fetches opt-in. The lightweight
-# official XML and unit-test workflows remain automatic for every PR change.
+# One isolated full XML scan validating the three previously unresolved
+# official DIP-person/sitting references. Revert this PR trigger immediately
+# after obtaining and checking the full audit artifact.
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
