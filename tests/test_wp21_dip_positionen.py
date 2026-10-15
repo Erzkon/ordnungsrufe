@@ -111,7 +111,7 @@ class DIPPositions(unittest.TestCase):
             src=root/'vorgang.json'
             source(src,parents=('330701','330702'))
             result=run(src,root/'positions.json',root/'report.json',root/'changes.json',
-                fetch=lambda p,k:[position(10,p)],now=NOW,key='test')
+                fetch=lambda p,k:[position(int(p)-330690,p)],now=NOW,key='test')
             self.assertEqual(result['tracked_positions'],2)
             self.assertEqual(result['monitored_parent_vorgaenge'],2)
             self.assertEqual(result['legal_wording_positions'],2)
