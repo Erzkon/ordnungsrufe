@@ -144,24 +144,33 @@ def extract_proposals(files, reviewed):
 def make_report(rows, reviewed, reviewed_rows, scanned, last_scan):
     identified = {(int(r['sitzung']), norm(r['person_vorschlag']))
                   for r in rows}
-    covered = sum(number for key, number in reviewed.items() if key in identified)
-    missing = sum(number for key, number in reviewed.items() if key not in identified)
+    # A session can contain TWO independently issued sanctions for the SAME
+    # person (e.g. 21/094 Köktürk). A parser mention of the person cannot
+    # prove either sanction individually. Therefore measure coverage of
+    # UNIQUE session/person keys, never of the number of measures.
+    covered = len(set(reviewed) & identified)
+    missing = len(set(reviewed) - identified)
+    multiple = sum(count - 1 for count in reviewed.values() if count > 1)
     return {
         'wahlperiode': 21,
         'status': 'automatische_vorpruefung_ohne_freigabe',
         'letzter_Quellenscan_utc': last_scan,
         'gescannte_sitzungen': scanned,
         'parser_personenhinweise': len(rows),
+        'verschiedene_parser_person_sitzung': len(identified),
         'bereits_einzeln_belegte_massnahmen': reviewed_rows,
+        'referenz_person_sitzung_kombinationen': len(reviewed),
+        'referenz_mehrfachvergaben_ohne_parser_nachweis': multiple,
         'davon_referenz_person_sitzung_erkannt': covered,
         'davon_referenz_person_sitzung_nicht_erkannt': missing,
         'offene_personenhinweise': sum(r['pruefstatus'] == 'offen' for r in rows),
         'offene_prioritaet_hoch': sum(r['pruefstatus'] == 'offen' and r['prioritaet'] == 'hoch' for r in rows),
         'offene_prioritaet_mittel': sum(r['pruefstatus'] == 'offen' and r['prioritaet'] == 'mittel' for r in rows),
         'automatisch_freigegebene_ordnungsrufe': 0,
-        'hinweis': ('Parser-Fundstellen sind keine geprueften Ordnungsrufe. '
-                    'Referenzabgleich auf Person/Sitzung ist keine Eins-zu-eins-Ereignispruefung. '
-                    'Keine automatische Veroeffentlichung von Personenstatistiken.'),
+        'hinweis': ('Referenzabgleich misst ausschliesslich unterschiedliche Person/Sitzung-Kombinationen. '
+                    'Mehrfachvergaben bleiben ohne getrennten Ereignisnachweis. '
+                    'Nicht erkannte sowie fehlerhaft neu erkannte Faelle sind moeglich. '
+                    'Keine automatische Freigabe oder Veroeffentlichung als bestaetigte Massnahme.'),
     }
 
 
