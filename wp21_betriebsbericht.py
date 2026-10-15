@@ -6,6 +6,7 @@ rather than turning into an invented 0 counter. Uses only local JSON snapshots.
 """
 import argparse
 import json
+import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
@@ -99,11 +100,22 @@ def markdown(results, outcomes=None):
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--data', type=Path, default=Path('docs/data'))
+    ap.add_argument('--json-output',type=Path,default=None)
     opts=ap.parse_args()
     results=inspect(opts.data)
     outcomes={key:os.environ.get(f'WP21_{key.upper()}_OUTCOME','unbekannt')
               for key in ('scan','autopruefung','rechtsfolgen','dip','dippositions','dipqueue')}
     report=markdown(results,outcomes)
+    if opts.json_output:
+        opts.json_output.parent.mkdir(parents=True,exist_ok=True)
+        snapshot = {
+            'schema':'wp21-health-v1',
+            'all_sources_fresh':all(row['state']=='fresh' for row in results.values()),
+            'sources':results,
+        }
+        opts.json_output.write_text(
+            json.dumps(snapshot,ensure_ascii=False,indent=2)+'\n',
+            encoding='utf-8')
     target=os.environ.get('GITHUB_STEP_SUMMARY')
     if target:
         with Path(target).open('a',encoding='utf-8') as stream:
