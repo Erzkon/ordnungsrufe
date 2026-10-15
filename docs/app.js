@@ -308,6 +308,37 @@ async function showDipSample() {
   }
 }
 
+async function showDipLive() {
+  const box = $('wp21-dip-live');
+  try {
+    const response = await fetch('./data/dip_live_21.json',{cache:'no-store'});
+    if (!response.ok) throw new Error('Noch kein DIP-Datenlauf');
+    const meta = await response.json();
+    const counts=['tracked_relevant_vorgaenge','new_vorgaenge','changed_vorgaenge',
+      'no_longer_matching','legal_signals_total','automatically_confirmed_sanctions'];
+    if (meta.wahlperiode !== 21 ||
+        meta.status !== 'dip_vorgangsmonitor_ohne_freigabe' ||
+        counts.some(key=>!Number.isInteger(meta[key]) || meta[key]<0) ||
+        meta.automatically_confirmed_sanctions !== 0 ||
+        !Array.isArray(meta.recent_changes) || meta.recent_changes.length>25) {
+      throw new Error('DIP-Datenformat unerwartet');
+    }
+    const checked = new Date(meta.last_success_utc);
+    if (!Number.isFinite(checked.getTime())) throw new Error('Ungültiger Zeitstempel');
+    const stale = Date.now()-checked.getTime()>48*60*60*1000;
+    box.textContent =
+      'DIP-API-Vorgangsmonitor (letzter erfolgreicher Lauf '+
+      checked.toLocaleDateString('de-DE')+(stale?', veraltet':', aktuell')+'): '+
+      meta.tracked_relevant_vorgaenge+' relevante Vorgangs-Metadatensätze beobachtet; '+
+      meta.new_vorgaenge+' neu und '+meta.changed_vorgaenge+
+      ' verändert seit dem vorherigen Lauf; '+meta.legal_signals_total+
+      ' Metadatensätze mit Stichworten zu Rechtsfolgen. '+
+      'Das sind keine bestätigten Ordnungsrufe und keine vollständige amtliche Gesamtzahl.';
+  } catch (_) {
+    box.textContent='Noch kein erfolgreicher täglicher DIP-API-Lauf verfügbar. Die bestätigte Statistik bleibt unverändert.';
+  }
+}
+
 function start() {
   for(const id of ['search','group-filter','sort']) {
     $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
@@ -338,6 +369,7 @@ function start() {
     showAutoTriage();
     showLegalSignals();
     showDipSample();
+    showDipLive();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
