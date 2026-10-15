@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 from wp21_vollstaendigkeit import FIELDS, csv_rows
+from wp21_einspruchsbelege import find, validated_index
 
 
 def category(row):
@@ -39,6 +40,7 @@ ORDER=[
 
 
 def create_brief(rows,report):
+    validated_index()  # Fail closed on malformed official appeal references.
     if (report.get('wahlperiode')!=21
             or report.get('status')!='quellenvollstaendigkeit_ohne_automatische_freigabe'
             or report.get('automatically_confirmed_sanctions')!=0
@@ -113,6 +115,23 @@ def create_brief(rows,report):
                 '**Warum prüfen:** '+html.escape(row['grund']),
                 '',
             ]
+            official_appeal=find(session,row['person']) if row['person'] else None
+            if official_appeal:
+                evidence_date=html.escape(official_appeal['decision_date'])
+                evidence_url=official_appeal['source']
+                lines += [
+                    '**Separat nachgewiesene Einspruchsentscheidung:** '
+                    'Einspruch am '+evidence_date+
+                    ' vom Bundestag zurückgewiesen '
+                    '([amtlicher Beschlussbericht]('+evidence_url+')).',
+                    '',
+                    '**Beweisgrenze:** Der Beschluss betrifft die '
+                    'Einspruchsentscheidung zu einer ursprünglich '
+                    'erteilten Maßnahme. Er ersetzt weder den '
+                    'Einzelereignisabgleich noch eine umfassende '
+                    'Prüfung späterer Rechtsfolgen oder Rücknahmen.',
+                    '',
+                ]
             if snippet:
                 lines += ['**Originalauszug (gekürzt):**', '', '> '+snippet,'']
             lines += ['**Manuelle Entscheidung:** offen; Originalkontext, betroffene '
