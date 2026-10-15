@@ -34,6 +34,11 @@ SOURCE_FRAGMENTS = {
     (67, 'dass sie der kollegin gebel'): ('false_victim', 'Gebel'),
     (68, 'möchte ich der abgeordneten dr. paula piechotta'): ('named_hint','Piechotta'),
     (71, 'erteile ich ihnen, herr jünger'): ('named_hint','Jünger'),
+    (77, 'und für dieses persönliche bekommen sie jetzt von mir einen ordnungsruf'): ('linked_hint','Reichardt'),
+    (77, 'der ordnungsruf von mir vorhin an herrn reichardt gegangen ist'): ('retrospective_only',None),
+    (90, 'deshalb erteile ich ihnen hierfür einen ordnungsruf'): ('linked_hint','Sichert'),
+    (94, 'so, bitte schön, dann haben sie jetzt ihren ordnungsruf'): ('linked_hint','Köktürk'),
+    (94, 'dafür gibt es den nächsten ordnungsruf'): ('linked_hint','Köktürk'),
     (94, 'zwei ordnungsrufe an frau köktürk gegangen'): ('retrospective_only',None),
     (94, 'die abgeordnete köktürk hat heute zwei ordnungsrufe'): ('retrospective_only',None),
 }
@@ -90,6 +95,16 @@ def run(folder):
                 if cls != 'warning_or_conditional' or people:
                     raise AssertionError(f'Konditionale Drohung statt Erteilung 21/{session}: '
                                          f'{cls=} {names=}')
+            elif expect=='linked_hint':
+                if (cls != 'possible_grant' or len(people)!=1
+                        or not names[0].casefold().endswith(person.casefold())
+                        or people[0]['status']!='review_required'
+                        or not people[0]['zuordnungsmethode'].startswith(
+                          ('namensbestaetigung_xmlzeile_',
+                           'vorherige_direkte_anrede_xmlzeile_'))):
+                    raise AssertionError(f'Beleggebundener Personen-Prüfhinweis '
+                                         f'21/{session} fehlt oder uneindeutig: '
+                                         f'{cls=} {names=} {people=}')
             elif expect=='retrospective_only':
                 if people:
                     raise AssertionError(f'Historische Bestätigung nicht als zusätzliche Erteilung: '
