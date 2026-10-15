@@ -1,11 +1,13 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# Complete official 100-protocol source audit passed on PR #4:
-# https://github.com/Erzkon/ordnungsrufe/actions/runs/38781124722
-# Curated original DIP person/session references: 24/24 detected.
-# Expensive complete rescans are now opt-in; lightweight original-XML
-# regression and site CI run automatically on relevant PR changes.
+# Isolated revalidation of the 21/040 correction, distinguishing named
+# Janich interjection from the enclosing Sichert speech block. Restore
+# manual-only expensive source scanning immediately after successful audit.
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
