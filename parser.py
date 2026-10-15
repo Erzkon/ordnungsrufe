@@ -557,19 +557,6 @@ def persons_for_grant(text, index):
         if issued_recipient:
             return issued_recipient
 
-        # Multiple *different* people addressed before a pronoun-only grant
-        # make the referent ambiguous. Never pick the last name by accident.
-        # Explicit recipients in the issuing clause were handled above.
-        if re.search(r'\b(?:Sie|Ihnen)\b', scope, re.I):
-            grant_pos=text.find(scope)
-            grant_pos=(grant_pos+action_match(scope).start()
-                       if grant_pos >= 0 else len(text))
-            prior_vocatives=[who for pos,who in _vocative_people(text,index)
-                             if pos < grant_pos]
-            if len({(who['person_id'] or who['person']).casefold()
-                    for who in prior_vocatives}) > 1:
-                continue
-
         # Address may precede a reported interruption, with the actual grant
         # in the following sentence. Only consider direct vocatives BEFORE
         # the grant; never select names in the reason after the grant.

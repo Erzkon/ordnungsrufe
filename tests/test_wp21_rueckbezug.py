@@ -298,7 +298,8 @@ class CrossParagraphReviewLinks(unittest.TestCase):
     def test_two_vocatives_in_prior_paragraph_cannot_assume_recipient(self):
         _,found=parse([
             (CHAIR,['Herr Baumann, Sie sind jetzt dran; Herr Hess, '
-                    'Sie auch. Sie kriegen jetzt von mir einen Ordnungsruf.'])],
+                    'Sie auch.',
+                    'Sie kriegen jetzt von mir einen Ordnungsruf.'])],
             [('Bernd','Baumann'),('Martin','Hess')],57)
         self.assertEqual(found,[])
 
