@@ -15,7 +15,7 @@ def original_evidence_fixture():
         ('11004892','Martin','Sichert',[
             (None,'Eine parlamentarische Debatte wird fortgesetzt.'),
             (CHAIR,S_FIRST),(CHAIR,S_WARNING),
-            ('comment',JANICH_INTERJECTION),(CHAIR,S_SECOND)
+            ('comment',JANICH_INTERJECTION),('chair_continuation',S_SECOND)
         ]),
         ('11004731','Kay','Gottschalk',[
             (None,'Meine Damen und Herren, die Banken.'),
