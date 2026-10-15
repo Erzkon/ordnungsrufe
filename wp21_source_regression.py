@@ -107,7 +107,9 @@ def run(folder):
                         or people[0]['status']!='review_required'
                         or not people[0]['zuordnungsmethode'].startswith(
                           ('namensbestaetigung_xmlzeile_',
-                           'vorherige_direkte_anrede_xmlzeile_'))):
+                           'vorherige_direkte_anrede_xmlzeile_',
+                           'vorsitz_direkte_anrede_xmlzeile_',
+                           'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_'))):
                     raise AssertionError(f'Beleggebundener Personen-Prüfhinweis '
                                          f'21/{session} fehlt oder uneindeutig: '
                                          f'{cls=} {names=} {people=}')
