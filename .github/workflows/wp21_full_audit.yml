@@ -46,7 +46,7 @@ jobs:
             --verified daten/wirksame_ordnungsrufe_21wp.csv \
             --candidates .audit/parser.csv \
             --report .audit/parser.json
-      - name: 27 tatsächliche amtliche XML-Textstellen als Regression testen
+      - name: Amtliche Original-XML-Regressionsfälle gegen aktuellen Parser prüfen
         run: python wp21_source_regression.py --folder .audit/xml
       - name: Unabhängige DIP-Positivstichprobe mit echtem XML-Lauf abgleichen
         run: |
