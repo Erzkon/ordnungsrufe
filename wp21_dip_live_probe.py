@@ -39,6 +39,15 @@ def probe(load=request_page, key=PUBLIC_KEY):
         if item['parent_id'] != '330701':
             raise ValueError('Amtliche Verfahrensposition verweist auf falschen Vorgang')
     result['Vorgangspositions-Verknuepfung'] = {'linked_positions':len(linked)}
+    if linked:
+        sample = linked[0]
+        result['Positionsschema'] = {
+            'field_names':sorted(sample),
+            'step_example':str(sample.get('vorgangsposition',''))[:120],
+            'title_example':str(sample.get('titel',''))[:120],
+            'activity_types':str(sample.get('aktivitaet_anzeige',''))[:100],
+            'has_decision_field':'beschlussfassung' in sample,
+        }
     # Validate the incremental filter actually used by the scheduled workflow.
     from wp21_dip_monitor import iso
     params = {
