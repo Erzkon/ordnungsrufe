@@ -440,4 +440,61 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
         proposals.append((element,_with_method(
             [who],f'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_{source_line}')[0]))
         used.add(line)
+    # Two real 21st-term protocols use a chair's direct "Sie" rebuke
+    # beside an independently XML-identified MP speech. These cases do
+    # NOT identify the recipient from the *offended* colleague's name.
+    # They only add review identity when the existing anonymous issuance
+    # is attached to a tightly bounded MP speech + unique official speaker.
+    for i,(element,txt) in enumerate(paragraphs):
+        line=int(element.sourceline)
+        if line in used or line in assigned or classify(txt)!='possible_grant':
+            continue
+        pattern=_strict_offence_chair_address(txt)
+        marker=_chair(element,issuer_context)
+        if not pattern or not marker or i==0:
+            continue
+        previous,prior_text=paragraphs[i-1]
+        distance=line-int(previous.sourceline)
+        if not 0<distance<=10 or issuer_context(previous)[1]!='speech_marker':
+            continue
+        who=_identity_from_xml_speech(previous,index)
+        if not who or who.get('identity_status')!='matched_xml_person':
+            continue
+        if pattern=='speech_block':
+            # Original 21/052: the chair's sanction is inside the
+            # same <rede> by Martin Hess, immediately after his speech.
+            if (element.getparent() is not previous.getparent()
+                    or _identity_from_xml_speech(element,index) is None
+                    or _identity_from_xml_speech(element,index)['person_id']
+                       != who['person_id']):
+                continue
+            method=f'redeblock_sprecher_xmlzeile_{int(previous.sourceline)}'
+        else:
+            # Original 21/067: Przygodda finishes her speech in a
+            # separate <rede> and the chair then directly rebukes her.
+            # Require exactly one recent, same-chair introduction that
+            # contains her *full* name. This rejects random hecklers.
+            if element.getparent() is previous.getparent():
+                continue
+            introductions=[]
+            competing=False
+            for intro_el,intro_txt in paragraphs[max(0,i-85):i]:
+                diff=line-int(intro_el.sourceline)
+                if not 0<diff<=85 or _chair(intro_el,issuer_context)!=marker:
+                    continue
+                if not re.search(r'\bDie\s+nächste\s+Rednerin\s+in\s+'
+                                 r'dieser\s+Debatte\s+ist\b',intro_txt,re.I):
+                    continue
+                competing=True
+                if re.search(r'(?<!\w)'+re.escape(who['person'])+
+                             r'(?!\w)',intro_txt,re.I):
+                    introductions.append(int(intro_el.sourceline))
+            if not competing or len(introductions)!=1:
+                continue
+            if who['person'].casefold().endswith(' gebel'):
+                # 21/067 names Gebel as victim, never grant recipient.
+                continue
+            method=f'vorherige_rede_und_einleitung_xmlzeile_{introductions[0]}'
+        proposals.append((element,_with_method([who],method)[0]))
+        used.add(line)
     return proposals
