@@ -12,6 +12,10 @@ from parser import candidates, events, iter_session_text, speaker_index
 from wp21_scan import safe_parse
 
 SOURCE_FRAGMENTS = {
+    (57, 'sie kriegen jetzt von mir einen ordnungsruf dafür'): ('linked_hint','Baumann'),
+    (61, 'für die bezeichnung von frau brosius-gersdorf'): ('linked_hint','Zons'),
+    (71, 'dafür muss ich ihnen einen ordnungsruf erteilen'): ('linked_hint','Edis'),
+    (93, 'dafür erteile ich ihnen einen ordnungsruf'): ('linked_hint','Bessin'),
     (27, 'nach durchsicht des protokolls muss ich feststellen'): ('named_hint','Koch'),
     (69, 'werden sie auch dafür einen ordnungsruf bekommen'): ('conditional_warning',None),
     # Separately validate previously unrecognised direct recipients and
@@ -31,6 +35,9 @@ SOURCE_FRAGMENTS = {
     (57, 'sie kriegen jetzt von mir einen ordnungsruf dafür'): ('unassigned', None),
     (61, 'für das lachen können sie gleich'): ('conditional_warning', None),
     (65, 'das belege ich jetzt hiermit mit einem ordnungsruf'): ('named_hint', 'Pantisano'),
+    # Deliberate independently surfaced *conflict*: 21/067 names Gebel
+    # as the offended colleague. Only a separate actual issuing clause can
+    # prove a grant to her; this paragraph must never propose her.
     (67, 'dass sie der kollegin gebel'): ('false_victim', 'Gebel'),
     (68, 'möchte ich der abgeordneten dr. paula piechotta'): ('named_hint','Piechotta'),
     (71, 'erteile ich ihnen, herr jünger'): ('named_hint','Jünger'),
