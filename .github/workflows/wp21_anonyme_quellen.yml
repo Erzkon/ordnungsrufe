@@ -1,0 +1,76 @@
+name: WP21 anonyme Original-XML-Fundstellen fachlich vorbereiten
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'wp21_anonyme_quellen.py'
+      - 'tests/test_wp21_anonyme_quellen.py'
+      - '.github/workflows/wp21_anonyme_quellen.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-xml-context:
+    name: 16 anonyme Hochprioritaetsfundstellen als Original-XML-Pruefakte sammeln
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Abhaengigkeiten installieren
+        run: python -m pip install -r requirements.txt
+      - name: Bytes der vier bestaetigten Referenzdateien sichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv \
+            daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json \
+            docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Anonyme Quellenanalyse mit 9 isolierten Negativpruefungen absichern
+        run: python -m unittest -v tests.test_wp21_anonyme_quellen
+      - name: Amtliche XML-Originale zu allen 16 Fundstellen laden und einordnen
+        run: |
+          python wp21_anonyme_quellen.py \
+            --cache .audit/anonymous_xml \
+            --output .audit/anonymous_context.json
+      - name: Gepruefte Datensaetze muessen bytegleich bleiben
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Quellenpruefakte unveraendert archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-anonyme-quelle-\${{ github.run_id }}
+          path: .audit/anonymous_context.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Noch nicht bestaetigte Fundstellen zusammenfassen
+        if: success()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/anonymous_context.json').read_text())
+          if (d['anonymous_review_cases']!=16
+                  or d['protocols_examined']!=13
+                  or d['auto_confirmed_sanctions']!=0
+                  or d['auto_identified_recipients']!=0):
+              raise ValueError('Anonyme Quellenpruefakte unvollstaendig')
+          lines=[
+              '## Original-XML-Quellenakten: 16 noch anonyme Erteilungsstellen',
+              '- Amtliche Protokolle: 13',
+              '- Anonyme Orte: 16',
+              '- Automatisch zugeordnete Personen: 0',
+              '- Automatisch bestaetigte oder aufgehobene Massnahmen: 0',
+              '- Alle Kontextstellen und Rednerwechsel stehen im JSON-Artefakt.',
+          ]
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as out:
+              out.write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
