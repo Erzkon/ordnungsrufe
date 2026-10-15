@@ -272,6 +272,42 @@ async function showLegalSignals() {
   }
 }
 
+async function showDipSample() {
+  const label = $('wp21-dip-detail');
+  try {
+    const response = await fetch('./data/dip_kontrolle_21.json', {cache:'no-store'});
+    if (!response.ok) throw new Error('DIP-Vergleich noch nicht verfügbar');
+    const data = await response.json();
+    const counts = ['dip_protokoll_personen_kombinationen',
+      'dip_dokumentierte_urspruengliche_rufe_in_stichprobe',
+      'davon_in_teilbestand_einzeln_belegt', 'noch_nicht_in_teilbestand_belegt'];
+    if (data.wahlperiode !== 21 ||
+        data.status !== 'ausgewaehlte_dip_positivkontrollen_ohne_gesamtzahl' ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(data.dip_referenzstand) ||
+        counts.some(name => !Number.isInteger(data[name]) || data[name] < 0) ||
+        data.davon_in_teilbestand_einzeln_belegt + data.noch_nicht_in_teilbestand_belegt !==
+          data.dip_dokumentierte_urspruengliche_rufe_in_stichprobe ||
+        data.automatisch_freigegebene_ordnungsrufe !== 0) throw new Error('Ungültiger DIP-Vergleich');
+    let status = 'Amtlicher DIP-Positivvergleich (Auswahl vom ' +
+      dateDE(data.dip_referenzstand) + '): ' +
+      data.davon_in_teilbestand_einzeln_belegt + ' von ' +
+      data.dip_dokumentierte_urspruengliche_rufe_in_stichprobe +
+      ' dort dokumentierten ursprünglichen Erteilungen in unserer einzeln geprüften Auswahl; ' +
+      data.noch_nicht_in_teilbestand_belegt + ' noch nicht aufgenommen. ' +
+      'Keine vollständige amtliche Gesamtzahl und keine Aussage über spätere Rücknahmen.';
+    if (data.parser_geprueft === true &&
+        Number.isInteger(data.dip_person_sitzung_per_parser_gefunden) &&
+        Number.isInteger(data.dip_person_sitzung_vom_parser_verpasst)) {
+      status += ' Parser erkennt ' + data.dip_person_sitzung_per_parser_gefunden +
+        ' von ' + data.dip_protokoll_personen_kombinationen +
+        ' DIP-Person/Sitzung-Kombinationen; das ist kein Nachweis einer einzelnen Maßnahme.';
+    }
+    label.textContent = status;
+  } catch (_) {
+    label.textContent = 'Der unabhängige DIP-Stichprobenvergleich ist derzeit nicht verfügbar. Die bestätigten Zahlen bleiben unverändert.';
+  }
+}
+
 function start() {
   for(const id of ['search','group-filter','sort']) {
     $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
@@ -301,6 +337,7 @@ function start() {
     showActivityFeed();
     showAutoTriage();
     showLegalSignals();
+    showDipSample();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
