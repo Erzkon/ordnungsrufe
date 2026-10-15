@@ -111,6 +111,30 @@ def probe(load=request_page, key=PUBLIC_KEY):
         'parser_locations_without_xml_candidate':len(unmatched),
         'date':root.get('sitzung-datum')
     }
+    # Two real official utterances previously disappeared due to quoted
+    # exclamation marks or a Dr. abbreviation. Verify the corrected parser
+    # on original XML structure without making any sanction-count claim.
+    verified_text_probes=[]
+    for session,surname in ((53,'Reichinnek'),(68,'Piechotta')):
+        query=Request(HOST+f'/21{session:03d}.xml', headers={
+            'User-Agent':'OrdnungsrufCounter/0.8 (read-only parser audit)'})
+        with urlopen(query,timeout=35) as response:
+            document=response.read(MAX_SIZE+1)
+        transcript=safe_parse(document,session)
+        locations=review_rows(transcript,session)
+        named=list(events(Path(f'21{session:03d}.xml'),
+                          index=speaker_index([transcript]),root=transcript))
+        if not any(surname.casefold() in r['person'].casefold() for r in named):
+            raise ValueError(f'Originalprotokoll 21/{session:03d}: '
+                             'explizite Personenzuordnung nicht vom Parser erkannt')
+        official_lines={int(row['xml_zeile']) for row in locations}
+        if any(int(row['line']) not in official_lines for row in named):
+            raise ValueError('Originalprotokoll: Parser-Zeile ohne XML-Ursprung')
+        verified_text_probes.append({
+            'session':session,'named_parser_hints':len(named),
+            'named_subject_found':surname,'text_locations':len(locations),
+            'automatically_confirmed_sanctions':0})
+    result['Originaltext_gezielte_Personenproben']=verified_text_probes
     return result
 
 
