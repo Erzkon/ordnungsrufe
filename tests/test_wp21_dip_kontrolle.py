@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from wp21_dip_kontrolle import (reference,compare,proposal_keys,run,REVIEWED)
-from wp21_autopruefung import read_reviewed
+from wp21_autopruefung import read_reviewed, norm
 
 
 class TestDIPSample(unittest.TestCase):
@@ -34,7 +34,7 @@ class TestDIPSample(unittest.TestCase):
         self.assertEqual(status['dip_dokumentierte_urspruengliche_rufe_in_stichprobe'],25)
 
     def test_person_match_not_promoted_to_a_grant(self):
-        parser_keys={(x['session'],x['person'].casefold())
+        parser_keys={(x['session'],norm(x['person']))
                      for x in self.ref['entries']}
         _,status=compare(self.ref,self.reviewed,parser_keys)
         self.assertEqual(status['dip_person_sitzung_per_parser_gefunden'],24)
