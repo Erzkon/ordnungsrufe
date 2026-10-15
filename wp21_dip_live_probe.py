@@ -50,6 +50,16 @@ def probe(load=request_page, key=PUBLIC_KEY):
         raise ValueError('DIP-Aktualisierungsfilter nicht verwendbar')
     result['Aktualisierungsfilter'] = {'matches':latest['numFound'],
                                        'first_page':len(latest['documents'])}
+    # A genuine multi-page trial catches schema and cursor differences hidden
+    # by single-item probes. It is read-only and limited to the last 24 hours.
+    from wp21_dip_monitor import paginate, relevant_item
+    recent, page_count = paginate(datetime.now(timezone.utc)-timedelta(days=1),
+                                  key, max_pages=60)
+    relevant = sum(relevant_item(row) is not None for row in recent)
+    result['DIP_Mehrseitenprobe_24h']={
+        'documents':len(recent),'pages':page_count,
+        'title_or_abstract_matches':relevant
+    }
     # Exercise the same strict XML validator and review parser as production,
     # but for ONE archived protocol only; never touch reviewed datasets.
     from wp21_scan import safe_parse, review_rows, HOST, MAX_SIZE
