@@ -497,11 +497,14 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
             method=f'vorherige_rede_und_einleitung_xmlzeile_{introductions[0]}'
         proposals.append((element,_with_method([who],method)[0]))
         used.add(line)
-    # A chair may explicitly issue "a second Ordnungsruf" immediately
-    # after a separate first grant. Official 21/040 contains TWO pairs:
-    # 8715+8719 in Martin Sichert's original <rede>, and 8990+8992
-    # within Kay Gottschalk's <rede>. Keep both distinct event locations.
-    # NEVER infer the second recipient from a generic "zweiten" alone.
+    # Official 21/040 contains two very different source relationships:
+    # - Sichert receives the grant for pointing at colleagues (XML 8715).
+    # - A named <kommentar> on XML 8718 explicitly attributes the shouted
+    #   contradiction to Steffen Janich. The SECOND grant in XML 8719
+    #   addresses that shout -- NOT the owner of Sichert's <rede> block.
+    # - Gottschalk's first (8990) and second (8992) both address Gottschalk.
+    # A redner ID in the enclosing speech is never by itself proof of the
+    # recipient of an interjection: resolve named commentary independently.
     second_grant=re.compile(r'\beinen\s+zweiten\s+Ordnungsruf\b',re.I)
     first_grant=re.compile(r'\beinen\s+Ordnungsruf\b',re.I)
     direct_first=re.compile(
@@ -516,58 +519,73 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
         chair=_chair(second,issuer_context)
         if not chair:
             continue
-        earlier=[
-            (el,text) for el,text in paragraphs[max(0,i-6):i]
+        candidates=[
+            (idx,el,text) for idx,(el,text) in
+            enumerate(paragraphs[max(0,i-6):i],start=max(0,i-6))
             if 0<second_line-int(el.sourceline)<=12
             and el.getparent() is second.getparent()
             and _chair(el,issuer_context)==chair
             and classify(text)=='possible_grant'
         ]
-        if len(earlier)!=1:
+        if len(candidates)!=1:
             continue
-        first,first_text=earlier[0]
+        first_idx,first,first_text=candidates[0]
         first_line=int(first.sourceline)
-        if (first_line in used or first.getparent() is not second.getparent()
+        if (first_line in used
                 or not first_grant.search(first_text)
-                or second_grant.search(first_text)
-                or _chair(first,issuer_context)!=chair):
+                or second_grant.search(first_text)):
             continue
-        between=paragraphs[paragraphs.index((first,first_text))+1:i]
-        # A different chair or new MP speaker in-between invalidates the
-        # continuity of "Ihnen", even when the two grants are close.
-        if any(_chair(el,issuer_context)!=chair for el,_ in between):
+        if any(_chair(el,issuer_context)!=chair
+               for el,_ in paragraphs[first_idx+1:i]):
             continue
-        mp_first=_identity_from_xml_speech(first,index)
-        mp_second=_identity_from_xml_speech(second,index)
-        if (not mp_first or not mp_second
-                or mp_first['identity_status']!='matched_xml_person'
-                or mp_first['person_id']!=mp_second['person_id']):
+        speech=_identity_from_xml_speech(first,index)
+        second_speech=_identity_from_xml_speech(second,index)
+        if (not speech or not second_speech
+                or speech['identity_status']!='matched_xml_person'
+                or speech['person_id']!=second_speech['person_id']):
             continue
         if first_line in assigned:
-            # Existing explicit first event, e.g. "Herr Kollege Gottschalk"
-            # at line 8990: a follow-up can inherit identity only if the
-            # first grant itself addresses this exact named speaker.
+            # 21/040 XML 8990 explicitly addresses "Herr Kollege
+            # Gottschalk", and 8992 is a separate second grant. No
+            # intervening MP or different chair may change its recipient.
             prior=persons_for_grant(first_text,index)
-            valid=[p for p in prior if p['identity_status']=='matched_xml_person'
-                   and p['person_id']==mp_first['person_id']]
-            if not direct_first.search(first_text) or len(valid)!=1 or len(prior)!=1:
+            good=[who for who in prior if who['identity_status']=='matched_xml_person'
+                  and who['person_id']==speech['person_id']]
+            if not direct_first.search(first_text) or len(prior)!=1 or len(good)!=1:
                 continue
             proposals.append((second,_with_method(
-                [mp_first],f'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_{first_line}')[0]))
+                [speech],f'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_{first_line}')[0]))
             used.add(second_line)
-        else:
-            # Anonymous first + second both in Sichert's speech. The
-            # exact two *different* reasons confirm an actual first and
-            # explicit additional second issuing act; no generic attribution
-            # of all presidential interjections in an MP speech.
-            if (not re.search(r'\bmit\s+dem\s+Finger\s+auf\s+Kollegen\s+'
-                              r'gezeigt\s+haben\b',first_text,re.I)
-                    or not re.search(r'\bfür\s+den\s+Widerspruch\s+gerade\b',
-                                     second_text,re.I)):
-                continue
-            proposals.append((first,_with_method(
-                [mp_first],f'erstes_ordnungsrufpaar_zweiter_xmlzeile_{second_line}')[0]))
-            proposals.append((second,_with_method(
-                [mp_first],f'zweites_ordnungsrufpaar_erster_xmlzeile_{first_line}')[0]))
-            used.update((first_line,second_line))
+            continue
+        # 21/040: despite both presidential remarks appearing in
+        # Sichert's <rede>, the second is an answer to Janich's explicitly
+        # named Zwischenruf, not to Sichert. Require the exact <kommentar>
+        # immediately preceding the second grant and a separate XML Janich
+        # identity from the speaking index. If missing, assign NEITHER.
+        if (speech['person']!='Martin Sichert'
+                or not re.search(r'\bmit\s+dem\s+Finger\s+auf\s+Kollegen\s+'
+                                 r'gezeigt\s+haben\b',first_text,re.I)
+                or not re.search(r'\bfür\s+den\s+Widerspruch\s+gerade\b',
+                                 second_text,re.I)):
+            continue
+        comment=second.getprevious()
+        if (comment is None or comment.tag!='kommentar'
+                or int(comment.sourceline)!=second_line-1
+                or comment.getparent() is not second.getparent()):
+            continue
+        comment_text=' '.join(''.join(comment.itertext()).split())
+        if not re.search(
+                r'(?:^|[–—]\s*)Steffen\s+Janich\s*\[AfD\]:'
+                r'\s*Also\s+fürs\s+Lachen\s+einen\s+Ordnungsruf!'
+                r'\s*Danke!',comment_text,re.I):
+            continue
+        janich=candidate_name('Steffen Janich',index)
+        if (not janich or janich['identity_status']!='matched_xml_person'
+                or janich['person_id']==speech['person_id']):
+            continue
+        proposals.append((first,_with_method(
+            [speech],f'erstes_erteilungswort_redner_sichert_xmlzeile_{first_line}')[0]))
+        proposals.append((second,_with_method(
+            [janich],f'zweitvergabe_zu_benanntem_zwischenruf_xmlzeile_{int(comment.sourceline)}')[0]))
+        used.update((first_line,second_line))
     return proposals
