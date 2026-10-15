@@ -95,3 +95,30 @@ von denen die bestehende geprüfte Teilmenge acht umfasst. Die übrigen
 notwendigerweise noch wirksame Maßnahmen. Die positiven Kontrollen sind
 bewusst *keine* vollständige amtliche Statistik.
 Details und Grenzen: [WP21.md](WP21.md).
+
+
+## Täglicher, automatischer DIP-API-Änderungsmonitor
+
+Zusätzlich zu den PDF/XML-Protokollen prüft die Pipeline über die
+[offizielle DIP-REST-Schnittstelle](https://dip.bundestag.de/%C3%BCber-dip/hilfe/api)
+alle seit dem letzten erfolgreichen Abruf aktualisierten Vorgänge
+der 21. Wahlperiode. Sie durchläuft die vollständige paginierte
+DIP-Vorgangsliste, merkt sich bereits gefundene amtliche Vorgangs-IDs
+und erkennt geänderte Metadatensätze mit Ordnungsruf-Bezug.
+Der erste Lauf beginnt mit dem Zeitraum seit 25. März 2025; spätere
+Abrufe überschneiden sich 30 Tage. Unvollständige Abfragen ersetzen
+den letzten erfolgreichen Datenstand nicht.
+
+- **Kein Setup nötig:** Der Bundestag stellt für öffentliche Abfragen
+  einen API-Key bereit (laut Bundestag zunächst bis Mai 2027).
+  Optional kann das Repo-Secret \`DIP_API_KEY\` diesen ersetzen.
+- Status auf der Website: \`docs/data/dip_live_21.json\`, auf der
+  21.-WP-Seite klar als **nicht vollständiger Metadatenmonitor**
+  ausgezeichnet.
+- Neue und veränderte Vorgangs-IDs: Actions-Artefakt
+  \`wp21_dip_aenderungen.json\`; langfristiger Zustands-Cache.
+- DIP-Metadaten allein werden **niemals** als bestätigte
+  Ordnungsrufe gezählt. Sie ersetzen keine Prüfung tatsächlicher
+  Vergaben, Rücknahmen und Einspruchsentscheidungen.
+- Die echte DIP-Laufzeit/Endpunkt-Verfügbarkeit ist erst beim
+  ersten GitHub-Actions-Lauf nach dem späteren Merge zu prüfen.
