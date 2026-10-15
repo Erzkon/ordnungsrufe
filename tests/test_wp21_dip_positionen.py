@@ -74,6 +74,31 @@ class DIPPositions(unittest.TestCase):
         self.assertEqual(b['new_positions'],1)
         self.assertEqual(len(c),1)
 
+    def test_official_title_can_flag_appeal_even_when_step_only_says_ordnungsruf(self):
+        raw=position(12,step='Ordnungsruf')
+        raw['titel']='Einspruch gegen einen erteilten Ordnungsruf'
+        item=normalize_position(raw)
+        self.assertEqual(item['kind'],'moegliche_rechtsfolge')
+        self.assertEqual(item['signal_fields'],['titel'])
+
+    def test_nested_activity_mention_is_review_hint_never_automatic_retraction(self):
+        raw=position(12,step='Ordnungsruf')
+        raw['titel']='Erteilung eines Ordnungsrufes'
+        raw['aktivitaet_anzeige']=[
+            {'titel':'Prüfung eines Einspruchs gegen den Ordnungsruf',
+             'aktivitaetsart':'Zur Geschäftsordnung BT'}]
+        item=normalize_position(raw)
+        self.assertEqual(item['kind'],'moegliche_rechtsfolge')
+        self.assertEqual(item['signal_fields'],['aktivitaet_anzeige'])
+        _,report,_=evaluate({'items':{}},[raw],{'330701'},NOW)
+        self.assertEqual(report['automatically_rescinded_sanctions'],0)
+
+    def test_unexpected_activity_metadata_fails_closed(self):
+        raw=position(12)
+        raw['aktivitaet_anzeige']=[{'titel':{'incorrect':'object'}}]
+        with self.assertRaises(ValueError):
+            normalize_position(raw)
+
     def test_second_identical_run_is_idempotent(self):
         current,new_report,_=evaluate({'items':{}},[position(1)],{'330701'},NOW)
         later,report,changes=evaluate(current,[position(1)],{'330701'},NOW)
