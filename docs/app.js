@@ -249,6 +249,29 @@ async function showAutoTriage() {
   }
 }
 
+async function showLegalSignals() {
+  const box = $('wp21-legal-detail');
+  try {
+    const response = await fetch('./data/rechtsfolgen_21.json', {cache:'no-store'});
+    if (!response.ok) throw new Error('Kein Bericht');
+    const data = await response.json();
+    if (data.wahlperiode !== 21 || data.status !== 'ungepruefte_rechtsfolgen_hinweise' ||
+        !Number.isInteger(data.textstellen_gesamt) || data.textstellen_gesamt < 0 ||
+        data.automatisch_zurueckgenommene_massnahmen !== 0 ||
+        data.automatisch_zurueckgewiesene_einsprueche !== 0) {
+      throw new Error('Ungültige Daten');
+    }
+    const timestamp = new Date(data.letzter_Quellenscan_utc);
+    if (!Number.isFinite(timestamp.getTime())) throw new Error('Ungültiges Datum');
+    box.textContent = 'Einspruchs- und Rücknahmeprüfung: ' +
+      data.textstellen_gesamt + ' mögliche Rechtsfolgen-Textstellen in amtlichen Protokollen, ' +
+      'Stand ' + timestamp.toLocaleDateString('de-DE') +
+      '. Keine automatische Rücknahme oder endgültige Einspruchsentscheidung; Fundstellen müssen geprüft werden.';
+  } catch (_) {
+    box.textContent = 'Einspruchs- und Rücknahmeprüfung noch nicht verfügbar. Bestätigte Einträge bleiben unverändert.';
+  }
+}
+
 function start() {
   for(const id of ['search','group-filter','sort']) {
     $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
@@ -277,6 +300,7 @@ function start() {
     showScan();
     showActivityFeed();
     showAutoTriage();
+    showLegalSignals();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
