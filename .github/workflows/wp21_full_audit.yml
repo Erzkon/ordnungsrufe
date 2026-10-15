@@ -1,8 +1,12 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# Initial source snapshot has already been started twice on the PR;
-# keep future full 100+ document fetches opt-in to avoid excessive API traffic.
+# Re-validate the full available 21st-term XML sample after parser fixes.
+# PR trigger only selects workflow changes, not ordinary future parser commits.
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
