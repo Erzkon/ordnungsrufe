@@ -27,6 +27,14 @@ ACTION = re.compile(
     r'\b(?:Sie\s+haben|haben\s+Sie)\s+(?:jetzt\s+)?(?:Ihren|einen)\s+Ordnungsruf\b|'
     r'\b(?:Dafür|deshalb)\s+gibt\s+es\s+(?:den\s+(?:nächsten|zweiten)|einen)\s+Ordnungsruf\b|'
     r'\bDas\s+belege\s+ich\s+(?:jetzt\s+)?(?:hiermit\s+)?mit\s+einem\s+Ordnungsruf\b', re.I)
+# A chair may quote alleged misconduct using "würde" while imposing
+# an actual present-tense sanction. Original 21/067; narrowly scoped to
+# the phrase, not a general waiver of conditional-or-warning protection.
+REPORTED_OFFENCE_GRANT = re.compile(
+    r'\bfür\s+die\s+Bemerkung,\s+der\s+Kanzler\s+würde\b'
+    r'[^.!?]{0,200}?\bbekommen\s+Sie\s+jetzt\s+von\s+mir\s+'
+    r'einen\s+Ordnungsruf\b',re.I)
+
 THREAT = re.compile(
     r'\b(?:behalte\s+(?:ich\s+)?mir|vorbehalten|drohe|angedroht|'
     r'würde|würden|könnte|könnten|hätte|hätten|'
@@ -145,7 +153,7 @@ def classify(text):
         if (FUTURE_ONLY.search(sentence) or GENERIC_FUTURE.search(sentence)
                 or NOT_ISSUED.search(sentence) or ISSUANCE_QUESTION.search(sentence)):
             continue
-        if THREAT.search(sentence):
+        if THREAT.search(sentence) and not REPORTED_OFFENCE_GRANT.search(sentence):
             # If "vorbehalten" and a new grant appear in a single sentence,
             # retain the ambiguity rather than silently counting it.
             continue
@@ -247,7 +255,8 @@ def _grant_scopes(text):
     """
     scopes = []
     for sentence in split_sentences(text):
-        if (action_match(sentence) and not THREAT.search(sentence)
+        if (action_match(sentence)
+                and (not THREAT.search(sentence) or REPORTED_OFFENCE_GRANT.search(sentence))
                 and not FUTURE_ONLY.search(sentence) and not GENERIC_FUTURE.search(sentence)
                 and not NOT_ISSUED.search(sentence)
                 and not ISSUANCE_QUESTION.search(sentence)):
