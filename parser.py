@@ -667,6 +667,8 @@ def events(path, index=None, root=None):
         root = document(path)
     if index is None:
         index = speaker_index([root])
+    from wp21_rueckbezug import (infer_source_linked_hints,
+                                  refine_ambiguous_grant_identity)
     found, seen = [], set()
     paragraphs=list(iter_session_text(root))
     for element, text in paragraphs:
@@ -679,6 +681,11 @@ def events(path, index=None, root=None):
         for identified in persons_for_grant(text, index):
             if not identified or identified['person'].casefold() in STOPWORDS:
                 continue
+            # Existing ambiguous surname hints may be refined only with a
+            # prior full-name formal chair introduction (source-linked).
+            # No new sanction event is created by identity refinement.
+            identified=refine_ambiguous_grant_identity(
+                identified,element,paragraphs,index)
             event = event_row(path, root, element, identified, cls)
             key = (event['line'], event['person'].casefold())
             if key not in seen:
@@ -689,7 +696,6 @@ def events(path, index=None, root=None):
     # directly preceding named chair address) can resolve *review identity*
     # for a still-anonymous grant. This never adds a second issuance event
     # at the confirmation line; no established sanction counts are modified.
-    from wp21_rueckbezug import infer_source_linked_hints
     known_lines={int(row['line']) for row in found}
     for element, identified in infer_source_linked_hints(paragraphs,index,known_lines):
         event=event_row(path,root,element,identified,'possible_grant')
