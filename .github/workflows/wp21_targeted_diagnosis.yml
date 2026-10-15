@@ -46,6 +46,31 @@ jobs:
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
           PY
+      - name: Original-XML 21/067 auf bisher übersehene Gebel-Maßnahme untersuchen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from wp21_scan import safe_parse
+          from parser import iter_session_text, TERM_RE, classify
+          source=Path('.audit/targeted_xml/21067.xml').read_bytes()
+          root=safe_parse(source,67)
+          selected={int(p.sourceline) for p,t in iter_session_text(root)}
+          for p in root.iter('p'):
+              text=' '.join(''.join(p.itertext()).split())
+              if not (TERM_RE.search(text) or
+                      'rassistischen Dreck' in text or 'Kathrin Gebel' in text):
+                  continue
+              if not (p.sourceline and 3000<=p.sourceline<=4000):
+                  continue
+              ancestors=[]
+              par=p
+              while par is not None and len(ancestors)<6:
+                  ancestors.append(par.tag+':'+str(par.get('klasse','')))
+                  par=par.getparent()
+              print('XML_LINE',p.sourceline,'IN_PARSER',int(p.sourceline) in selected,
+                    'CLASS',classify(text),'PATH',' > '.join(ancestors),
+                    'TEXT',text[:430],flush=True)
+          PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
       - name: Bytes der bestätigten Zähler unverändert
