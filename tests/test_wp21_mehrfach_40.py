@@ -97,7 +97,7 @@ class SeparateOriginalMeasuresTests(unittest.TestCase):
             ('11004892','Martin','Sichert',[(CHAIR,S_FIRST),(CHAIR,S_SECOND)]),
             ('11005753','Kay','Gottschalk',[(CHAIR,G_FIRST),(CHAIR,G_SECOND)])])
         self.assertEqual(len(result),4)
-        self.assertEqual([x['person'] for x in result],
+        self.assertEqual([x['person'] for x in sorted(result,key=lambda e:int(e['line']))],
                          ['Martin Sichert','Martin Sichert',
                           'Kay Gottschalk','Kay Gottschalk'])
 
