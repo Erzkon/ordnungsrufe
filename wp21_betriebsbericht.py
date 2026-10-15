@@ -22,6 +22,8 @@ EXPECTED = {
                              'last_success_utc'),
     'dip_prueffalle_21.json': ('status', 'dip_verknuepfte_prueffalle_ohne_autozaehlung',
                              'last_success_utc'),
+    'vollstaendigkeit_21.json': ('status', 'quellenvollstaendigkeit_ohne_automatische_freigabe',
+                                'last_success_utc'),
 }
 
 
@@ -62,6 +64,7 @@ def markdown(results, outcomes=None):
         'dip_live_21.json':'DIP: aktuelle Vorgangsmetadaten',
         'dip_positionen_21.json':'DIP: Vorgangspositionen und Folgeschritte',
         'dip_prueffalle_21.json':'DIP: verknüpfte Prüffälle',
+        'vollstaendigkeit_21.json':'XML/DIP: Quellen-Vollständigkeitsprüfung',
     }
     status = {'fresh':'aktuell', 'stale':'veraltet',
               'missing':'fehlt', 'invalid':'ungültig'}

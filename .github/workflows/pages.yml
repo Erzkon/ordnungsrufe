@@ -19,6 +19,7 @@ on:
       - 'wp21_pruefqueue.py'
       - 'wp21_dip_live_probe.py'
       - 'wp21_premerge_dryrun.py'
+      - 'wp21_vollstaendigkeit.py'
       - 'parser.py'
       - 'tests/**'
       - 'WP21.md'
@@ -36,6 +37,7 @@ on:
       - 'wp21_pruefqueue.py'
       - 'wp21_dip_live_probe.py'
       - 'wp21_premerge_dryrun.py'
+      - 'wp21_vollstaendigkeit.py'
       - 'parser.py'
       - 'docs/**'
       - 'daten/**'
@@ -158,6 +160,7 @@ jobs:
             docs/data/dip_live_21.json
             docs/data/dip_positionen_21.json
             docs/data/dip_prueffalle_21.json
+            docs/data/vollstaendigkeit_21.json
           key: wp21-feed-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             wp21-feed-
@@ -308,6 +311,29 @@ jobs:
           path: wp21_hinweise.csv
           if-no-files-found: error
           retention-days: 30
+      - name: XML-, Personen- und DIP-Positivbelege auf Vollständigkeitslücken prüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success' && steps.autopruefung.outcome == 'success'
+        id: completeness
+        continue-on-error: true
+        run: |
+          python wp21_vollstaendigkeit.py \
+            --scan-summary docs/data/scan_21.json \
+            --parser-report docs/data/autopruefung_21.json \
+            --xml-candidates wp21_hinweise.csv \
+            --parser-candidates wp21_autopruefung.csv \
+            --full wp21_vollstaendigkeit_faelle.csv \
+            --report docs/data/vollstaendigkeit_21.json
+      - name: Vollständige Quellen-Lückenliste als Prüfartefakt archivieren
+        if: github.event_name != 'pull_request' && steps.completeness.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-vollstaendigkeit-${{ github.run_id }}
+          path: wp21_vollstaendigkeit_faelle.csv
+          if-no-files-found: error
+          retention-days: 30
+      - name: Quellenabgleich nicht erfolgreich
+        if: github.event_name != 'pull_request' && steps.completeness.outcome == 'failure'
+        run: echo '::warning::Quellenübergreifendes Vollständigkeits-Audit fehlgeschlagen; bestehende Berichte und bestätigte Zahlen bleiben unverändert.'
       - name: Taeglichen Betrieb und Quellenalter im Actions-Bericht zusammenfassen
         if: github.event_name != 'pull_request'
         env:
@@ -334,6 +360,7 @@ jobs:
             docs/data/dip_live_21.json
             docs/data/dip_positionen_21.json
             docs/data/dip_prueffalle_21.json
+            docs/data/vollstaendigkeit_21.json
           if-no-files-found: error
           retention-days: 30
       - name: Website-Artefakt zur Veroeffentlichung uebertragen
