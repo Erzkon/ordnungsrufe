@@ -57,3 +57,22 @@ Ein echter Ordnungsruf wird dabei **nicht** automatisch veröffentlicht:
 Personen- und Sitzungstreffer werden zunächst nur mit der bereits belegten
 21.-WP-Referenzliste abgeglichen. Der Bericht zeigt auch fehlende Treffer und
 mehrdeutige Zuordnungen. Details und Grenzen stehen in [WP21.md](WP21.md).
+
+## Verbesserte Quellenkontrolle (noch ohne automatische Zahlenänderung)
+
+Der tägliche Scanner lädt neben den neuesten Sitzungen turnusmäßig ein
+Siebtel der älteren Bundestags-XML-Protokolle erneut, um spätere Korrekturen
+an den Quellen nicht dauerhaft zu übersehen.
+
+Die automatische **Personen-Vorprüfung** misst die Wiedererkennung
+unterschiedlicher Personen pro Sitzung – ausdrücklich nicht die Trefferquote
+einzelner Ordnungsrufe. Mehrfachvergaben bleiben gesondert ausgewiesen.
+Eine zusätzliche **Rechtsfolgenprüfung** markiert Einsprüche, mögliche
+Rücknahmen und Entscheidungen als zu prüfende Textstellen; sie entscheidet
+keinen Rechtsstatus automatisch und löscht keine Maßnahmen.
+
+In **GitHub → Actions** erhält jeder tägliche Lauf einen kompakten
+Betriebsbericht über Quellenstand, Vorprüfung, Rechtsfolgensignale und
+fehlende oder veraltete Daten. Die freigegebene Statistik wird dabei nicht
+überschrieben. Die neuen Prüfungen sind auch in der GitHub-Testpipeline
+mit synthetischen Positiv- und Negativfällen abgesichert.
