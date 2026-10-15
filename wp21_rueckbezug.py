@@ -11,6 +11,34 @@ import re
 WINDOW_XML_LINES = 110
 DIRECT_XML_LINES = 45
 DIRECT_MAX_PARAGRAPHS = 14
+CHAIR_VOCATIVE_XML_LINES = 17
+CHAIR_VOCATIVE_MAX_PARAGRAPHS = 9
+SPEAKER_INTRO_XML_LINES = 34
+SPEAKER_INTRO_MAX_PARAGRAPHS = 30
+
+# A chair addresses a person by name, but has not yet pronounced the sanction.
+# This is distinct from naming somebody merely discussed/insulted:
+# 21/057 "Sie können sich gerne aufregen, Herr Baumann."
+# 21/061 "Herr von Zons."
+# 21/093 "Sehr geehrte Frau Abgeordnete Bessin, für die Formulierung ..."
+CHAIR_VOCATIVE = re.compile(
+    r'\b(?:Herr|Frau)\s+(?:(?:Kollege|Kollegin|Abgeordnete|Abgeordneter'
+    r'|Abgeordneten)\s+)?'
+    r'(?P<name>(?:von\s+)?[A-ZÄÖÜ][\wÄÖÜäöüß\-]+)'
+    r'\s*(?:,|\.|\s+Sie\b)')
+PRONOUN_GRANT = re.compile(
+    r'\b(?:erteile\s+ich\s+Ihnen|ich\s+Ihnen\s+einen\s+Ordnungsruf\s+erteilen|'
+    r'ich\s+Ihnen\s+einen\s+Ordnungsruf\s+erteile|'
+    r'Sie\s+kriegen\s+jetzt\s+von\s+mir|'
+    r'erhalten\s+Sie\s+jetzt\s+von\s+mir)\b',re.I)
+# A different speaking turn or distinct chair interjection can change who
+# "Sie" addresses; stop rather than fill in a name.
+SPEAKER_INTRO = re.compile(
+    r'\b(?:hat\s+jetzt\s+das\s+Wort\s+der\s+Abgeordnete|'
+    r'für\s+die\s+Fraktion\s+Die\s+Linke\s+hat\s+jetzt\s+das\s+Wort'
+    r'\s+der\s+Abgeordnete)\s+',re.I)
+QUOTED_REASON = re.compile(r'[„"](?P<reason>[^“"]{4,50})[“"]')
+
 
 # Retrospective statements in original sessions 21/077 and 21/094:
 # "der Ordnungsruf von mir vorhin an Herrn Reichardt gegangen ist"
@@ -170,4 +198,90 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
             proposals.append((element,_with_method(
                 [who],f'vorherige_direkte_anrede_xmlzeile_{source_line}')[0]))
             used.add(line)
+    # Direct named chair address (different from matching arbitrary MP
+    # mentions), strictly before an unassigned pronoun-only issuance.
+    for i,(element,txt) in enumerate(paragraphs):
+        line=int(element.sourceline)
+        if (line in used or line in assigned
+                or classify(txt)!='possible_grant'
+                or not PRONOUN_GRANT.search(txt)):
+            continue
+        marker=_chair(element,issuer_context)
+        if not marker:
+            continue
+        candidate=None
+        for previous,previous_text in reversed(
+                paragraphs[max(0,i-CHAIR_VOCATIVE_MAX_PARAGRAPHS):i]):
+            distance=line-int(previous.sourceline)
+            if not 0<distance<=CHAIR_VOCATIVE_XML_LINES:
+                break
+            if _chair(previous,issuer_context)!=marker:
+                break
+            if classify(previous_text)=='possible_grant':
+                break
+            matches=list(CHAIR_VOCATIVE.finditer(previous_text))
+            if not matches:
+                continue
+            # Direct vocative, not quoted text or a committee discussion.
+            # When >1 direct address appears, the pronoun has no unique target.
+            if len(matches)!=1:
+                break
+            match=matches[0]
+            if ('Sie' not in previous_text and
+                    not re.fullmatch(r'\s*[–—-]?\s*(?:Herr|Frau)\s+'
+                    r'(?:(?:Abgeordnete|Abgeordneten|Kollege|Kollegin)\s+)?'
+                    r'(?:von\s+)?[\wÄÖÜäöüß\-]+\s*[.]\s*',
+                    previous_text,re.I)):
+                break
+            name=candidate_name(match.group('name'),index)
+            if name and name['identity_status']=='matched_xml_person':
+                candidate=(name,int(previous.sourceline))
+            break
+        if candidate:
+            who,source_line=candidate
+            proposals.append((element,_with_method(
+                [who],f'vorsitz_direkte_anrede_xmlzeile_{source_line}')[0]))
+            used.add(line)
+
+    # 21/071: "Das Wort hat ... Mirze Edis" immediately before the
+    # member's own "Faschisten" interruption and a chair response quoting
+    # exactly the same specific wording. Both the chair introduction and
+    # original interruption must be present, otherwise decline attribution.
+    for i,(element,txt) in enumerate(paragraphs):
+        line=int(element.sourceline)
+        if (line in used or line in assigned
+                or classify(txt)!='possible_grant'
+                or not PRONOUN_GRANT.search(txt)):
+            continue
+        marker=_chair(element,issuer_context)
+        if not marker:
+            continue
+        reasons=[m.group('reason').casefold() for m in QUOTED_REASON.finditer(txt)
+                 if len(m.group('reason').strip())>=4]
+        if len(reasons)!=1:
+            continue
+        previous=paragraphs[i-1] if i else None
+        if not previous or not any(re.search(r'(?<!\w)'+re.escape(reason)+r'(?!\w)',
+                                          previous[1],re.I) for reason in reasons):
+            continue
+        introductions=[]
+        for before,spoken in paragraphs[max(0,i-SPEAKER_INTRO_MAX_PARAGRAPHS):i]:
+            diff=line-int(before.sourceline)
+            if not 0<diff<=SPEAKER_INTRO_XML_LINES:
+                continue
+            if _chair(before,issuer_context)!=marker:
+                continue
+            intro=SPEAKER_INTRO.search(spoken)
+            if intro:
+                person=candidate_name(spoken[intro.end():],index)
+                if person and person['identity_status']=='matched_xml_person':
+                    introductions.append((int(before.sourceline),person))
+        # No competing introductions. A distinct speaking turn without a
+        # named introduction may be an interjection: keep this provisional.
+        if len(introductions)!=1:
+            continue
+        source_line,who=introductions[0]
+        proposals.append((element,_with_method(
+            [who],f'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_{source_line}')[0]))
+        used.add(line)
     return proposals
