@@ -21,6 +21,7 @@ on:
       - 'wp21_premerge_dryrun.py'
       - 'wp21_vollstaendigkeit.py'
       - 'wp21_pruefbericht.py'
+      - 'wp21_mehrfach_40.py'
       - 'wp21_einspruchsbelege.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_fallkontext.py'
@@ -45,6 +46,7 @@ on:
       - 'wp21_premerge_dryrun.py'
       - 'wp21_vollstaendigkeit.py'
       - 'wp21_pruefbericht.py'
+      - 'wp21_mehrfach_40.py'
       - 'wp21_einspruchsbelege.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_fallkontext.py'
@@ -252,6 +254,20 @@ jobs:
             --candidates wp21_hinweise.csv \
             --summary docs/data/scan_21.json \
             --public-feed docs/data/hinweise_21.json
+      - name: WP21/040 Zweierpaare gesondert absichern
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: multiple40
+        continue-on-error: true
+        run: python wp21_mehrfach_40.py --cache .cache/wp21 --output .audit/wp21_040_pairs.json
+      - name: WP21/040 Quellenakten archivieren
+        if: github.event_name != 'pull_request' && steps.multiple40.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-040-getrennte-erteilungen-${{ github.run_id }}
+          path: .audit/wp21_040_pairs.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
       - name: Parser-Fundstellen automatisch mit belegten Personen/Sitzungen abgleichen
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
         id: autopruefung

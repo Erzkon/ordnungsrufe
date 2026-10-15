@@ -10,6 +10,8 @@ on:
       - 'tests/test_wp21_rueckbezug.py'
       - 'tests/test_wp21_remaining_identities.py'
       - 'tests/test_wp21_mehrfach_40.py'
+      - 'wp21_mehrfach_40.py'
+      - 'tests/test_wp21_mehrfach_dossier.py'
       - 'wp21_fallkontext.py'
       - 'parser.py'
       - 'tests/test_wp21_originalformulierungen.py'
@@ -50,6 +52,8 @@ jobs:
           PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
+      - name: Erst-/Zweiterteilungspaare WP21/040 gesondert pruefen
+        run: python wp21_mehrfach_40.py --cache .audit/targeted_xml --output .audit/wp21_040_pairs.json
       - name: Bytes der bestätigten Zähler unverändert
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
@@ -58,7 +62,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wp21-targeted-context-${{ github.run_id }}
-          path: .audit/targeted_context.json
+          path: |
+            .audit/targeted_context.json
+            .audit/wp21_040_pairs.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
