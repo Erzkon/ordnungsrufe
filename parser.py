@@ -659,7 +659,8 @@ def events(path, index=None, root=None):
     if index is None:
         index = speaker_index([root])
     found, seen = [], set()
-    for element, text in iter_session_text(root):
+    paragraphs=list(iter_session_text(root))
+    for element, text in paragraphs:
         if not TERM_RE.search(text):
             continue
         cls = classify(text)
@@ -674,7 +675,20 @@ def events(path, index=None, root=None):
             if key not in seen:
                 seen.add(key)
                 found.append(event)
-    yield from found
+
+    # Separately linked original-XML evidence (later explicit confirmation or
+    # directly preceding named chair address) can resolve *review identity*
+    # for a still-anonymous grant. This never adds a second issuance event
+    # at the confirmation line; no established sanction counts are modified.
+    from wp21_rueckbezug import infer_source_linked_hints
+    known_lines={int(row['line']) for row in found}
+    for element, identified in infer_source_linked_hints(paragraphs,index,known_lines):
+        event=event_row(path,root,element,identified,'possible_grant')
+        key=(event['line'],event['person'].casefold())
+        if key not in seen:
+            seen.add(key)
+            found.append(event)
+    yield from sorted(found,key=lambda row:(int(row['line']),row['person']))
 
 
 def neighboring_paragraphs(root):
