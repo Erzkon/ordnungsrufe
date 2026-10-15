@@ -9,7 +9,7 @@ from wp21_dip_monitor import iso
 from wp21_dip_positionen import (fetch_positions,normalize_position,read_position_state,
                                   evaluate,run,MAX_PARENTS)
 
-NOW=datetime(2026,10,15,9,tzinfo=timezone.utc)
+NOW=datetime.now(timezone.utc)
 
 
 def position(ident, parent='330701', step='Einspruch gegen den Ordnungsruf eingelegt'):
