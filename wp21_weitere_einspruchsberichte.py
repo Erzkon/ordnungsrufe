@@ -56,10 +56,10 @@ EVIDENCE=(
     objection('2025jun06','2025-06-06','2025-06-24','Stephan Brandner'),
     objection('2025jun27','2025-06-27','2025-07-08','Luigi Pantisano'),
     objection('2025sep18','2025-09-18','2025-09-23','Mirze Edis'),
-    objection('2025nov13','2025-11-13','2025-11-25','Martin Sichert'),
-    objection('2025nov13','2025-11-13','2025-11-25','Steffen Janich',1),
-    objection('2025nov13','2025-11-13','2025-11-25','Steffen Janich',2),
-    objection('2025nov13','2025-11-13','2025-11-25','Kay Gottschalk'),
+    objection('2025nov13','2025-11-13','2025-11-25','Martin Sichert',session=40),
+    objection('2025nov13','2025-11-13','2025-11-25','Steffen Janich',1,session=40),
+    objection('2025nov13','2025-11-13','2025-11-25','Steffen Janich',2,session=40),
+    objection('2025nov13','2025-11-13','2025-11-25','Kay Gottschalk',session=40),
     objection('2025nov26','2025-11-26','2025-11-28','Martin Reichardt'),
     objection('2025dec17','2025-12-17','2025-12-18','Stephan Brandner'),
     objection('2025dec18','2025-12-18','2025-12-19','Martin Reichardt'),
@@ -75,15 +75,33 @@ OFFICIAL_ARTICLE_CASES={
     SOURCES['2025jun27']:{('2025-06-27','2025-07-08','Luigi Pantisano',1,None)},
     SOURCES['2025sep18']:{('2025-09-18','2025-09-23','Mirze Edis',1,None)},
     SOURCES['2025nov13']:{
-        ('2025-11-13','2025-11-25','Martin Sichert',1,None),
-        ('2025-11-13','2025-11-25','Steffen Janich',1,None),
-        ('2025-11-13','2025-11-25','Steffen Janich',2,None),
-        ('2025-11-13','2025-11-25','Kay Gottschalk',1,None)},
+        ('2025-11-13','2025-11-25','Martin Sichert',1,40),
+        ('2025-11-13','2025-11-25','Steffen Janich',1,40),
+        ('2025-11-13','2025-11-25','Steffen Janich',2,40),
+        ('2025-11-13','2025-11-25','Kay Gottschalk',1,40)},
     SOURCES['2025nov26']:{('2025-11-26','2025-11-28','Martin Reichardt',1,None)},
     SOURCES['2025dec17']:{('2025-12-17','2025-12-18','Stephan Brandner',1,None)},
     SOURCES['2025dec18']:{('2025-12-18','2025-12-19','Martin Reichardt',1,None)},
     SOURCES['2026may07']:{('2026-05-07','2026-05-08','Martin Reichardt',1,77)},
     SOURCES['2026jul10']:{('2026-07-10','2026-09-08','Martin Sichert',1,90)},
+}
+
+
+# Original plenary protocol: 21/040, 13 Nov 2025, pages 4626/4635;
+# independently documented votes: 21/042, 25 Nov 2025, page 4865.
+# These are INITIAL issuance sources, not legally effective measure counts.
+PROTOCOL40={
+    'source_sitting':40,
+    'original_pdf':'https://dserver.bundestag.de/btp/21/21040.pdf',
+    'decision_sitting':42,
+    'decision_pdf':'https://dserver.bundestag.de/btp/21/21042.pdf',
+    'original_grants_by_person':{
+        'Martin Sichert':1,'Steffen Janich':2,'Kay Gottschalk':2},
+    'rejected_objections_in_this_article_by_person':{
+        'Martin Sichert':1,'Steffen Janich':2,'Kay Gottschalk':1},
+    'original_pdf_pages':{
+        'Martin Sichert':4626,'Steffen Janich':4626,'Kay Gottschalk':4635},
+    'decision_pdf_page':4865,
 }
 
 
@@ -138,10 +156,10 @@ def validate(items=EVIDENCE,other=OTHER_MEASURE):
         keys.add(key)
         sitting=entry['original_session']
         if sitting is not None:
-            if type(sitting)!=int or sitting not in (77,90):
+            if type(sitting)!=int or sitting not in (40,77,90):
                 raise ValueError('Ursprungssitzung nicht im geprüften Teilbestand')
-            match=(sitting,norm(person))
-            if match in high or match in found_with_sessions:
+            match=(sitting,norm(person),ordinal)
+            if (sitting,norm(person)) in high or match in found_with_sessions:
                 raise ValueError('Einspruch verwechselt andere ursprüngliche Sitzung')
             found_with_sessions[match]=entry
         if ordinal==2 and (
@@ -165,9 +183,27 @@ def validate(items=EVIDENCE,other=OTHER_MEASURE):
             set(group)!={('Martin Sichert',1),('Steffen Janich',1),
                          ('Steffen Janich',2),('Kay Gottschalk',1)}):
         raise ValueError('Vier ausdrücklich getrennte Einsprüche 13.11.2025 fehlen')
-    if found_with_sessions.keys()!={(77,norm('Martin Reichardt')),
-                                    (90,norm('Martin Sichert'))}:
-        raise ValueError('Zwei bereits belegte 2026-Ursprungssitzungen fehlen')
+    original_40={(40,norm(name),ordinal)
+                 for name,count in PROTOCOL40[
+                     'rejected_objections_in_this_article_by_person'].items()
+                 for ordinal in range(1,count+1)}
+    if set(found_with_sessions)!=original_40|{
+            (77,norm('Martin Reichardt'),1),
+            (90,norm('Martin Sichert'),1)}:
+        raise ValueError('Sechs belegte Ursprungssitzungs-Einspruchsidentitäten fehlen')
+    issued=PROTOCOL40['original_grants_by_person']
+    objections=PROTOCOL40['rejected_objections_in_this_article_by_person']
+    if (sum(issued.values())!=5 or sum(objections.values())!=4
+            or issued!={'Martin Sichert':1,'Steffen Janich':2,'Kay Gottschalk':2}
+            or objections!={'Martin Sichert':1,'Steffen Janich':2,'Kay Gottschalk':1}
+            or PROTOCOL40['source_sitting']!=40
+            or PROTOCOL40['decision_sitting']!=42
+            or PROTOCOL40['original_pdf']!='https://dserver.bundestag.de/btp/21/21040.pdf'
+            or PROTOCOL40['decision_pdf']!='https://dserver.bundestag.de/btp/21/21042.pdf'
+            or PROTOCOL40['original_pdf_pages']!={'Martin Sichert':4626,
+                'Steffen Janich':4626,'Kay Gottschalk':4635}
+            or PROTOCOL40['decision_pdf_page']!=4865):
+        raise ValueError('Original 21/040 oder Einspruchssitzung 21/042 verändert')
     if (not isinstance(other,dict) or set(other)!={
             'person','original_date','decision_date','sanction_type',
             'decision','source'} or other['person']!='Martin Reichardt'
@@ -197,6 +233,13 @@ def build_report(ledger='daten/wirksame_ordnungsrufe_21wp.csv'):
             **row,'reviewed_effective_measures_in_existing_partial_ledger':prior,
             'prior_verified_counter_reference_present':bool(prior),
             'report_identifies_individual_rejected_objection':True,
+            'original_plenary_pdf_page_for_40':(
+                PROTOCOL40['original_pdf']+'#P.'+
+                str(PROTOCOL40['original_pdf_pages'][row['person']])
+                if row['original_session']==40 else None),
+            'decision_plenary_pdf_page_for_40':(
+                PROTOCOL40['decision_pdf']+'#P.4865'
+                if row['original_session']==40 else None),
             'unique_original_xml_issuance_line_verified':False,
             'verified_individual_effective_sanction_from_this_appeal':False,
         })
@@ -206,6 +249,15 @@ def build_report(ledger='daten/wirksame_ordnungsrufe_21wp.csv'):
         'schema':'wp21-official-independent-additional-objections-v1',
         'status':'read_only_official_bundestag_appeal_reports_not_sanction_count',
         'additional_official_articles':len(SOURCES),
+        'original_40_and_vote_42_source_comparison':{
+            **PROTOCOL40,
+            'five_originally_issued_calls':sum(
+                PROTOCOL40['original_grants_by_person'].values()),
+            'four_objections_rejected_in_vote_42':sum(
+                PROTOCOL40['rejected_objections_in_this_article_by_person'].values()),
+            'second_gottschalk_grant_not_resolved_by_this_article':True,
+            'legally_effective_measure_count_from_these_sources':None,
+        },
         'additional_separately_rejected_objections':len(rows),
         'previously_curated_priority_rejections':4,
         'documented_total_objections_in_both_corpus_snapshots':len(rows)+4,
@@ -234,6 +286,10 @@ def render_markdown(report):
             or report.get('additional_separately_rejected_objections')!=13
             or report.get('previously_curated_priority_rejections')!=4
             or report.get('documented_total_objections_in_both_corpus_snapshots')!=17
+            or report.get('original_40_and_vote_42_source_comparison',{}).get(
+                'five_originally_issued_calls')!=5
+            or report.get('original_40_and_vote_42_source_comparison',{}).get(
+                'four_objections_rejected_in_vote_42')!=4
             or report.get('automatically_confirmed_additional_sanctions')!=0
             or report.get('automatically_rescinded_sanctions')!=0
             or report.get('public_counters_modified')):
@@ -264,17 +320,24 @@ def render_markdown(report):
     other=report['excluded_distinct_ordnungsgeld_appeal']
     lines.extend([
         '',
-        '## Drei besonders wichtige Abgrenzungen',
+        '## Vier besonders wichtige Abgrenzungen',
         '',
         '1. **13.11.2025: Steffen Janich** – zwei ausdrücklich unterschiedliche',
         '   Ordnungsrufe, über deren Einsprüche der Bundestag am 25.11.',
         '   zweimal gesondert entschied. Bis zur Prüfung der beiden',
         '   ursprünglichen XML-Zeilen keine automatische Zählfreigabe.',
-        '2. **07.05./10.07.2026:** Reichardt (21/077) und Sichert (21/090)',
+        '2. **21/040 und 21/042:** Die amtlichen Originalprotokolle',
+        '   [21/040](https://dserver.bundestag.de/btp/21/21040.pdf#P.4626)',
+        '   und [21/042](https://dserver.bundestag.de/btp/21/21042.pdf#P.4865)',
+        '   zeigen **fünf ursprünglich erteilte Ordnungsrufe**, aber',
+        '   **nur vier hier zurückgewiesene Einsprüche**.',
+        '   Gottschalk erhielt zwei Rufe, doch dieser eine Bericht',
+        '   behandelt nur einen Einspruch von ihm.',
+        '3. **07.05./10.07.2026:** Reichardt (21/077) und Sichert (21/090)'
         '   stehen schon im einzeln geprüften öffentlichen Teilbestand.',
         '   Ihre Einspruchsentscheidungen sind lediglich zusätzliche',
         '   Quellen, keine neuen Maßnahmen.',
-        '3. **Ordnungsgeld strikt getrennt:** '
+        '4. **Ordnungsgeld strikt getrennt:** '
         f"[Reichardt, 15./16.10.2026]({other['source']})"
         ' betrifft ein Ordnungsgeld, keinen Ordnungsruf.',
         '',
