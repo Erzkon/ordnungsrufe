@@ -117,8 +117,13 @@ def original_entry(row,paragraphs):
     }
 
 
-def legal_hints(root, session, subject=None):
-    """Source mentions only. Same-session hits need not refer to subject."""
+def legal_hints(root, session, subject=None, origin_session=None):
+    """Unconfirmed source matches: full named person AND procedural terms.
+
+    A matching name/paragraph alone is not a causal link to a specific grant.
+    Preserve an explicit original-sitting reference when the *same paragraph*
+    actually contains it, never borrow it from an adjacent speaker.
+    """
     found=[]
     for node,text in iter_session_text(root):
         hit=classify_signal(text)
@@ -128,8 +133,13 @@ def legal_hints(root, session, subject=None):
             # Later protocols: accept only the explicit FULL name.
             # Same surnames (e.g. Reichardt) are not unique enough.
             continue
+        explicit_origin=(origin_session is not None and bool(
+            re.search(r'\b(?:in|aus)\s+der\s+'+re.escape(str(origin_session))
+                      +r'\.\s*Sitzung\b',text,re.I)))
         found.append({
             'source_session':session,
+            'explicit_original_session_reference_in_same_paragraph':explicit_origin,
+            'original_session_under_review':origin_session,
             'xml_line':int(node.sourceline),
             'signal_type':hit[0],
             'signal_terms':hit[1],
@@ -197,7 +207,8 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
             later=[]
             for later_session in sorted(s for s in available_later if s>session):
                 later.extend(legal_hints(
-                    available_later[later_session],later_session,subject=person))
+                    available_later[later_session],later_session,
+                    subject=person,origin_session=session))
                 if len(later)>MAX_LEGAL_HINTS_PER_CASE:
                     raise ValueError('Zu viele spätere Rechtsfolgen-Signale für sichere Kurzakte')
             if len(session_signals)>MAX_LEGAL_HINTS_PER_CASE:
@@ -243,6 +254,11 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
                 'requires_separate_appeal_and_effectiveness_review':True,
                 'same_sitting_legal_keyword_signals_not_person_attributed':session_signals,
                 'later_sitting_explicit_full_name_legal_keyword_signals_unverified':later,
+                'later_named_legal_source_matches':len(later),
+                'later_matches_with_explicit_original_session_reference':sum(
+                    signal['explicit_original_session_reference_in_same_paragraph']
+                    for signal in later),
+                'later_followup_absence_does_not_prove_no_appeal':True,
                 'later_sittings_search_scope':(
                     f'official_xml_1_through_{last_scanned}' if later_roots is not None
                     else 'only_14_selected_original_sessions_not_exhaustive'),
@@ -266,6 +282,15 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
         'appeal_decisions_are_not_automatic_sanction_confirmations':True,
         'later_protocols_searched':last_scanned if later_roots is not None else 0,
         'selected_original_protocols_checked_for_explicit_later_mentions':len(roots),
+        'cases_with_named_later_procedural_source_matches':sum(
+            bool(x['later_named_legal_source_matches']) for x in entries),
+        'named_later_procedural_source_matches':sum(
+            x['later_named_legal_source_matches'] for x in entries),
+        'named_later_matches_with_explicit_original_session_reference':sum(
+            x['later_matches_with_explicit_original_session_reference']
+            for x in entries),
+        'later_source_search_is_exhaustive_for_scanned_original_xml_only':
+            later_roots is not None,
         'automatically_confirmed_effective_sanctions':0,
         'automatically_rescinded_sanctions':0,
         'protected_public_counters_changed':False,
@@ -331,8 +356,8 @@ def render_manual_review_brief(report):
         'Auch das Fehlen eines hier kuratierten Einspruchsbelegs bedeutet',
         '**nicht**, dass nie ein Einspruch oder eine Aufhebung stattfand.',
         '',
-        '| Sitzung | Person | XML-Zeilen | DIP: ursprüngliche Rufe | Geprüfter Teilbestand | Episode | Einspruchsbeleg |',
-        '| --- | --- | --- | ---: | ---: | --- | --- |',
+        '| Sitzung | Person | XML-Zeilen | DIP: ursprüngliche Rufe | Geprüfter Teilbestand | Episode | Einspruchsbeleg | Spätere XML-Rechtsfolgenhinweise |',
+        '| --- | --- | --- | ---: | ---: | --- | --- | --- |',
     ]
     decisions=0
     seen=set()
@@ -355,6 +380,17 @@ def render_manual_review_brief(report):
             appeal_text=f"[zurückgewiesen {appeal['decision_date']}]({appeal['source']})"
         else:
             appeal_text='Keine Einzelentscheidung in kuratierter Vierer-Auswahl'
+        later=row['later_sitting_explicit_full_name_legal_keyword_signals_unverified']
+        if len(later)>MAX_LEGAL_HINTS_PER_CASE:
+            raise ValueError('Unsichere Anzahl späterer Originalquellenhinweise')
+        followup_text=(', '.join(
+            f"[21/{item['source_session']:03d} L{item['xml_line']}]"
+            f"({item['original_xml']})"
+            + (' (ursprüngliche Sitzung ausdrücklich benannt)'
+               if item['explicit_original_session_reference_in_same_paragraph']
+               else ' (kein eindeutiger Sitzungsbezug)')
+            for item in later) if later else
+            'Kein namentlicher Schlüsselworttreffer im untersuchten Teilbestand')
         linked=' / '.join(str(i) for i in source_lines)
         if episode=='single_parser_wording_only':
             episode_text='Einzelne Parser-Textstelle; Wirksamkeit offen'
@@ -366,10 +402,24 @@ def render_manual_review_brief(report):
             f"| 21/{row['session']:03d} | {row['person_for_review']} | {linked} | "
             f"{row['dip_original_grants_reference']} | "
             f"{row['verified_effective_measures_in_preexisting_partial_ledger']} | "
-            f"{episode_text} | {appeal_text} |")
+            f"{episode_text} | {appeal_text} | {followup_text} |")
     if seen!=EXPECTED_KEYS or decisions!=4:
         raise ValueError('Prüfmatrix enthält nicht genau alle Hochprioritätsfälle')
     lines.extend([
+        '',
+        '## Umfang des späteren XML-Rechtsfolgenabgleichs',
+        '',
+        ('Amtliche XML-Sitzungen 1–'+str(report['later_protocols_searched'])
+         if report['later_source_search_is_exhaustive_for_scanned_original_xml_only']
+         else 'Nur die 14 ausgewählten Originalprotokolle, keine Vollprüfung'),
+        '',
+        f"Personen/Sitzungen mit späteren Texttreffern: {report['cases_with_named_later_procedural_source_matches']}/18.",
+        f"Spätere namentliche XML-Textstellen: {report['named_later_procedural_source_matches']}.",
+        f"Mit ausdrücklichem Verweis auf die ursprüngliche Sitzung: "
+        f"{report['named_later_matches_with_explicit_original_session_reference']}.",
+        '',
+        '**Auch ein vollständiger XML-Scan ist keine umfassende Prüfung aller',
+        'DIP-Positionen, Einsprüche und Präsidiumsentscheidungen.**',
         '',
         '## Nächste fachliche Prüfhandlungen',
         '',

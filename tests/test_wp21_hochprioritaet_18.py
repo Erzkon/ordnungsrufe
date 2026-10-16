@@ -85,8 +85,16 @@ class EighteenIndividualSourceTests(TestCase):
             'Kerstin Przygodda hat Einspruch gegen den ihr in der 67. Sitzung '
             'erteilten Ordnungsruf eingelegt.')
         # Check textual extraction independently; no effective measure.
-        self.assertEqual(len(legal_hints(roots[53],53,subject='Martin Hess')),1)
-        self.assertEqual(len(legal_hints(roots[68],68,subject='Kerstin Przygodda')),1)
+        found_hess=legal_hints(
+            roots[53],53,subject='Martin Hess',origin_session=52)
+        found_przy=legal_hints(
+            roots[68],68,subject='Kerstin Przygodda',origin_session=67)
+        self.assertEqual(len(found_hess),1)
+        self.assertEqual(len(found_przy),1)
+        self.assertTrue(found_hess[0]['explicit_original_session_reference_in_same_paragraph'])
+        self.assertTrue(found_przy[0]['explicit_original_session_reference_in_same_paragraph'])
+        self.assertFalse(legal_hints(roots[53],53,subject='Martin Hess',
+                                    origin_session=67)[0]['explicit_original_session_reference_in_same_paragraph'])
         self.assertEqual(legal_hints(roots[53],53,subject='Heidi Reichinnek'),[])
 
     def test_missing_originals_and_incomplete_followups_fail(self):
@@ -140,6 +148,8 @@ class EighteenIndividualSourceTests(TestCase):
             self.assertIn('Kerstin Przygodda',matrix)
             self.assertIn('Frohnmaier',matrix)
             self.assertIn('**Keine automatische Veröffentlichung',matrix)
+            self.assertIn('Nur die 14 ausgewählten Originalprotokolle',matrix)
+            self.assertIn('Spätere namentliche XML-Textstellen:',matrix)
             with self.assertRaises(ValueError):
                 render_manual_review_brief({**report,
                     'automatically_confirmed_effective_sanctions':1})
