@@ -28,6 +28,7 @@ on:
       - 'wp21_offizielle_empfaenger_akte.py'
       - 'wp21_einspruchsbelege.py'
       - 'wp21_weitere_einspruchsberichte.py'
+      - 'wp21_40_mehrfach_akte.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
       - 'wp21_hochprioritaet_18.py'
@@ -63,6 +64,7 @@ on:
       - 'wp21_offizielle_empfaenger_akte.py'
       - 'wp21_einspruchsbelege.py'
       - 'wp21_weitere_einspruchsberichte.py'
+      - 'wp21_40_mehrfach_akte.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
       - 'wp21_hochprioritaet_18.py'
@@ -456,6 +458,29 @@ jobs:
             --verified daten/wirksame_ordnungsrufe_21wp.csv \
             --candidates wp21_autopruefung.csv \
             --report docs/data/autopruefung_21.json
+      - name: Originale 21/040-Erteilungen und vier Entscheidungen aus 21/042 gegenprüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: fortyDossier
+        continue-on-error: true
+        run: |
+          python wp21_40_mehrfach_akte.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_40_42_source_episodes.json \
+            --brief .audit/wp21_40_42_source_episodes.md
+      - name: Zwei-Plenarprotokoll-Mehrfachakte ausschließlich zur Quellenprüfung archivieren
+        if: github.event_name != 'pull_request' && steps.fortyDossier.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-sitzungen-40-42-mehrfachakte-${{ github.run_id }}
+          path: |
+            .audit/wp21_40_42_source_episodes.json
+            .audit/wp21_40_42_source_episodes.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Fehlende Originalbelege zu Sitzung 40/42 warnen, nie automatisch zählen
+        if: github.event_name != 'pull_request' && steps.fortyDossier.outcome == 'failure'
+        run: echo '::warning::Sitzungen 21/040/042 mit ursprünglichen Mehrfachrufen nicht quellenverifiziert; kein Zählerupdate.'
       - name: 18 Einzelquellen und späteren Einspruchshinweisen vollständig zuordnen
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
         id: eighteenDossiers

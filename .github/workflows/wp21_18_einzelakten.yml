@@ -8,6 +8,8 @@ on:
       - 'wp21_18_dip_verfahrenspositionen.py'
       - 'wp21_18_dip_original_beschluesse.py'
       - 'wp21_weitere_einspruchsberichte.py'
+      - 'wp21_40_mehrfach_akte.py'
+      - 'tests/test_wp21_40_mehrfach_akte.py'
       - 'tests/test_wp21_weitere_einspruchsberichte.py'
       - 'wp21_dip_positionen.py'
       - 'tests/test_wp21_dip_fundstellen.py'
@@ -56,7 +58,7 @@ jobs:
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
       - name: Negative Originalquellen- und Wirksamkeitstests
-        run: python -m unittest -v tests.test_wp21_hochprioritaet_18 tests.test_wp21_18_dip_verfahrenspositionen tests.test_wp21_dip_fundstellen tests.test_wp21_18_dip_original_beschluesse tests.test_wp21_weitere_einspruchsberichte
+        run: python -m unittest -v tests.test_wp21_hochprioritaet_18 tests.test_wp21_18_dip_verfahrenspositionen tests.test_wp21_dip_fundstellen tests.test_wp21_18_dip_original_beschluesse tests.test_wp21_weitere_einspruchsberichte tests.test_wp21_40_mehrfach_akte
       - name: 18 personenbezogene Akten aus 14 amtlichen XMLs erzeugen
         run: |
           python wp21_hochprioritaet_18.py \
@@ -68,6 +70,12 @@ jobs:
           python wp21_weitere_einspruchsberichte.py \
             --output .audit/wp21_weitere_einsprueche.json \
             --brief .audit/wp21_weitere_einsprueche.md
+      - name: 21/040 und 21/042 als quellengebundene Einzelakte aus Original-XML überprüfen
+        run: |
+          python wp21_40_mehrfach_akte.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_40_42_source_episodes.json \
+            --brief .audit/wp21_40_42_source_episodes.md
       - name: Bestätigte Statistikdateien müssen bytegleich bleiben
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
@@ -81,6 +89,8 @@ jobs:
             .audit/wp21_hochprioritaet_18_review.md
             .audit/wp21_weitere_einsprueche.json
             .audit/wp21_weitere_einsprueche.md
+            .audit/wp21_40_42_source_episodes.json
+            .audit/wp21_40_42_source_episodes.md
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

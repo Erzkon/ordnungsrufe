@@ -32,6 +32,15 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.fourRecipientEvidence.outcome == 'failure'", self.workflow)
         self.assertIn('wp21-vier-quellen-personenpruefung-', self.workflow)
 
+    def test_two_real_plenary_xmls_for_november_multigrants_are_isolated_review_only(self):
+        self.assertIn('id: fortyDossier',self.workflow)
+        self.assertIn('python wp21_40_mehrfach_akte.py',self.workflow)
+        self.assertIn('--cache .cache/wp21',self.workflow)
+        self.assertIn('wp21-sitzungen-40-42-mehrfachakte-',self.workflow)
+        self.assertIn("steps.fortyDossier.outcome == 'success'",self.workflow)
+        self.assertIn("steps.fortyDossier.outcome == 'failure'",self.workflow)
+        self.assertIn("github.event_name != 'pull_request'",self.workflow)
+
     def test_additional_official_appeal_decisions_remain_readonly_and_not_double_counted(self):
         self.assertIn('id: additionalAppeals', self.workflow)
         self.assertIn('python wp21_weitere_einspruchsberichte.py',self.workflow)
