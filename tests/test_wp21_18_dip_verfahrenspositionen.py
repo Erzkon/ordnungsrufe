@@ -102,6 +102,44 @@ class OriginalDIPCrosswalkTests(unittest.TestCase):
                                 'Protokoll 21/077','')])
         self.assertEqual(crosswalk(a,b)['bound_vorgang_candidates'],0)
 
+    def test_four_appeal_date_vorgaenge_match_only_own_official_original_cases(self):
+        # Live official DIP 2026-10-16 data uses the APPEAL DECISION dates,
+        # not the day of original issuance, for these four Vorgang records.
+        mapping=[
+            (330133,'Martin Hess','2026-01-15',52),
+            (332748,'Martin Reichardt','2026-03-20',65),
+            (333088,'Kerstin Przygodda','2026-03-26',67),
+            (333185,'Fabian Fahl','2026-04-15',69),
+        ]
+        parents=[parent(pid,f'Erteilung eines Ordnungsrufes an {name}',date)
+                 for pid,name,date,_ in mapping]
+        a,b=state(parents,[position(pid+200000,pid) for pid,*_ in mapping])
+        result=crosswalk(a,b)
+        self.assertEqual(result['bound_vorgang_candidates'],4)
+        self.assertEqual(result['cases_with_bound_parent_candidates'],4)
+        self.assertEqual(result['bound_position_hints'],4)
+        self.assertEqual(result['unbound_same_name_vorgaenge'],0)
+        self.assertEqual(result['independently_documented_appeal_date_candidates'],4)
+        for pid,person,date,original_session in mapping:
+            case=next(x for x in result['cases']
+                      if x['session']==original_session and x['person']==person)
+            self.assertEqual(case['candidate_vorgaenge'][0]['parent_id'],str(pid))
+            self.assertEqual(case['candidate_vorgaenge'][0]['metadata_date'],date)
+            self.assertNotEqual(case['original_grant_date'],date)
+            self.assertEqual(case['candidate_vorgaenge'][0]['original_source_link_type'],
+                             'independently_documented_appeal_date_candidate')
+        self.assertEqual(result['automatically_confirmed_sanctions'],0)
+        self.assertFalse(result['protected_statistics_changed'])
+        self.assertIn('belegtes Einspruchsdatum',render_markdown(result))
+
+    def test_name_only_with_wrong_appeal_date_never_assumed_legal_effect(self):
+        a,b=state([parent(330133,'Erteilung eines Ordnungsrufes '
+                                 'an Martin Hess','2026-01-16')])
+        r=crosswalk(a,b)
+        self.assertEqual(r['bound_vorgang_candidates'],0)
+        self.assertEqual(r['unbound_same_name_vorgaenge'],1)
+        self.assertEqual(r['independently_documented_appeal_date_candidates'],0)
+
     def test_competing_sitting_references_are_not_linked(self):
         a,b=state([parent(551,'Ordnungsruf an Martin Reichardt '
                                 'in der 65. Sitzung und im BT-PlPr 21/77',

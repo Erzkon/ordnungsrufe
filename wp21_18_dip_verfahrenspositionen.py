@@ -15,6 +15,7 @@ from pathlib import Path
 
 from wp21_autopruefung import norm
 from wp21_dip_kontrolle import reference
+from wp21_einspruchsbelege import validated_index
 from wp21_dip_monitor import load_state, utc
 from wp21_dip_positionen import read_position_state
 from wp21_hochprioritaet_18 import EXPECTED_KEYS, TARGETS, validate_scope
@@ -65,6 +66,9 @@ def crosswalk(vorgang, positionen, dip_reference=None):
     if utc(positionen['last_success_utc'])<utc(vorgang['last_success_utc']):
         raise ValueError('Verfahrenspositionen älter als Vorgangsmetadaten')
     dates=control_dates(dip_reference or reference())
+    decisions=validated_index()
+    if not set(decisions).issubset(EXPECTED_KEYS):
+        raise ValueError('Amtlicher Einspruchsbeleg gehört nicht zu den 18 Referenzfällen')
     parents=vorgang.get('items')
     positions=positionen.get('items')
     if not isinstance(parents,dict) or not isinstance(positions,dict):
@@ -117,12 +121,22 @@ def crosswalk(vorgang, positionen, dip_reference=None):
         explicit=[key for key in matching if source_sittings=={key[0]}]
         by_date=[key for key in matching if
                  not source_sittings and date and dates[key]==date]
+        by_official_appeal_date=[
+            key for key in matching if not source_sittings and date
+            and key in decisions and decisions[key]['decision_date']==date]
         if len(explicit)==1:
             key=explicit[0]
             kind='explicit_original_sitting_candidate'
         elif len(by_date)==1:
             key=by_date[0]
             kind='exact_original_date_candidate'
+        elif not by_date and len(by_official_appeal_date)==1:
+            # Some official DIP Vorgang dates reflect the parliamentary
+            # objection decision date rather than the original grant day.
+            # Require a separately verified official Bundestag decision
+            # for precisely this original person/session, not mere words.
+            key=by_official_appeal_date[0]
+            kind='independently_documented_appeal_date_candidate'
         else:
             # No same-name-only link. E.g. Reichardt 21/077 != 21/065.
             ambiguous.append({
@@ -190,6 +204,9 @@ def crosswalk(vorgang, positionen, dip_reference=None):
         'bound_vorgang_candidates':found_bound,
         'bound_position_hints':total_bound_positions,
         'unbound_same_name_vorgaenge':len(ambiguous),
+        'independently_documented_appeal_date_candidates':sum(
+            p['original_source_link_type']=='independently_documented_appeal_date_candidate'
+            for case in records for p in case['candidate_vorgaenge']),
         'different_measures_safely_excluded':disregarded_different_sanction,
         'automatically_confirmed_sanctions':0,
         'automatically_rescinded_sanctions':0,
@@ -217,6 +234,8 @@ def render_markdown(report):
         f"**DIP-Positionenstand:** {report['sources']['position_snapshot_utc']}  ",
         f"**Gebundene Vorgänge:** {report['bound_vorgang_candidates']}  ",
         f"**Positionen:** {report['bound_position_hints']}  ",
+        f"**Nur über separat belegtes Einspruchsdatum verknüpfte Vorgänge:** "
+        f"{report['independently_documented_appeal_date_candidates']}  ",
         f"**Nicht sicher gebundene Namensvorgänge:** {report['unbound_same_name_vorgaenge']}",
         '',
         '> Keine bestätigte Rechtswirksamkeit. Weder ein DIP-Vorgang noch '
@@ -249,9 +268,10 @@ def render_markdown(report):
         '',
         '## Fachliche Prüfschranken',
         '',
-        '- Nur vollständiger amtlicher Personenname plus ursprünglicher',
-        '  Sitzungsbezug oder deckungsgleiches Erteilungsdatum kann einen',
-        '  **unbestätigten** DIP-Vorgangskandidaten an eine Akte binden.',
+        '- Nur der vollständige amtliche Personenname plus ursprünglicher',
+        '  Sitzungsbezug, das Erteilungsdatum oder ein **unabhängig amtlich',
+        '  belegtes Einspruchsentscheidungsdatum** können einen **unbestätigten**',
+        '  DIP-Vorgangskandidaten an genau eine Originalakte binden.',
         '- Die Verfahrenspositionen bleiben über originale DIP-Vorgang-IDs',
         '  verbunden. Schlagwörter wie Einspruch, Rücknahme und Ablehnung',
         '  sind **keine** unabhängig geprüften Beschlüsse.',
