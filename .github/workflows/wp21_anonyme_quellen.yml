@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'wp21_anonyme_quellen.py'
+      - 'wp21_vier_quellenbelege.py'
+      - 'tests/test_wp21_vier_quellenbelege.py'
       - 'tests/test_wp21_anonyme_quellen.py'
       - '.github/workflows/wp21_anonyme_quellen.yml'
   workflow_dispatch:
@@ -53,6 +55,12 @@ jobs:
           python wp21_anonyme_quellen.py \
             --cache .audit/anonymous_xml \
             --output .audit/anonymous_context.json
+      - name: Vier amtlich verknuepfte Personen-Pruefhinweise separat belegen
+        run: |
+          python -m unittest -v tests.test_wp21_vier_quellenbelege
+          python wp21_vier_quellenbelege.py \
+            --cache .audit/anonymous_xml \
+            --output .audit/four_source_recipient_hints.json
       - name: Gepruefte Datensaetze muessen bytegleich bleiben
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
@@ -61,7 +69,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wp21-anonyme-quelle-${{ github.run_id }}
-          path: .audit/anonymous_context.json
+          path: |
+            .audit/anonymous_context.json
+            .audit/four_source_recipient_hints.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
@@ -78,12 +88,19 @@ jobs:
                   or d['auto_confirmed_sanctions']!=0
                   or d['auto_identified_recipients']!=0):
               raise ValueError('Anonyme Quellenpruefakte unvollstaendig')
+          proof=json.loads(Path('.audit/four_source_recipient_hints.json').read_text())
+          if (proof['unverified_person_source_hints']!=4
+                  or proof['independently_legally_effective_sanctions_confirmed']!=0
+                  or proof['automatically_changed_public_counts']!=0):
+              raise ValueError('Vier Original-XML-Empfängerprüfbelege unvollständig')
           lines=[
               '## Original-XML-Quellenakten: 4 noch anonyme Erteilungsstellen',
               '- Amtliche Protokolle: 4',
               '- Anonyme Orte: 4',
               '- Automatisch zugeordnete Personen: 0',
               '- Automatisch bestaetigte oder aufgehobene Massnahmen: 0',
+              '- Vier ergänzende, ungeprüfte Empfängerhinweise aus Original-XML archiviert.',
+              '- Individuelle Rechtswirkung und Einspruchsprüfung bleiben offen.',
               '- Alle Kontextstellen und Rednerwechsel stehen im JSON-Artefakt.',
           ]
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as out:

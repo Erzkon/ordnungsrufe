@@ -28,6 +28,7 @@ on:
       - 'wp21_offizielle_empfaenger_akte.py'
       - 'wp21_einspruchsbelege.py'
       - 'wp21_anonyme_quellen.py'
+      - 'wp21_vier_quellenbelege.py'
       - 'wp21_fallkontext.py'
       - 'wp21_source_regression.py'
       - 'wp21_rueckbezug.py'
@@ -59,6 +60,7 @@ on:
       - 'wp21_offizielle_empfaenger_akte.py'
       - 'wp21_einspruchsbelege.py'
       - 'wp21_anonyme_quellen.py'
+      - 'wp21_vier_quellenbelege.py'
       - 'wp21_fallkontext.py'
       - 'wp21_source_regression.py'
       - 'wp21_rueckbezug.py'
@@ -331,6 +333,26 @@ jobs:
           python wp21_anonyme_quellen.py \
             --cache .cache/wp21 \
             --output .audit/wp21_anonyme_quellen.json
+      - name: Vier amtliche Personen-Prüfhinweise getrennt von Zählern validieren
+        if: github.event_name != 'pull_request' && steps.anonymousDossier.outcome == 'success'
+        id: fourRecipientEvidence
+        continue-on-error: true
+        run: |
+          python wp21_vier_quellenbelege.py \
+            --cache .cache/wp21 \
+            --output .audit/four_source_recipient_hints.json
+      - name: Vier Quellen-Personenprüfhinweise archivieren
+        if: github.event_name != 'pull_request' && steps.fourRecipientEvidence.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-vier-quellen-personenpruefung-${{ github.run_id }}
+          path: .audit/four_source_recipient_hints.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Warnung bei widersprüchlicher Original-XML-Personenquelle
+        if: github.event_name != 'pull_request' && steps.fourRecipientEvidence.outcome == 'failure'
+        run: echo '::warning::Vier ursprüngliche XML-Personenbelege nicht hinreichend verifiziert; keine automatische Zählung.'
       - name: Anonyme Quellenkontexte für fachliche Prüfung archivieren
         if: github.event_name != 'pull_request' && steps.anonymousDossier.outcome == 'success'
         uses: actions/upload-artifact@v4

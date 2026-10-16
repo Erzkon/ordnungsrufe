@@ -23,6 +23,15 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('wp21-anonyme-originalquellen-', self.workflow)
         self.assertIn("if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'", self.workflow)
 
+    def test_four_recipient_sources_run_only_after_successful_xml_scan(self):
+        self.assertIn('id: fourRecipientEvidence', self.workflow)
+        self.assertIn('--cache .cache/wp21', self.workflow)
+        self.assertIn('--output .audit/four_source_recipient_hints.json', self.workflow)
+        self.assertIn("steps.anonymousDossier.outcome == 'success'", self.workflow)
+        self.assertIn("steps.fourRecipientEvidence.outcome == 'success'", self.workflow)
+        self.assertIn("steps.fourRecipientEvidence.outcome == 'failure'", self.workflow)
+        self.assertIn('wp21-vier-quellen-personenpruefung-', self.workflow)
+
     def test_failure_watchdog_checks_all_upstream_failures(self):
         for term in ("needs.pruefen.result != 'success'",
                      "steps.dataartifact.outcome == 'failure'",
