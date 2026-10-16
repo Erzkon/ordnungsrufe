@@ -50,10 +50,39 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from wp21_scan import fetch
-          for number in (14,15,22,23,25,26,27,37,39,40,43,50,69,74,75,82):
+          for number in (14,15,22,23,25,26,27,37,39,40,43,49,50,51,65,69,74,75,82):
               data=fetch(number,Path('.audit/targeted_xml'))
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
+          PY
+      - name: 21/049 21/051 21/065 Originalsprecher und gekoppelte Ordnungsruf-Sätze abgleichen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from wp21_scan import safe_parse
+          from parser import events,iter_session_text,speaker_index,issuer_context,normal
+          for session,begin,end in ((49,3274,3283),(51,3973,3985),(65,2037,2049)):
+              root=safe_parse(Path(f'.audit/targeted_xml/21{session:03d}.xml').read_bytes(),session)
+              idx=speaker_index([root])
+              records=list(events(Path(f'21{session:03d}.xml'),index=idx,root=root))
+              print('EPISODE_SESSION',session)
+              for row in records:
+                  if begin<=int(row['line'])<=end:
+                      print('EPISODE_HINT',session,row['line'],row['person'],
+                            row['person_id'],row['identity_status'],
+                            row['zuordnungsmethode'],flush=True)
+              for element,text in iter_session_text(root):
+                  if begin<=element.sourceline<=end:
+                      chair,kind=issuer_context(element)
+                      print('EPISODE_TEXT',session,element.sourceline,kind,chair[:65],
+                            repr(text[:490]),flush=True)
+                      for sib in element.itersiblings(preceding=True):
+                          if sib.tag in ('name','kommentar') or (
+                                  sib.tag=='p' and sib.get('klasse')=='redner'):
+                              print('EPISODE_PRIOR',session,element.sourceline,
+                                    sib.sourceline,sib.tag,
+                                    repr(normal(''.join(sib.itertext()))[:300]),flush=True)
+                              break
           PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
