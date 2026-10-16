@@ -193,7 +193,7 @@ def crosswalk(vorgang, positionen, dip_reference=None):
                 expected=f'https://dserver.bundestag.de/btp/21/21{doc_session:03d}'
                 if (doc_date!=position_date or doc_xml!=expected+'.xml'
                         or not re.fullmatch(
-                            re.escape(expected)+r'\\.pdf#P\\.[1-9]\\d{0,5}',doc_pdf)):
+                            re.escape(expected)+r'\.pdf#P\.[1-9]\d{0,5}',doc_pdf)):
                     raise ValueError('Gespeicherter DIP-Originalquelllink manipuliert/inkonsistent')
             if (role=='original_grant_step_metadata_only' and doc_session is not None
                     and doc_session!=key[0]):
