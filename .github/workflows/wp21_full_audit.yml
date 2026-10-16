@@ -1,12 +1,14 @@
 name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
 
-# Official complete XML/DIP audit succeeded on 16 Oct 2026:
-# https://github.com/Erzkon/ordnungsrufe/actions/runs/38859632295
-# Now 101 original session XMLs (21/101 newly available); 183 pending
-# review cases incl. 25 high priority, 47 source regressions; all four
-# protected counters byte-identical. Expensive complete-source scans
-# require workflow_dispatch; targeted original-XML CI remains automatic.
+# One isolated 101-session revalidation after episode-level
+# corrections 21/049, 21/051 and 21/065 including erroneous Thomas
+# Stephan recipient removal. Restore manual-only trigger immediately
+# once 101 original XMLs and protected counters are checked.
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_full_audit.yml'
   workflow_dispatch:
 
 permissions:
