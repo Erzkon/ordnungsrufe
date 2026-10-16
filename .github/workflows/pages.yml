@@ -22,6 +22,8 @@ on:
       - 'wp21_vollstaendigkeit.py'
       - 'wp21_pruefbericht.py'
       - 'wp21_mehrfach_40.py'
+      - 'wp21_amtliche_empfaenger.py'
+      - 'wp21_offizielle_empfaenger_akte.py'
       - 'wp21_einspruchsbelege.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_fallkontext.py'
@@ -49,6 +51,8 @@ on:
       - 'wp21_vollstaendigkeit.py'
       - 'wp21_pruefbericht.py'
       - 'wp21_mehrfach_40.py'
+      - 'wp21_amtliche_empfaenger.py'
+      - 'wp21_offizielle_empfaenger_akte.py'
       - 'wp21_einspruchsbelege.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_fallkontext.py'
@@ -269,6 +273,20 @@ jobs:
         with:
           name: wp21-040-getrennte-erteilungen-${{ github.run_id }}
           path: .audit/wp21_040_pairs.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Drei amtliche Janich-Keuter-Brucker Empfängerhinweise prüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: officialRecipients
+        continue-on-error: true
+        run: python wp21_offizielle_empfaenger_akte.py --cache .cache/wp21 --output .audit/wp21_offizielle_empfaenger.json
+      - name: Amtliche Empfängerprüfakte archivieren
+        if: github.event_name != 'pull_request' && steps.officialRecipients.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-offizielle-empfaenger-${{ github.run_id }}
+          path: .audit/wp21_offizielle_empfaenger.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

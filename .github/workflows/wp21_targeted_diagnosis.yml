@@ -7,6 +7,9 @@ on:
       - '.github/workflows/wp21_targeted_diagnosis.yml'
       - 'wp21_source_regression.py'
       - 'wp21_rueckbezug.py'
+      - 'wp21_amtliche_empfaenger.py'
+      - 'wp21_offizielle_empfaenger_akte.py'
+      - 'tests/test_wp21_amtliche_empfaenger.py'
       - 'wp21_quellen_adressaten.py'
       - 'tests/test_wp21_quellen_adressaten.py'
       - 'tests/test_wp21_rueckbezug.py'
@@ -47,83 +50,15 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from wp21_scan import fetch
-          for number in (14,15,22,23,25,26,27,37,39,40,43,49,50,51,65,69,74,75,82):
+          for number in (14,15,22,23,25,26,27,37,39,40,43,50,69,74,75,82):
               data=fetch(number,Path('.audit/targeted_xml'))
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
           PY
-      - name: 21/040 namentlichen Janich-Zwischenruf im Original-XML strukturell prüfen
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from lxml import etree
-          from wp21_scan import safe_parse
-          root=safe_parse(Path('.audit/targeted_xml/21040.xml').read_bytes(),40)
-          for node in root.iter():
-              if not node.sourceline or not 8698<=node.sourceline<=8723:
-                  continue
-              txt=' '.join(''.join(node.itertext()).split())
-              if (node.tag in ('p','kommentar','zwischenruf','name','rede','redner')
-                      and ('Janich' in txt or
-                           node.sourceline in (8715,8717,8719))):
-                  print('JANICH_XML',node.tag,node.sourceline,
-                        'class=',node.get('klasse'),
-                        'parent=',node.getparent().tag if node.getparent() is not None else '',
-                        'xml=',etree.tostring(node,encoding='unicode')[:1850],
-                        flush=True)
-          PY
-      - name: Noch offene XML-Adressaten 26 43 49 51 65 mit Zwischenrufen prüfen
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from wp21_scan import safe_parse
-          from parser import normal,issuer_context,iter_session_text,speaker_index,events
-          for number,targets in ((26,(3436,)),(43,(2405,3497)),
-                                 (49,(3280,)),(51,(3981,)),(65,(2044,))):
-              root=safe_parse(Path(f'.audit/targeted_xml/21{number:03d}.xml').read_bytes(),number)
-              paras=list(iter_session_text(root))
-              index=speaker_index([root])
-              found={int(x['line']):x for x in events(
-                  Path(f'21{number:03d}.xml'),root=root,index=index)}
-              for line in targets:
-                  print('CASE_START',number,line,flush=True)
-                  grant=next(p for p,t in paras if int(p.sourceline)==line)
-                  for p,t in paras:
-                      n=int(p.sourceline)
-                      if not line-15<=n<=line+8:continue
-                      issuer,kind=issuer_context(p)
-                      print('CASE_P',number,n,kind,issuer[:60],repr(t[:320]),
-                            'hint=',found.get(n,{}).get('person'),flush=True)
-                  rede=grant.getparent()
-                  siblings=list(rede)
-                  i=siblings.index(grant)
-                  for x in siblings[max(0,i-17):min(len(siblings),i+6)]:
-                      if x.tag in ('kommentar','name') or x.get('klasse')=='redner':
-                          txt=normal(''.join(x.itertext()))
-                          print('CASE_NODE',number,x.sourceline,x.tag,
-                                x.get('klasse'),repr(txt[:300]),flush=True)
-          PY
-      - name: Originalprotokoll nach amtlichen Empfaengerklarstellungen durchsuchen
-        run: |
-          python - <<'PY'
-          import re
-          from pathlib import Path
-          from wp21_scan import safe_parse
-          from parser import iter_session_text,normal
-          for session in (26,43,51,65):
-              root=safe_parse(Path(f'.audit/targeted_xml/21{session:03d}.xml').read_bytes(),session)
-              for p,txt in iter_session_text(root):
-                  if session==26 and (re.search(r'Fürs Protokoll|Ordnungsruf ging an',txt,re.I)):
-                      print('RETRO_26',p.sourceline,repr(txt[:650]),flush=True)
-                  elif session==43 and (re.search(r'(?:zweite Ordnungsruf|Ordnungsruf.*Keuter|Namen rufe ich gleich aus)',txt,re.I)):
-                      print('RETRO_43',p.sourceline,repr(txt[:650]),flush=True)
-                  elif session==51 and 3970<=p.sourceline<=3984:
-                      print('RETRO_51',p.sourceline,repr(txt[:500]),flush=True)
-                  elif session==65 and 2030<=p.sourceline<=2047:
-                      print('RETRO_65',p.sourceline,repr(txt[:500]),flush=True)
-          PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
+      - name: Drei amtliche Original-Identitätsbelege als Prüfakte archivieren
+        run: python wp21_offizielle_empfaenger_akte.py --cache .audit/targeted_xml --output .audit/wp21_offizielle_empfaenger.json
       - name: Erst-/Zweiterteilungspaare WP21/040 gesondert pruefen
         run: python wp21_mehrfach_40.py --cache .audit/targeted_xml --output .audit/wp21_040_pairs.json
       - name: Bytes der bestätigten Zähler unverändert
@@ -137,6 +72,7 @@ jobs:
           path: |
             .audit/targeted_context.json
             .audit/wp21_040_pairs.json
+            .audit/wp21_offizielle_empfaenger.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14

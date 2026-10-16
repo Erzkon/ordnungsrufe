@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only, source-bound dossiers for the 10 remaining high-priority anonymous grants.
+"""Read-only, source-bound dossiers for the 7 remaining high-priority anonymous grants.
 
 Every dossier preserves the original XML grant line and neighboring speaker
 turns. A preceding speaker marker, nearby personal name, or repeated phrase
@@ -20,9 +20,8 @@ from wp21_scan import HOST, fetch, safe_parse
 # not verified effective individual sanctions. Retain unresolved sites until
 # source-linked person and subsequent legal effect are independently checked.
 TARGETS = {
-    8: (1419,), 23: (2649,), 26: (3436,),
+    8: (1419,), 23: (2649,),
     28: (4468,),
-    43: (2405, 3497),
     46: (4473,), 49: (3280,), 51: (3981,), 65: (2044,),
 }
 MAX_BEFORE = 9
@@ -115,7 +114,7 @@ def inspect(root,session,lines):
 
 
 def collect(folder,targets=TARGETS):
-    if len(targets)!=9 or sum(len(x) for x in targets.values())!=10:
+    if len(targets)!=7 or sum(len(x) for x in targets.values())!=7:
         raise ValueError('Prüfstichprobe verändert: Neuprüfung erforderlich')
     output=[]
     for session,lines in sorted(targets.items()):
@@ -130,7 +129,7 @@ def collect(folder,targets=TARGETS):
         print(f'QUELLENKONTEXT {session:03d}: '+', '.join(
               f'L{x["xml_line"]}={x["original_grant"]["text"][:140]!r}'
               for x in section),flush=True)
-    if len(output)!=10 or len({x['case_id'] for x in output})!=10:
+    if len(output)!=7 or len({x['case_id'] for x in output})!=7:
         raise ValueError('Original-XML-Prüfziele unvollständig')
     return {
         'status':'nur_anonyme_original_xml_pruefhinweise',
