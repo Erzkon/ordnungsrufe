@@ -121,7 +121,7 @@ class StructuredDIPOriginalEvidenceTests(unittest.TestCase):
             assemble(s)
         s=snapshot()
         next(x for x in s['cases'] if x['session']==52)['positions'].pop()
-        with self.assertRaisesRegex(ValueError,'Originaler Ruf'):
+        with self.assertRaisesRegex(ValueError,'Erteilung/Einspruch in Originalakte unvollständig'):
             assemble(s)
         s=snapshot()
         s['positions']=23
