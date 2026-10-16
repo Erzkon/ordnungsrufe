@@ -1,0 +1,87 @@
+name: Isolierte amtliche DIP-Quellenprobe der 18 Originalfälle
+# Trigger once on creation; restore to manual-only after investigation.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_18_dip_live_audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-dip-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vier bestätigte Statistikdateien gegen main absichern
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for path in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$path" | cmp -s - "$path" || exit 1
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Bestätigte Statistik-Bytes vor Prüfungen sichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Strenge DIP-Verfahrensquellen-Tests
+        run: python -m unittest -v tests.test_wp21_18_dip_verfahrenspositionen tests.test_wp21_dip_monitor tests.test_wp21_dip_positionen
+      - name: Alle WP21-Vorgänge amtlich und vollständig abrufen
+        timeout-minutes: 18
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_dip_monitor.py --state .audit/dip21/vorgang.json --report .audit/dip21/vorgang_report.json --changes .audit/dip21/vorgang_changes.json
+      - name: Alle zugehörigen DIP-Verfahrenspositionen prüfen
+        timeout-minutes: 12
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_dip_positionen.py --vorgang-state .audit/dip21/vorgang.json --position-state .audit/dip21/positionen.json --report .audit/dip21/positionen_report.json --changes .audit/dip21/positionen_changes.json
+      - name: 18 Originalfälle mit offiziellen DIP-Metadaten verknüpfen
+        run: |
+          python wp21_18_dip_verfahrenspositionen.py --vorgang-state .audit/dip21/vorgang.json --position-state .audit/dip21/positionen.json --output .audit/dip21/18_cases.json --brief .audit/dip21/18_cases.md
+      - name: Vier bestätigte Statistiken bleiben bytegleich
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Quellengebundene DIP-Reviewdaten separat archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-18-dip-live-review-${{ github.run_id }}
+          path: |
+            .audit/dip21/vorgang_report.json
+            .audit/dip21/positionen_report.json
+            .audit/dip21/18_cases.json
+            .audit/dip21/18_cases.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Ergebnis als nicht-rechtsverbindliche Quellen-Prüfung zusammenfassen
+        if: success()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/dip21/18_cases.json').read_text())
+          if d['original_cases']!=18 or d['automatically_confirmed_sanctions'] or d['automatically_rescinded_sanctions'] or d['protected_statistics_changed']:
+              raise ValueError('Unzulässige Rechtsfolgen-Freigabe')
+          lines=['## Nur DIP-Quellensignale: keine Zähleränderung',
+                 f"- Originalfall-Akten: {d['original_cases']}",
+                 f"- Fälle mit zugeordneten DIP-Kandidaten: {d['cases_with_bound_parent_candidates']}",
+                 f"- Amtliche Vorgangskandidaten: {d['bound_vorgang_candidates']}",
+                 f"- Verfahrenspositionen: {d['bound_position_hints']}",
+                 f"- Namenstreffer ohne Ursprungsbeleg: {d['unbound_same_name_vorgaenge']}",
+                 f"- Andere Maßnahmen ausdrücklich ausgeschlossen: {d['different_measures_safely_excluded']}"]
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
