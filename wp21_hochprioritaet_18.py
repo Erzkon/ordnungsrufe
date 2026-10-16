@@ -15,6 +15,8 @@ from pathlib import Path
 from parser import events, iter_session_text, speaker_index
 from wp21_autopruefung import norm, read_reviewed
 from wp21_dip_kontrolle import reference
+from wp21_einspruchsbelege import validated_index
+from wp21_episoden import PAIRS
 from wp21_rechtsfolgen import classify_signal
 from wp21_scan import HOST, fetch, safe_parse
 
@@ -64,6 +66,13 @@ ORIGINAL_LINES = {
 }
 
 MAX_SOURCE_PARAGRAPHS = 5
+# A source paragraph is a spoken phrase, NOT necessarily one legal measure.
+# This gives the reviewer an explicit relationship hypothesis, not a count.
+MULTI_PHRASE_EPISODES={
+    (51,norm('Markus Frohnmaier')):'additional_issuance_requires_individual_legal_review',
+    (65,norm('Martin Reichardt')):'same_issuance_repetition_possible',
+    (94,norm('Cansin Köktürk')):'two_original_grants_already_separately_ledger_reviewed',
+}
 MAX_LEGAL_HINTS_PER_CASE = 12
 
 
@@ -75,6 +84,14 @@ def validate_scope():
         raise ValueError('21 verifizierte Originalfundstellen nicht vollständig referenziert')
     if sum(map(len,ORIGINAL_LINES.values()))!=21:
         raise ValueError('Erteilungsformulierungs-Anker erfordern Neuprüfung')
+    if {key for key,lines in ORIGINAL_LINES.items() if len(lines)>1}!=set(MULTI_PHRASE_EPISODES):
+        raise ValueError('Mehrfachformulierungen nicht gesondert eingeordnet')
+    for session,(first,comment,last,person,relation) in PAIRS.items():
+        if session not in (51,65):
+            continue
+        key=(session,norm(person))
+        if ORIGINAL_LINES[key]!=(first,last) or MULTI_PHRASE_EPISODES[key]!=relation:
+            raise ValueError('Episoden-Regressionsquelle und 18er-Fallakte widersprechen sich')
     if len({(s,norm(name)) for s,group in TARGETS.items()
             for name in group})!=18:
         raise ValueError('Doppelte Personen/Sitzungen')
@@ -136,6 +153,11 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
     dip_index={(x['session'],norm(x['person'])):x for x in dip['entries']}
     if not EXPECTED_KEYS.issubset(dip_index):
         raise ValueError('Amtliche DIP-Positivreferenzen fehlen oder wurden verändert')
+    # Four independently curated Bundestag decisions. This index cannot
+    # provide measures, change confirmed CSV rows or establish final validity.
+    decision_index=validated_index()
+    if not set(decision_index).issubset(EXPECTED_KEYS):
+        raise ValueError('Rechtsfolgen-Beleg nicht den 18 Originalfällen zuordenbar')
     index=speaker_index(roots.values())
     entries=[]
     for session,names in sorted(TARGETS.items()):
@@ -182,6 +204,23 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
                 # No silent truncation of potentially relevant material.
                 raise ValueError('Zu viele Sitzungs-Rechtsfolgensignale für sichere Kurzakte')
             verified=reviewed.get(key,0)
+            multiple_context=MULTI_PHRASE_EPISODES.get(key)
+            if bool(multiple_context)!=(len(sources)>1):
+                raise ValueError('Unerwartete Mehrfacherteilungsformulierung')
+            if key==(94,norm('Cansin Köktürk')) and not (
+                    verified==2 and control['reported_grants']==2):
+                raise ValueError('21/094: zwei getrennt belegte Originalmaßnahmen fehlen')
+            if key in MULTI_PHRASE_EPISODES and session in (51,65) and (
+                    control['reported_grants']!=1):
+                raise ValueError('Episodenprüfakte und DIP-Stichprobe nicht synchron')
+            appeal=decision_index.get(key)
+            # This links only a documented procedural REJECTION, not an
+            # independent decision that any number of legal grants is valid.
+            appeal_evidence=({**appeal,
+                              'matched_original_person_session':True,
+                              'confirms_number_of_effective_sanctions':False,
+                              'changes_protected_ledger':False}
+                             if appeal is not None else None)
             entries.append({
                 'case_id':f'wp21-{session:03d}-{len(entries)+1:02d}',
                 'person_for_review':person,
@@ -193,6 +232,13 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
                 'distinct_parser_issuance_wordings':len(sources),
                 'original_parser_sources':sources,
                 'multiple_wordings_may_be_one_legal_episode':len(sources)>1,
+                'original_wording_episode_relation_for_review':(
+                    multiple_context if multiple_context else 'single_parser_wording_only'),
+                'official_bundestag_appeal_decision':appeal_evidence,
+                'official_appeal_status':(
+                    'officially_documented_rejected_objection'
+                    if appeal_evidence else 'no_individually_curated_appeal_decision'),
+
                 'requires_independent_individual_issuance_review':True,
                 'requires_separate_appeal_and_effectiveness_review':True,
                 'same_sitting_legal_keyword_signals_not_person_attributed':session_signals,
@@ -215,12 +261,19 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
             e['distinct_parser_issuance_wordings'] for e in entries),
         'multiple_wording_person_session_cases':sum(
             e['multiple_wordings_may_be_one_legal_episode'] for e in entries),
+        'separately_officially_documented_rejected_appeals':sum(
+            bool(e['official_bundestag_appeal_decision']) for e in entries),
+        'appeal_decisions_are_not_automatic_sanction_confirmations':True,
         'later_protocols_searched':last_scanned if later_roots is not None else 0,
         'selected_original_protocols_checked_for_explicit_later_mentions':len(roots),
         'automatically_confirmed_effective_sanctions':0,
         'automatically_rescinded_sanctions':0,
         'protected_public_counters_changed':False,
-        'warning':('Amtliche Erteilungsformulierungen und DIP-Originalverweise sind keine '
+        'warning':('Vier individuell dokumentierte Einspruchszurückweisungen ' 
+                   'werden als offizielle Verfahrensentscheidungen zugeordnet, '
+                   'ohne Anzahl, Rechtswirksamkeit oder bestandskräftige '
+                   'Einzelmaßnahmen automatisch zu bestätigen. '
+                   'Amtliche Erteilungsformulierungen und DIP-Originalverweise sind keine '
                    'eigenständig geprüften rechtswirksamen Einzelereignisse. '
                    'Rechtsfolgen-Suchbegriffe können Personen und Zeitpunkte nur '
                    'als manuell zu prüfende Hinweise verbinden; fehlende Treffer '

@@ -6,6 +6,7 @@ from lxml import etree
 from wp21_hochprioritaet_18 import (
     EXPECTED_KEYS, ORIGINAL_LINES, TARGETS, assemble, legal_hints, original_entry, validate_scope)
 from wp21_dip_kontrolle import reference
+from wp21_einspruchsbelege import EVIDENCE
 from wp21_autopruefung import norm
 
 
@@ -25,8 +26,28 @@ class EighteenIndividualSourceTests(TestCase):
         self.assertEqual(len(EXPECTED_KEYS),18)
         self.assertEqual(set(ORIGINAL_LINES),EXPECTED_KEYS)
         self.assertEqual(sum(map(len,ORIGINAL_LINES.values())),21)
+        self.assertEqual(len(EVIDENCE),4)
         dip={(x['session'],norm(x['person'])) for x in reference()['entries']}
         self.assertTrue(EXPECTED_KEYS.issubset(dip))
+
+    def test_official_appeals_match_exactly_four_individual_source_cases(self):
+        from wp21_einspruchsbelege import validated_index
+        idx=validated_index()
+        self.assertEqual(set(idx),{
+            (52,norm('Martin Hess')),(65,norm('Martin Reichardt')),
+            (67,norm('Kerstin Przygodda')),(69,norm('Fabian Fahl'))})
+        self.assertNotIn((67,norm('Kathrin Gebel')),idx)
+        self.assertNotIn((69,norm('Timon Dzienus')),idx)
+        self.assertNotIn((51,norm('Markus Frohnmaier')),idx)
+
+    def test_original_episodes_are_two_phrases_not_two_legal_measures(self):
+        from wp21_hochprioritaet_18 import MULTI_PHRASE_EPISODES
+        self.assertEqual(set(MULTI_PHRASE_EPISODES),{
+            (51,norm('Markus Frohnmaier')),
+            (65,norm('Martin Reichardt')),
+            (94,norm('Cansin Köktürk'))})
+        self.assertIn('repetition_possible',
+                      MULTI_PHRASE_EPISODES[(65,norm('Martin Reichardt'))])
 
     def test_one_original_paragraph_is_not_a_confirmed_sanction(self):
         ev={'line':3,'evidence_type':'possible_grant','status':'review_required',
@@ -90,21 +111,36 @@ class EighteenIndividualSourceTests(TestCase):
                        'identity_status':'matched_xml_person','person_id':'123',
                        'issuer':'Vizepräsidentin Andrea Lindholz',
                        'issuer_evidence':'chair_marker'}
+        # Synthetic fixtures have one XML phrase; keep the production
+        # 21-line source anchors intact and test only the procedural linking.
         fake_lines={key:(1,) for key in EXPECTED_KEYS}
         with patch('wp21_hochprioritaet_18.events',side_effect=fake_events):
             with patch.dict('wp21_hochprioritaet_18.ORIGINAL_LINES',
                             fake_lines,clear=True):
-                # Synthetic single-paragraph cases prove that even when
-                # the ledger has two calls, one source is never promoted.
-                with patch('wp21_hochprioritaet_18.validate_scope',
-                           return_value=None):
-                    report=assemble(roots,reference(),
-                                    {(94,norm('Cansin Köktürk')):2})
+                with patch.dict('wp21_hochprioritaet_18.MULTI_PHRASE_EPISODES',
+                                {},clear=True):
+                    with patch('wp21_hochprioritaet_18.validate_scope',
+                               return_value=None):
+                        report=assemble(roots,reference(),
+                                        {(94,norm('Cansin Köktürk')):2})
         self.assertEqual(report['person_session_cases'],18)
         self.assertEqual(report['official_protocols_reviewed'],14)
         self.assertEqual(report['automatically_confirmed_effective_sanctions'],0)
         self.assertEqual(report['automatically_rescinded_sanctions'],0)
         self.assertFalse(report['protected_public_counters_changed'])
+        self.assertEqual(report['separately_officially_documented_rejected_appeals'],4)
+        self.assertTrue(report['appeal_decisions_are_not_automatic_sanction_confirmations'])
+        decisions=[e for e in report['cases'] if e['official_bundestag_appeal_decision']]
+        self.assertEqual(len(decisions),4)
+        self.assertTrue(all(x['official_bundestag_appeal_decision']['outcome']==
+                            'einspruch_zurueckgewiesen' for x in decisions))
+        self.assertTrue(all(x['official_bundestag_appeal_decision']['confirms_number_of_effective_sanctions']
+                            is False for x in decisions))
+        self.assertTrue(all(x['official_bundestag_appeal_decision']['changes_protected_ledger']
+                            is False for x in decisions))
+        for e in report['cases']:
+            if e['person_for_review'] in ('Kathrin Gebel','Timon Dzienus'):
+                self.assertIsNone(e['official_bundestag_appeal_decision'])
         row=next(x for x in report['cases'] if x['session']==94)
         self.assertEqual(row['verified_effective_measures_in_preexisting_partial_ledger'],2)
         self.assertEqual(row['dip_original_grants_reference'],2)
