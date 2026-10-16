@@ -7,6 +7,9 @@ on:
       - '.github/workflows/wp21_targeted_diagnosis.yml'
       - 'wp21_source_regression.py'
       - 'wp21_rueckbezug.py'
+      - 'wp21_episoden.py'
+      - 'wp21_episoden_akte.py'
+      - 'tests/test_wp21_episoden.py'
       - 'wp21_amtliche_empfaenger.py'
       - 'wp21_offizielle_empfaenger_akte.py'
       - 'tests/test_wp21_amtliche_empfaenger.py'
@@ -55,39 +58,12 @@ jobs:
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
           PY
-      - name: 21/049 21/051 21/065 Originalsprecher und gekoppelte Ordnungsruf-Sätze abgleichen
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from wp21_scan import safe_parse
-          from parser import events,iter_session_text,speaker_index,issuer_context,normal
-          for session,begin,end in ((49,3274,3283),(51,3973,3985),(65,2037,2049)):
-              root=safe_parse(Path(f'.audit/targeted_xml/21{session:03d}.xml').read_bytes(),session)
-              idx=speaker_index([root])
-              records=list(events(Path(f'21{session:03d}.xml'),index=idx,root=root))
-              print('EPISODE_SESSION',session)
-              for row in records:
-                  if begin<=int(row['line'])<=end:
-                      print('EPISODE_HINT',session,row['line'],row['person'],
-                            row['person_id'],row['identity_status'],
-                            row['zuordnungsmethode'],flush=True)
-              for element,text in iter_session_text(root):
-                  if begin<=element.sourceline<=end:
-                      chair,kind=issuer_context(element)
-                      print('EPISODE_TEXT',session,element.sourceline,kind,chair[:65],
-                            repr(text[:490]),flush=True)
-                      for sib in element.itersiblings(preceding=True):
-                          if sib.tag in ('name','kommentar') or (
-                                  sib.tag=='p' and sib.get('klasse')=='redner'):
-                              print('EPISODE_PRIOR',session,element.sourceline,
-                                    sib.sourceline,sib.tag,
-                                    repr(normal(''.join(sib.itertext()))[:300]),flush=True)
-                              break
-          PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
       - name: Drei amtliche Original-Identitätsbelege als Prüfakte archivieren
         run: python wp21_offizielle_empfaenger_akte.py --cache .audit/targeted_xml --output .audit/wp21_offizielle_empfaenger.json
+      - name: Drei mehrdeutige 49-51-65 Original-XML-Episoden als Prüfakte sichern
+        run: python wp21_episoden_akte.py --cache .audit/targeted_xml --output .audit/wp21_episoden.json
       - name: Erst-/Zweiterteilungspaare WP21/040 gesondert pruefen
         run: python wp21_mehrfach_40.py --cache .audit/targeted_xml --output .audit/wp21_040_pairs.json
       - name: Bytes der bestätigten Zähler unverändert
@@ -102,6 +78,7 @@ jobs:
             .audit/targeted_context.json
             .audit/wp21_040_pairs.json
             .audit/wp21_offizielle_empfaenger.json
+            .audit/wp21_episoden.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14

@@ -22,6 +22,8 @@ on:
       - 'wp21_vollstaendigkeit.py'
       - 'wp21_pruefbericht.py'
       - 'wp21_mehrfach_40.py'
+      - 'wp21_episoden.py'
+      - 'wp21_episoden_akte.py'
       - 'wp21_amtliche_empfaenger.py'
       - 'wp21_offizielle_empfaenger_akte.py'
       - 'wp21_einspruchsbelege.py'
@@ -51,6 +53,8 @@ on:
       - 'wp21_vollstaendigkeit.py'
       - 'wp21_pruefbericht.py'
       - 'wp21_mehrfach_40.py'
+      - 'wp21_episoden.py'
+      - 'wp21_episoden_akte.py'
       - 'wp21_amtliche_empfaenger.py'
       - 'wp21_offizielle_empfaenger_akte.py'
       - 'wp21_einspruchsbelege.py'
@@ -287,6 +291,20 @@ jobs:
         with:
           name: wp21-offizielle-empfaenger-${{ github.run_id }}
           path: .audit/wp21_offizielle_empfaenger.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Zusammengehörige Ordnungsruf-Passagen in WP21 49-51-65 prüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: episodeDossier
+        continue-on-error: true
+        run: python wp21_episoden_akte.py --cache .cache/wp21 --output .audit/wp21_episoden.json
+      - name: Original-XML-Episodenbelege 49-51-65 archivieren
+        if: github.event_name != 'pull_request' && steps.episodeDossier.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-episoden-49-51-65-${{ github.run_id }}
+          path: .audit/wp21_episoden.json
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
