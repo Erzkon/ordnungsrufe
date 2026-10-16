@@ -144,6 +144,11 @@ def inspect(root,session,lines,require_original_anchors=False):
         element,txt=paras[idx]
         if classify(txt)!='possible_grant':
             raise ValueError(f'Erteilungstext nicht mehr als Prüffall erkannt: 21/{session:03d} L{line}')
+        # Check the published original word anchor BEFORE the identity
+        # correlation, so source drift is never masked by a missing
+        # identity link (including in synthetic negative tests).
+        if require_original_anchors:
+            validate_original_anchor(session,line,txt)
         source_hint=None
         if require_original_anchors:
             from wp21_vier_quellenbelege import SOURCES
@@ -168,8 +173,6 @@ def inspect(root,session,lines,require_original_anchors=False):
             raise ValueError(f'Anonyme Fundstelle schon einer Person zugeordnet: 21/{session:03d} L{line}')
         near_before=paras[max(0,idx-MAX_BEFORE):idx]
         near_after=paras[idx+1:idx+1+MAX_AFTER]
-        if require_original_anchors:
-            validate_original_anchor(session,line,txt)
         grant=paragraph_record(element,txt)
         if grant['issuer_type']!='chair_marker':
             raise ValueError(f'Ohne präsidialen XML-Quellenbezug: 21/{session:03d} L{line}')
