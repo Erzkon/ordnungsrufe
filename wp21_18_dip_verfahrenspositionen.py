@@ -184,6 +184,17 @@ def crosswalk(vorgang, positionen, dip_reference=None):
                     or not isinstance(doc_date,str) or not isinstance(doc_pdf,str)
                     or not isinstance(doc_xml,str) or not isinstance(tenors,list)):
                 raise ValueError('Ungültiger DIP-Originalfundstellenbeleg')
+            if not isinstance(tenors,list) or len(tenors)>10 or any(
+                    not isinstance(x,str) or not x or len(x)>300 for x in tenors):
+                raise ValueError('Unsicherer gespeicherter DIP-Beschlusstenor')
+            if not isinstance(abstract,str):
+                raise ValueError('Unsicheres gespeichertes DIP-Positionsabstract')
+            if doc_session is not None:
+                expected=f'https://dserver.bundestag.de/btp/21/21{doc_session:03d}'
+                if (doc_date!=position_date or doc_xml!=expected+'.xml'
+                        or not re.fullmatch(
+                            re.escape(expected)+r'\\.pdf#P\\.[1-9]\\d{0,5}',doc_pdf)):
+                    raise ValueError('Gespeicherter DIP-Originalquelllink manipuliert/inkonsistent')
             if (role=='original_grant_step_metadata_only' and doc_session is not None
                     and doc_session!=key[0]):
                 raise ValueError('Fremde ursprüngliche Sitzungsquelle in DIP')
