@@ -204,6 +204,48 @@ class OfficialRecipientEvidenceTests(unittest.TestCase):
         r.set('wahlperiode','20')
         self.assertEqual(check(r),[])
 
+    def test_independent_source_dossier_preserves_three_review_only_events(self):
+        from wp21_offizielle_empfaenger_akte import build
+        report=build({26:case26(),43:case43()})
+        self.assertEqual(report['protocols_checked'],2)
+        self.assertEqual(report['previously_anonymous_locations_linked'],3)
+        self.assertEqual(report['official_chair_references'],2)
+        self.assertEqual(report['official_dip_person_references'],1)
+        self.assertEqual(report['automatically_confirmed_effective_sanctions'],0)
+        self.assertEqual(report['automatically_rescinded_sanctions'],0)
+        self.assertEqual([(x['session'],x['xml_line'],x['person_review_reference'])
+                          for x in report['cases']],
+                         [(26,3436,'Steffen Janich'),
+                          (43,2405,'Stefan Keuter'),
+                          (43,3497,'Erhard Brucker')])
+        self.assertEqual([x['independent_recipient_evidence']['type']
+                          for x in report['cases']],
+                         ['namentliche_nachtraegliche_vorsitz_klarstellung',
+                          'namentliche_nachtraegliche_vorsitz_klarstellung',
+                          'amtliche_dip_person_originalstelle'])
+        self.assertTrue(all(len(x['grant_sha256'])==64 for x in report['cases']))
+        self.assertTrue(all(x['unverified_effective_sanction']
+                            for x in report['cases']))
+
+    def test_dossier_rejects_later_retro_person_mismatch(self):
+        from wp21_offizielle_empfaenger_akte import build
+        with self.assertRaisesRegex(ValueError,'Identitätsnachweis'):
+            build({26:case26({
+                3541:p(JANICH_RETRO.replace('Steffen Janich','Tobias Ebenberger'))}),
+                   43:case43()})
+
+    def test_dossier_rejects_missing_official_source_document(self):
+        from wp21_offizielle_empfaenger_akte import build
+        with self.assertRaisesRegex(ValueError,'exakt beide'):
+            build({43:case43()})
+
+    def test_dossier_rejects_source_original_wahlperiode_change(self):
+        from wp21_offizielle_empfaenger_akte import build
+        wrong=case26()
+        wrong.set('wahlperiode','20')
+        with self.assertRaisesRegex(ValueError,'andere Wahlperiode'):
+            build({26:wrong,43:case43()})
+
 
 if __name__=='__main__':
     unittest.main()
