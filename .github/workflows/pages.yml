@@ -27,6 +27,7 @@ on:
       - 'wp21_amtliche_empfaenger.py'
       - 'wp21_offizielle_empfaenger_akte.py'
       - 'wp21_einspruchsbelege.py'
+      - 'wp21_weitere_einspruchsberichte.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
       - 'wp21_hochprioritaet_18.py'
@@ -61,6 +62,7 @@ on:
       - 'wp21_amtliche_empfaenger.py'
       - 'wp21_offizielle_empfaenger_akte.py'
       - 'wp21_einspruchsbelege.py'
+      - 'wp21_weitere_einspruchsberichte.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
       - 'wp21_hochprioritaet_18.py'
@@ -253,6 +255,29 @@ jobs:
           path: wp21_dip_verknuepfte_faelle.json
           if-no-files-found: error
           retention-days: 30
+      - name: Zusätzliche amtliche Einspruchsentscheidungen und ein getrenntes Ordnungsgeld prüfen
+        if: github.event_name != 'pull_request'
+        id: additionalAppeals
+        continue-on-error: true
+        run: |
+          python wp21_weitere_einspruchsberichte.py \
+            --ledger daten/wirksame_ordnungsrufe_21wp.csv \
+            --output .audit/wp21_weitere_einsprueche.json \
+            --brief .audit/wp21_weitere_einsprueche.md
+      - name: Weitere Einspruchsentscheidungen ausschließlich als Prüfdaten archivieren
+        if: github.event_name != 'pull_request' && steps.additionalAppeals.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-weitere-einspruchsberichte-${{ github.run_id }}
+          path: |
+            .audit/wp21_weitere_einsprueche.json
+            .audit/wp21_weitere_einsprueche.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Fehlerhafte zusätzliche Einspruchsquellen ausschließlich warnen
+        if: github.event_name != 'pull_request' && steps.additionalAppeals.outcome == 'failure'
+        run: echo '::warning::Zusätzliche amtliche Einspruchsquellen unvollständig oder ungültig; keine automatische Zählerkorrektur.'
       - name: 18 Einzelakten mit vollständigen amtlichen DIP-Vorgangspositionen abgleichen
         if: github.event_name != 'pull_request' && steps.dipqueue.outcome == 'success'
         id: eighteenDIP

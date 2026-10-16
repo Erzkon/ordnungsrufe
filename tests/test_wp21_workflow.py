@@ -32,6 +32,15 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.fourRecipientEvidence.outcome == 'failure'", self.workflow)
         self.assertIn('wp21-vier-quellen-personenpruefung-', self.workflow)
 
+    def test_additional_official_appeal_decisions_remain_readonly_and_not_double_counted(self):
+        self.assertIn('id: additionalAppeals', self.workflow)
+        self.assertIn('python wp21_weitere_einspruchsberichte.py',self.workflow)
+        self.assertIn('--ledger daten/wirksame_ordnungsrufe_21wp.csv',self.workflow)
+        self.assertIn('wp21-weitere-einspruchsberichte-',self.workflow)
+        self.assertIn("steps.additionalAppeals.outcome == 'success'",self.workflow)
+        self.assertIn("steps.additionalAppeals.outcome == 'failure'",self.workflow)
+        self.assertIn("github.event_name != 'pull_request'",self.workflow)
+
     def test_eighteen_dossiers_use_complete_daily_xml_but_never_publish_count_changes(self):
         self.assertIn('id: eighteenDossiers',self.workflow)
         self.assertIn('python wp21_hochprioritaet_18.py',self.workflow)
