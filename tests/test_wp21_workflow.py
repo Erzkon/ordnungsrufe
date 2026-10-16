@@ -52,6 +52,16 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.eighteenDIP.outcome == 'success'", self.workflow)
         self.assertIn("steps.eighteenDIP.outcome == 'failure'", self.workflow)
 
+    def test_full_dip_live_source_probe_is_manual_only(self):
+        wf=Path('.github/workflows/wp21_18_dip_live_audit.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('  workflow_dispatch:', wf)
+        self.assertNotIn('  pull_request:', wf)
+        self.assertNotIn('  schedule:', wf)
+        self.assertIn('sha256sum --check', wf)
+        self.assertIn('wp21_18_dip_verfahrenspositionen.py', wf)
+        self.assertNotIn('docs/data/ordnungsrufe_21.json >', wf)
+
     def test_expensive_full_xml_audit_is_manual_only(self):
         wf=Path('.github/workflows/wp21_full_audit.yml').read_text(
             encoding='utf-8')

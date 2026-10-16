@@ -1,10 +1,8 @@
 name: Isolierte amtliche DIP-Quellenprobe der 18 Originalfälle
-# Trigger once on creation; restore to manual-only after investigation.
+# One isolated live DIP API research run was requested on PR introduction.
+# API data are never legally validated sanctions; no published counts change.
+# This potentially expensive full-term fetch is manual-only afterwards.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_18_dip_live_audit.yml'
   workflow_dispatch:
 
 permissions:
