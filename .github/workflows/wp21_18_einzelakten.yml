@@ -1,0 +1,95 @@
+name: WP21 Einzelquellen der 18 Hochprioritätsfälle
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'wp21_hochprioritaet_18.py'
+      - 'tests/test_wp21_hochprioritaet_18.py'
+      - '.github/workflows/wp21_18_einzelakten.yml'
+      - 'wp21_rechtsfolgen.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-dossiers:
+    name: 18 Einzelakten in 14 Original-XMLs prüfen, keine Bestätigung
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: PR-Schutz gegen Änderungen bestätigter Zähler gegenüber main
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for path in daten/wirksame_ordnungsrufe_20wp.csv \
+                      daten/wirksame_ordnungsrufe_21wp.csv \
+                      docs/data/ordnungsrufe.json \
+                      docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$path" | cmp -s - "$path" || {
+              echo "::error file=$path::Bestätigte Zähler weichen von main ab."
+              exit 1
+            }
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Abhängigkeiten installieren
+        run: python -m pip install -r requirements.txt
+      - name: Bytes bestätigter Statistikdateien sichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv \
+            daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json \
+            docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Negative Originalquellen- und Wirksamkeitstests
+        run: python -m unittest -v tests.test_wp21_hochprioritaet_18
+      - name: 18 personenbezogene Akten aus 14 amtlichen XMLs erzeugen
+        run: |
+          python wp21_hochprioritaet_18.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_hochprioritaet_18.json
+      - name: Bestätigte Statistikdateien müssen bytegleich bleiben
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Quellenprüfakten separat archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-hochprioritaet-18
+          path: .audit/wp21_hochprioritaet_18.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Einzelereignis- und Rechtsfolgenkontrolle zusammenfassen
+        if: success()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_hochprioritaet_18.json').read_text())
+          if (d['person_session_cases']!=18
+                  or d['official_protocols_reviewed']!=14
+                  or d['individual_original_grant_phrase_locations']<18
+                  or d['automatically_confirmed_effective_sanctions']!=0
+                  or d['automatically_rescinded_sanctions']!=0
+                  or d['protected_public_counters_changed']):
+              raise ValueError('Unvollständige Akten oder unzulässige Bestätigung')
+          lines=[
+              '## 18 hochpriorisierte Personen/Sitzungen: Original-XML-Prüfakten',
+              '- Amtliche Protokolle: 14',
+              '- Personen/Sitzungen: 18',
+              f"- XML-Erteilungsformulierungen: {d['individual_original_grant_phrase_locations']}",
+              '- Spätere Sitzungen: nicht im begrenzten Originalstichprobenlauf geprüft',
+              '- Automatisch bestätigte oder aufgehobene Maßnahmen: 0',
+              '- Alle einzelnen Ereignisse und Einspruchsfolgen offen.',
+          ]
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+              f.write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
