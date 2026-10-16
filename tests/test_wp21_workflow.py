@@ -32,6 +32,15 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.fourRecipientEvidence.outcome == 'failure'", self.workflow)
         self.assertIn('wp21-vier-quellen-personenpruefung-', self.workflow)
 
+    def test_eighteen_dossiers_use_complete_daily_xml_but_never_publish_count_changes(self):
+        self.assertIn('id: eighteenDossiers',self.workflow)
+        self.assertIn('python wp21_hochprioritaet_18.py',self.workflow)
+        self.assertIn('--scan-summary docs/data/scan_21.json',self.workflow)
+        self.assertIn('--output .audit/wp21_hochprioritaet_18.json',self.workflow)
+        self.assertIn("steps.eighteenDossiers.outcome == 'success'",self.workflow)
+        self.assertIn("steps.eighteenDossiers.outcome == 'failure'",self.workflow)
+        self.assertIn("github.event_name != 'pull_request'",self.workflow)
+
     def test_expensive_full_xml_audit_is_manual_only(self):
         wf=Path('.github/workflows/wp21_full_audit.yml').read_text(
             encoding='utf-8')

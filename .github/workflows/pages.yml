@@ -29,6 +29,7 @@ on:
       - 'wp21_einspruchsbelege.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
+      - 'wp21_hochprioritaet_18.py'
       - 'wp21_fallkontext.py'
       - 'wp21_source_regression.py'
       - 'wp21_rueckbezug.py'
@@ -61,6 +62,7 @@ on:
       - 'wp21_einspruchsbelege.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
+      - 'wp21_hochprioritaet_18.py'
       - 'wp21_fallkontext.py'
       - 'wp21_source_regression.py'
       - 'wp21_rueckbezug.py'
@@ -376,6 +378,27 @@ jobs:
             --verified daten/wirksame_ordnungsrufe_21wp.csv \
             --candidates wp21_autopruefung.csv \
             --report docs/data/autopruefung_21.json
+      - name: 18 Einzelquellen und späteren Einspruchshinweisen vollständig zuordnen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: eighteenDossiers
+        continue-on-error: true
+        run: |
+          python wp21_hochprioritaet_18.py \
+            --cache .cache/wp21 \
+            --scan-summary docs/data/scan_21.json \
+            --output .audit/wp21_hochprioritaet_18.json
+      - name: Unbestätigte 18 Originalquellen-/Rechtsfolgen-Prüfakten archivieren
+        if: github.event_name != 'pull_request' && steps.eighteenDossiers.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-einzelakten-18-${{ github.run_id }}
+          path: .audit/wp21_hochprioritaet_18.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Hinweis bei unvollständiger Hochprioritäts-Rechtsfolgenakte
+        if: github.event_name != 'pull_request' && steps.eighteenDossiers.outcome == 'failure'
+        run: echo '::warning::18 Originalquellen-/Rechtsfolgen-Prüfakten unvollständig; keine automatische Zählung.'
       - name: Einsprueche und moegliche Ruecknahmen als Pruefhinweise sammeln
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
         id: rechtsfolgen

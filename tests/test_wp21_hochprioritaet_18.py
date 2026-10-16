@@ -52,6 +52,19 @@ class EighteenIndividualSourceTests(TestCase):
         self.assertEqual(legal_hints(root,71,subject='Mirze Edis'),[])
         self.assertNotIn('person',signals[0])
 
+    def test_later_original_session_cites_full_person_not_assumed_decision(self):
+        roots={s:fixture(s) for s in TARGETS}
+        roots[53]=fixture(53,
+            'Martin Hess hat Einspruch gegen den ihm in der 52. Sitzung '
+            'erteilten Ordnungsruf eingelegt.')
+        roots[68]=fixture(68,
+            'Kerstin Przygodda hat Einspruch gegen den ihr in der 67. Sitzung '
+            'erteilten Ordnungsruf eingelegt.')
+        # Check textual extraction independently; no effective measure.
+        self.assertEqual(len(legal_hints(roots[53],53,subject='Martin Hess')),1)
+        self.assertEqual(len(legal_hints(roots[68],68,subject='Kerstin Przygodda')),1)
+        self.assertEqual(legal_hints(roots[53],53,subject='Heidi Reichinnek'),[])
+
     def test_missing_originals_and_incomplete_followups_fail(self):
         roots={s:fixture(s) for s in TARGETS}
         with self.assertRaisesRegex(ValueError,'14'):
@@ -89,4 +102,4 @@ class EighteenIndividualSourceTests(TestCase):
         self.assertEqual(row['distinct_parser_issuance_wordings'],1)
         self.assertTrue(row['requires_independent_individual_issuance_review'])
         self.assertEqual(row['later_sittings_search_scope'],
-                         'not_checked_outside_original_sitting')
+                         'only_14_selected_original_sessions_not_exhaustive')

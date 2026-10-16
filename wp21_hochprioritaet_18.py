@@ -136,13 +136,16 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
             if (control['reported_grants'] not in (1,2,3)
                     or control['official_transcript']!=f'{HOST}/21{session:03d}.pdf'):
                 raise ValueError('DIP-Prüfgrundlage unplausibel')
+            # Even the limited 14-original case corpus can reveal explicit
+            # future-person legal keyword evidence (e.g. Hess 52 -> 53,
+            # Przygodda 67 -> 68). It is NOT a complete follow-up search.
+            available_later=later_roots if later_roots is not None else roots
             later=[]
-            if later_roots is not None:
-                for later_session in range(session+1,last_scanned+1):
-                    later.extend(legal_hints(
-                        later_roots[later_session],later_session,subject=person))
-                    if len(later)>MAX_LEGAL_HINTS_PER_CASE:
-                        raise ValueError('Zu viele spätere Rechtsfolgen-Signale für sichere Kurzakte')
+            for later_session in sorted(s for s in available_later if s>session):
+                later.extend(legal_hints(
+                    available_later[later_session],later_session,subject=person))
+                if len(later)>MAX_LEGAL_HINTS_PER_CASE:
+                    raise ValueError('Zu viele spätere Rechtsfolgen-Signale für sichere Kurzakte')
             if len(session_signals)>MAX_LEGAL_HINTS_PER_CASE:
                 # No silent truncation of potentially relevant material.
                 raise ValueError('Zu viele Sitzungs-Rechtsfolgensignale für sichere Kurzakte')
@@ -164,7 +167,7 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
                 'later_sitting_explicit_full_name_legal_keyword_signals_unverified':later,
                 'later_sittings_search_scope':(
                     f'official_xml_1_through_{last_scanned}' if later_roots is not None
-                    else 'not_checked_outside_original_sitting'),
+                    else 'only_14_selected_original_sessions_not_exhaustive'),
                 'no_keyword_match_does_not_prove_no_appeal':True,
                 'automatic_confirmations_or_rescissions':0,
             })
@@ -181,6 +184,7 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
         'multiple_wording_person_session_cases':sum(
             e['multiple_wordings_may_be_one_legal_episode'] for e in entries),
         'later_protocols_searched':last_scanned if later_roots is not None else 0,
+        'selected_original_protocols_checked_for_explicit_later_mentions':len(roots),
         'automatically_confirmed_effective_sanctions':0,
         'automatically_rescinded_sanctions':0,
         'protected_public_counters_changed':False,
