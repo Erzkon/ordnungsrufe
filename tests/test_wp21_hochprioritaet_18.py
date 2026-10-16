@@ -131,16 +131,18 @@ class EighteenIndividualSourceTests(TestCase):
         self.assertFalse(report['protected_public_counters_changed'])
         self.assertEqual(report['separately_officially_documented_rejected_appeals'],4)
         self.assertTrue(report['appeal_decisions_are_not_automatic_sanction_confirmations'])
-        matrix=render_manual_review_brief(report)
-        self.assertEqual(matrix.count('Keine Einzelentscheidung in kuratierter Vierer-Auswahl'),14)
-        self.assertEqual(matrix.count('[zurückgewiesen '),4)
-        self.assertIn('Martin Hess',matrix)
-        self.assertIn('Kerstin Przygodda',matrix)
-        self.assertIn('Frohnmaier',matrix)
-        self.assertIn('**Keine automatische Veröffentlichung',matrix)
-        with self.assertRaises(ValueError):
-            render_manual_review_brief({**report,
-                'automatically_confirmed_effective_sanctions':1})
+        with patch.dict('wp21_hochprioritaet_18.ORIGINAL_LINES',
+                        fake_lines,clear=True):
+            matrix=render_manual_review_brief(report)
+            self.assertEqual(matrix.count('Keine Einzelentscheidung in kuratierter Vierer-Auswahl'),14)
+            self.assertEqual(matrix.count('[zurückgewiesen '),4)
+            self.assertIn('Martin Hess',matrix)
+            self.assertIn('Kerstin Przygodda',matrix)
+            self.assertIn('Frohnmaier',matrix)
+            self.assertIn('**Keine automatische Veröffentlichung',matrix)
+            with self.assertRaises(ValueError):
+                render_manual_review_brief({**report,
+                    'automatically_confirmed_effective_sanctions':1})
         decisions=[e for e in report['cases'] if e['official_bundestag_appeal_decision']]
         self.assertEqual(len(decisions),4)
         self.assertTrue(all(x['official_bundestag_appeal_decision']['outcome']==
