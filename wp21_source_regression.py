@@ -12,6 +12,20 @@ from parser import candidates, events, iter_session_text, speaker_index
 from wp21_scan import safe_parse
 
 SOURCE_FRAGMENTS = {
+    # 21/026 original unknown "Herr Kollege" has a separate later
+    # official CHAIR clarification naming Janich, NOT Ebenberger.
+    (26, 'herr kollege, dafür erteile ich ihnen einen ordnungsruf'):
+        ('linked_hint','Janich'),
+    (26, 'der ordnungsruf ging an herrn steffen janich'):
+        ('retrospective_only',None),
+    # 21/043 early grant: Keuter named by later chair clarification;
+    # the later distinct 3497 is DIP-indexed to Brucker, not Keuter.
+    (43, 'auch sie kriegen einen ordnungsruf, weil sie anscheinend'):
+        ('linked_hint','Keuter'),
+    (43, 'der zweite ordnungsruf, den ich erteilt habe, ging an den abgeordneten keuter'):
+        ('retrospective_only',None),
+    (43, 'auch ihnen erteile ich einen ordnungsruf; namen rufe ich gleich aus'):
+        ('linked_hint','Brucker'),
     (26, 'herr kollege, dafür erteile ich ihnen einen ordnungsruf'):
         ('linked_hint','Janich'),
     (43, 'auch sie kriegen einen ordnungsruf, weil sie anscheinend'):
@@ -163,6 +177,8 @@ def run(folder):
                            'namentliche_sitzungsleitungs_klarstellung_xmlzeile_',
                            'zweitgenannte_erteilung_vorsitz_klaerung_xmlzeile_',
                            'amtliche_dip_person_fundstelle_',
+                           'namentliche_sitzungsleitungs_klarstellung_xmlzeile_',
+                           'zweitgenannte_erteilung_vorsitz_klaerung_xmlzeile_',
                            'erstes_erteilungswort_redner_sichert_xmlzeile_',
                            'zweitvergabe_zu_benanntem_zwischenruf_xmlzeile_',
                            'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_'))):
