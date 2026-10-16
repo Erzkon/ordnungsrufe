@@ -94,8 +94,8 @@ class EighteenIndividualSourceTests(TestCase):
         self.assertEqual(len(found_przy),1)
         self.assertTrue(found_hess[0]['explicit_original_session_reference_in_same_paragraph'])
         self.assertTrue(found_przy[0]['explicit_original_session_reference_in_same_paragraph'])
-        self.assertFalse(legal_hints(roots[53],53,subject='Martin Hess',
-                                    origin_session=67)[0]['explicit_original_session_reference_in_same_paragraph'])
+        self.assertEqual(legal_hints(
+            roots[53],53,subject='Martin Hess',origin_session=67),[])
         self.assertEqual(legal_hints(roots[53],53,subject='Heidi Reichinnek'),[])
 
     def test_other_original_sitting_must_not_borrow_the_same_politicians_appeal(self):
@@ -112,6 +112,9 @@ class EighteenIndividualSourceTests(TestCase):
             later,78,subject='Martin Reichardt',origin_session=65),[])
         self.assertEqual(len(legal_hints(
             later,78,subject='Martin Reichardt',origin_session=77)),1)
+        self.assertEqual(explicit_original_sitting_refs(
+            'Martin Reichardt und der Ordnungsruf aus der 65. Sitzung '
+            'sowie der 77. Sitzung waren Gegenstand eines Einspruchs.'),{65,77})
         ambiguous=fixture(78,
             'Martin Reichardt und der Ordnungsruf aus der 65. Sitzung '
             'sowie der 77. Sitzung waren Gegenstand eines Einspruchs.')

@@ -125,7 +125,8 @@ def explicit_original_sitting_refs(text):
     earlier original grant merely because their full name matches.
     """
     return {int(num) for num in re.findall(
-        r'\b(?:in|aus)\s+der\s+(\d{1,3})\.\s*Sitzung\b',text,re.I)}
+        r'\b(?:(?:in|aus|während)\s+der|(?:sowie|und)\s+der)\s+'
+        r'(\d{1,3})\.\s*Sitzung\b',text,re.I)}
 
 
 def legal_hints(root, session, subject=None, origin_session=None):
