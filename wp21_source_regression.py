@@ -12,6 +12,16 @@ from parser import candidates, events, iter_session_text, speaker_index
 from wp21_scan import safe_parse
 
 SOURCE_FRAGMENTS = {
+    # Three president-speech episodes with explicitly unresolved number of
+    # independent legal measures; a source paragraph is NOT a count.
+    (49, 'möchte ich dem abgeordneten stephan brandner von der afd einen ordnungsruf erteilen'):
+        ('named_hint','Brandner'),
+    (49, 'lustig ist daran überhaupt nichts'):
+        ('linked_hint','Brandner'),
+    (51, 'ich erteile ihnen dafür einen ordnungsruf. das ist ein persönlicher angriff gegen herrn stegner'):
+        ('linked_hint','Frohnmaier'),
+    (65, 'ich erteile ihnen jetzt einen ordnungsruf'):
+        ('linked_hint','Reichardt'),
     # 21/026 original unknown "Herr Kollege" has a separate later
     # official CHAIR clarification naming Janich, NOT Ebenberger.
     (26, 'herr kollege, dafür erteile ich ihnen einen ordnungsruf'):
@@ -177,6 +187,9 @@ def run(folder):
                            'namentliche_sitzungsleitungs_klarstellung_xmlzeile_',
                            'zweitgenannte_erteilung_vorsitz_klaerung_xmlzeile_',
                            'amtliche_dip_person_fundstelle_',
+                           'fortsetzung_benannter_erteilungsrede_xmlzeile_',
+                           'neuer_benannter_zwischenruf_xmlzeile_',
+                           'gleiche_erteilungsepisode_spaetere_anrede_xmlzeile_',
                            'namentliche_sitzungsleitungs_klarstellung_xmlzeile_',
                            'zweitgenannte_erteilung_vorsitz_klaerung_xmlzeile_',
                            'erstes_erteilungswort_redner_sichert_xmlzeile_',
@@ -193,6 +206,27 @@ def run(folder):
                 'classification':cls,'people_as_unverified_parser_hints':names,
                 'status':'checked_against_original_xml_not_effective_sanctions',
             }
+    # 49, 51, 65 each have TWO source issuance phrases but no
+    # independently verified decision about individual effective measures.
+    for session,expected in {
+        49:{3278:'Stephan Brandner',3280:'Stephan Brandner'},
+        51:{3979:'Markus Frohnmaier',3981:'Markus Frohnmaier'},
+        65:{2044:'Martin Reichardt',2046:'Martin Reichardt'},
+    }.items():
+        if session not in roots:
+            continue
+        parsed=list(events(Path(folder)/f'21{session:03d}.xml',
+                           index=index,root=roots[session]))
+        for line,name in expected.items():
+            people=[row for row in parsed if int(row['line'])==line]
+            if len(people)!=1 or people[0]['person']!=name:
+                raise AssertionError(
+                    f'21/{session:03d} XML-Zeile {line}: erwartet '
+                    f'{name}, gefunden {people}; keine falsche Empfängerzuordnung')
+        if (session==49 and any(
+                row['person']=='Thomas Stephan' and int(row['line']) in (3278,3280)
+                for row in parsed)):
+            raise AssertionError('21/049: der falsche XML-Namensprefix Thomas Stephan')
     # The conditional laughter threat at line 8717 is not a third
     # sanction. Similarly, 8990 is already a named first grant; 8992 adds
     # only a source-linked review identity to the separate second grant.
