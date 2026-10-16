@@ -323,6 +323,26 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+      - name: Vier anonyme Original-XML-Erteilungsstellen täglich quellengebunden prüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: anonymousDossier
+        continue-on-error: true
+        run: |
+          python wp21_anonyme_quellen.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_anonyme_quellen.json
+      - name: Anonyme Quellenkontexte für fachliche Prüfung archivieren
+        if: github.event_name != 'pull_request' && steps.anonymousDossier.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-anonyme-originalquellen-${{ github.run_id }}
+          path: .audit/wp21_anonyme_quellen.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Warnung bei veränderten anonymen Originalquellen
+        if: github.event_name != 'pull_request' && steps.anonymousDossier.outcome == 'failure'
+        run: echo '::warning::Vier anonyme Original-XML-Quellen sind nicht mehr vollständig belegt; keine neuen bestätigten Zähler oder automatischen Personenzuordnungen.'
       - name: Parser-Fundstellen automatisch mit belegten Personen/Sitzungen abgleichen
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
         id: autopruefung

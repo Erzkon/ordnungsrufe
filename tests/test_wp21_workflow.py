@@ -14,6 +14,15 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'",
                       self.workflow)
 
+    def test_anonymous_original_sources_are_daily_review_only(self):
+        self.assertIn('id: anonymousDossier', self.workflow)
+        self.assertIn('--cache .cache/wp21', self.workflow)
+        self.assertIn('--output .audit/wp21_anonyme_quellen.json', self.workflow)
+        self.assertIn("steps.anonymousDossier.outcome == 'success'", self.workflow)
+        self.assertIn("steps.anonymousDossier.outcome == 'failure'", self.workflow)
+        self.assertIn('wp21-anonyme-originalquellen-', self.workflow)
+        self.assertIn("if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'", self.workflow)
+
     def test_failure_watchdog_checks_all_upstream_failures(self):
         for term in ("needs.pruefen.result != 'success'",
                      "steps.dataartifact.outcome == 'failure'",
