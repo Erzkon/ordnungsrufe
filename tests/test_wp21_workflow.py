@@ -60,7 +60,7 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertNotIn('  schedule:', wf)
         self.assertIn('sha256sum --check', wf)
         self.assertIn('wp21_18_dip_verfahrenspositionen.py', wf)
-        self.assertNotIn('docs/data/ordnungsrufe_21.json >', wf)
+        self.assertNotIn('export_wp21.py', wf)
 
     def test_expensive_full_xml_audit_is_manual_only(self):
         wf=Path('.github/workflows/wp21_full_audit.yml').read_text(
