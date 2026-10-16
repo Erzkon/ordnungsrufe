@@ -309,7 +309,87 @@ def collect(cache, ledger, dip_file, scan_summary=None):
     return assemble(roots,reference(dip_file),known,later_roots,last)
 
 
-def run(cache,output,ledger,dip_file,scan_summary=None):
+def render_manual_review_brief(report):
+    """Deterministic compact reviewer matrix, NEVER a public counter feed."""
+    if (report.get('status')!='18_person_session_original_evidence_dossiers_review_only'
+            or report.get('person_session_cases')!=18
+            or len(report.get('cases',[]))!=18
+            or report.get('separately_officially_documented_rejected_appeals')!=4
+            or report.get('automatically_confirmed_effective_sanctions')!=0
+            or report.get('automatically_rescinded_sanctions')!=0
+            or report.get('protected_public_counters_changed')):
+        raise ValueError('18er-Einzelprüfbericht ist nicht vollständig oder sicher')
+    lines=[
+        '# Hochprioritäre WP21-Einzelereignisprüfung (nicht bestätigte Statistik)',
+        '',
+        '**18 Person/Sitzung-Fälle; 21 belegte präsidiale Erteilungsformulierungen.',
+        'Vier amtlich belegte Einspruchszurückweisungen, jedoch 0',
+        'automatisch bestätigte oder aufgehobene Maßnahmen.**',
+        '',
+        'DIP-Einträge belegen nur ursprüngliche Erteilungen; ein einzelner XML-',
+        'Absatz ist keine unabhängig bestätigte rechtswirksame Maßnahme.',
+        'Auch das Fehlen eines hier kuratierten Einspruchsbelegs bedeutet',
+        '**nicht**, dass nie ein Einspruch oder eine Aufhebung stattfand.',
+        '',
+        '| Sitzung | Person | XML-Zeilen | DIP: ursprüngliche Rufe | Geprüfter Teilbestand | Episode | Einspruchsbeleg |',
+        '| --- | --- | --- | ---: | ---: | --- | --- |',
+    ]
+    decisions=0
+    seen=set()
+    for row in report['cases']:
+        key=(row['session'],norm(row['person_for_review']))
+        if key not in EXPECTED_KEYS or key in seen:
+            raise ValueError('Unbekannter oder doppelter Fall in Prüfmatrix')
+        seen.add(key)
+        source_lines=tuple(sorted(x['xml_line'] for x in row['original_parser_sources']))
+        if source_lines!=ORIGINAL_LINES[key]:
+            raise ValueError('XML-Fundstellen in Prüfmatrix verändert')
+        episode=row['original_wording_episode_relation_for_review']
+        appeal=row['official_bundestag_appeal_decision']
+        if appeal:
+            decisions+=1
+            if (appeal['outcome']!='einspruch_zurueckgewiesen'
+                    or appeal['confirms_number_of_effective_sanctions']
+                    or appeal['changes_protected_ledger']):
+                raise ValueError('Unzulässige automatische Einspruchsfreigabe')
+            appeal_text=f"[zurückgewiesen {appeal['decision_date']}]({appeal['source']})"
+        else:
+            appeal_text='Keine Einzelentscheidung in kuratierter Vierer-Auswahl'
+        linked=' / '.join(str(i) for i in source_lines)
+        if episode=='single_parser_wording_only':
+            episode_text='Einzelne Parser-Textstelle; Wirksamkeit offen'
+        elif key==(94,norm('Cansin Köktürk')):
+            episode_text='Zwei bereits im Teilbestand getrennt belegte Rufe'
+        else:
+            episode_text='Mehrfachformulierungen: individuelle Zahl offen'
+        lines.append(
+            f"| 21/{row['session']:03d} | {row['person_for_review']} | {linked} | "
+            f"{row['dip_original_grants_reference']} | "
+            f"{row['verified_effective_measures_in_preexisting_partial_ledger']} | "
+            f"{episode_text} | {appeal_text} |")
+    if seen!=EXPECTED_KEYS or decisions!=4:
+        raise ValueError('Prüfmatrix enthält nicht genau alle Hochprioritätsfälle')
+    lines.extend([
+        '',
+        '## Nächste fachliche Prüfhandlungen',
+        '',
+        '- 21/051 Frohnmaier (L3979/L3981): klären, ob zwei präsidiale',
+        '  Formulierungen eine oder mehrere rechtlich eigenständige Erteilungen ergeben.',
+        '- 21/065 Reichardt (L2044/L2046): Wiederholung derselben Erteilung',
+        '  versus getrennte Maßnahme prüfen; Einspruchszurückweisung ist kein Zählbeweis.',
+        '- 21/094 Köktürk (L1130/L1140): die bereits getrennt geprüften zwei',
+        '  Ordnungsrufe mit Quellen verknüpft lassen; Ordnungsgeld nicht hinzuzählen.',
+        '- Für weitere 14 Fälle fehlen in diesem eng kuratierten Index',
+        '  individuelle Einspruchsentscheidungen: breitere DIP-/Originalquellensuche',
+        '  fortsetzen, ohne aus fehlenden Treffern auf Rechtswirksamkeit zu schließen.',
+        '',
+        '**Keine automatische Veröffentlichung, keine Zähleränderung, keine Rechtsfreigabe.**',
+        '',
+    ])
+    return '\n'.join(lines)
+
+
+def run(cache,output,ledger,dip_file,scan_summary=None,brief=None):
     report=collect(cache,ledger,dip_file,scan_summary)
     target=Path(output)
     target.parent.mkdir(parents=True,exist_ok=True)
@@ -317,6 +397,13 @@ def run(cache,output,ledger,dip_file,scan_summary=None):
     tmp.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',
                    encoding='utf-8')
     tmp.replace(target)
+    if brief is not None:
+        rendered=render_manual_review_brief(report)
+        dest=Path(brief)
+        dest.parent.mkdir(parents=True,exist_ok=True)
+        safe=dest.with_suffix(dest.suffix+'.tmp')
+        safe.write_text(rendered,encoding='utf-8')
+        safe.replace(dest)
     print(f"HOCHPRIORITAET_18_OK: {report['person_session_cases']} "
           f"Personen/Sitzungen, {report['individual_original_grant_phrase_locations']} "
           "Original-XML-Erteilungsformulierungen; keine neuen bestätigten Maßnahmen.",
@@ -333,8 +420,10 @@ def main():
                    default=Path('tests/fixtures/official_dip_wp21_positive_snapshot.json'))
     p.add_argument('--scan-summary',type=Path,
                    help='Only a validated, contiguous source scan permits later-session hints')
+    p.add_argument('--brief',type=Path,
+                   help='Human-readable separate review matrix; never confirmed counters')
     a=p.parse_args()
-    run(a.cache,a.output,a.ledger,a.dip,a.scan_summary)
+    run(a.cache,a.output,a.ledger,a.dip,a.scan_summary,a.brief)
 
 
 if __name__=='__main__':

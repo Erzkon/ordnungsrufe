@@ -386,13 +386,16 @@ jobs:
           python wp21_hochprioritaet_18.py \
             --cache .cache/wp21 \
             --scan-summary docs/data/scan_21.json \
-            --output .audit/wp21_hochprioritaet_18.json
+            --output .audit/wp21_hochprioritaet_18.json \
+            --brief .audit/wp21_hochprioritaet_18_review.md
       - name: Unbestätigte 18 Originalquellen-/Rechtsfolgen-Prüfakten archivieren
         if: github.event_name != 'pull_request' && steps.eighteenDossiers.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: wp21-einzelakten-18-${{ github.run_id }}
-          path: .audit/wp21_hochprioritaet_18.json
+          path: |
+            .audit/wp21_hochprioritaet_18.json
+            .audit/wp21_hochprioritaet_18_review.md
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

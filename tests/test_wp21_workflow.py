@@ -37,6 +37,7 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('python wp21_hochprioritaet_18.py',self.workflow)
         self.assertIn('--scan-summary docs/data/scan_21.json',self.workflow)
         self.assertIn('--output .audit/wp21_hochprioritaet_18.json',self.workflow)
+        self.assertIn('--brief .audit/wp21_hochprioritaet_18_review.md',self.workflow)
         self.assertIn("steps.eighteenDossiers.outcome == 'success'",self.workflow)
         self.assertIn("steps.eighteenDossiers.outcome == 'failure'",self.workflow)
         self.assertIn("github.event_name != 'pull_request'",self.workflow)
