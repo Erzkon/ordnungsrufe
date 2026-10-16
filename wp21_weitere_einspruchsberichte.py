@@ -67,6 +67,26 @@ EVIDENCE=(
     objection('2026jul10','2026-07-10','2026-09-08','Martin Sichert',session=90),
 )
 
+# Exact article-specific evidence tuples; changing a date, person or source
+# without independently verifying that article must fail closed.
+OFFICIAL_ARTICLE_CASES={
+    SOURCES['2025jun05']:{('2025-06-05','2025-06-06','Stephan Brandner',1,None)},
+    SOURCES['2025jun06']:{('2025-06-06','2025-06-24','Stephan Brandner',1,None)},
+    SOURCES['2025jun27']:{('2025-06-27','2025-07-08','Luigi Pantisano',1,None)},
+    SOURCES['2025sep18']:{('2025-09-18','2025-09-23','Mirze Edis',1,None)},
+    SOURCES['2025nov13']:{
+        ('2025-11-13','2025-11-25','Martin Sichert',1,None),
+        ('2025-11-13','2025-11-25','Steffen Janich',1,None),
+        ('2025-11-13','2025-11-25','Steffen Janich',2,None),
+        ('2025-11-13','2025-11-25','Kay Gottschalk',1,None)},
+    SOURCES['2025nov26']:{('2025-11-26','2025-11-28','Martin Reichardt',1,None)},
+    SOURCES['2025dec17']:{('2025-12-17','2025-12-18','Stephan Brandner',1,None)},
+    SOURCES['2025dec18']:{('2025-12-18','2025-12-19','Martin Reichardt',1,None)},
+    SOURCES['2026may07']:{('2026-05-07','2026-05-08','Martin Reichardt',1,77)},
+    SOURCES['2026jul10']:{('2026-07-10','2026-09-08','Martin Sichert',1,90)},
+}
+
+
 # Different sanction type: rejected appeal against an *Ordnungsgeld*
 # imposed on 2026-10-15, decided on 2026-10-16. It is NOT an Ordnungsruf.
 OTHER_MEASURE={
@@ -133,6 +153,14 @@ def validate(items=EVIDENCE,other=OTHER_MEASURE):
         found_sources[entry['source']]+=1
     if set(found_sources)!=set(SOURCES.values()):
         raise ValueError('Nicht alle 10 unabhängig recherchierten Beschlussberichte')
+    by_article={}
+    for entry in items:
+        by_article.setdefault(entry['source'],set()).add((
+            entry['original_date'],entry['decision_date'],
+            entry['person'],entry['individual_objection_ordinal'],
+            entry['original_session']))
+    if by_article!=OFFICIAL_ARTICLE_CASES:
+        raise ValueError('Amtlicher Artikel/Originaldatum/Person nicht eindeutig belegt')
     if found_sources[SOURCES['2025nov13']]!=4 or (
             set(group)!={('Martin Sichert',1),('Steffen Janich',1),
                          ('Steffen Janich',2),('Kay Gottschalk',1)}):
