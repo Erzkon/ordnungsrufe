@@ -669,6 +669,7 @@ def events(path, index=None, root=None):
         index = speaker_index([root])
     from wp21_rueckbezug import (infer_source_linked_hints,
                                   refine_ambiguous_grant_identity)
+    from wp21_episoden import corrected_explicit_brandner
     found, seen = [], set()
     paragraphs=list(iter_session_text(root))
     for element, text in paragraphs:
@@ -677,8 +678,16 @@ def events(path, index=None, root=None):
         cls = classify(text)
         if cls not in ('possible_grant', 'named_group_confirmation'):
             continue
+        # A specifically quoted official full-name recipient overrides an
+        # unsafe single-token surname-prefix match in 21/049: Stephan
+        # Brandner is NOT the different XML person Thomas Stephan.
+        # Outside that exact grant wording, default strict parsing applies.
+        corrected=corrected_explicit_brandner(
+            root,element,text,index,issuer_context)
+        identified_people=(corrected if corrected is not None
+                           else persons_for_grant(text,index))
         # Avoid double output for multiple recipient patterns on one line.
-        for identified in persons_for_grant(text, index):
+        for identified in identified_people:
             if not identified or identified['person'].casefold() in STOPWORDS:
                 continue
             # Existing ambiguous surname hints may be refined only with a
