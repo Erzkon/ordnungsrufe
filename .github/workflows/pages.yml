@@ -99,6 +99,21 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
+      - name: PR-Schutz gegen Änderungen bestätigter Zähler gegenüber main
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for path in daten/wirksame_ordnungsrufe_20wp.csv \
+                      daten/wirksame_ordnungsrufe_21wp.csv \
+                      docs/data/ordnungsrufe.json \
+                      docs/data/ordnungsrufe_21.json; do
+            if ! git show "FETCH_HEAD:$path" | cmp -s - "$path"; then
+              echo "::error file=$path::Bestätigte Zähler dürfen im PR nicht von main abweichen."
+              exit 1
+            fi
+          done
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

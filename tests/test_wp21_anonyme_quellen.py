@@ -2,7 +2,10 @@
 import unittest
 
 from lxml import etree
-from wp21_anonyme_quellen import TARGETS, inspect, speaker_provenance
+from wp21_anonyme_quellen import (
+    ORIGINAL_ANCHORS, TARGETS, inspect, speaker_provenance,
+    validate_original_anchor,
+)
 
 
 def fixture(chair=True,sentences=None):
@@ -56,6 +59,7 @@ class AnonymousSourceDossierTests(unittest.TestCase):
         self.assertEqual(len(row['previous_paragraphs']),1)
         self.assertEqual(len(row['following_paragraphs']),1)
         self.assertEqual(len(row['text_sha256']),64)
+        self.assertFalse(row['original_wording_anchor_checked'])
         self.assertEqual(row['original_pdf'],
                          'https://dserver.bundestag.de/btp/21/21008.pdf')
 
@@ -101,6 +105,32 @@ class AnonymousSourceDossierTests(unittest.TestCase):
         root,line=fixture(chair=False)
         with self.assertRaisesRegex(ValueError,'Ohne präsidialen'):
             inspect(root,8,(line,))
+
+    def test_presiding_chair_is_not_a_named_interjector(self):
+        root,line=fixture()
+        node=next(p for p in root.iter('p') if p.sourceline==line)
+        marker=speaker_provenance(node)
+        self.assertEqual(marker['speaker_type'],'presiding_chair')
+        self.assertIsNone(marker['speaker_id'])
+        self.assertIsNone(marker['speaker_name'])
+
+    def test_original_anchor_set_matches_all_four_unresolved_locations(self):
+        targets={(session,line) for session,lines in TARGETS.items() for line in lines}
+        self.assertEqual(set(ORIGINAL_ANCHORS),targets)
+
+    def test_original_anchor_works_only_with_matching_original_wording(self):
+        validate_original_anchor(8,1419,
+            'Es ist verboten, im Hohen Hause Zeichen hochzuhalten. '
+            'Ich erteile Ihnen dafür einen Ordnungsruf.')
+        with self.assertRaisesRegex(ValueError,'Originalwortlaut/Quellenanker'):
+            validate_original_anchor(8,1419,'Ich erteile Ihnen keinen Ordnungsruf.')
+        with self.assertRaisesRegex(ValueError,'Nicht geprüfter Quellenanker'):
+            validate_original_anchor(8,1420,'Ich erteile Ihnen dafür einen Ordnungsruf.')
+
+    def test_strict_original_inspection_rejects_unanchored_synthetic_text(self):
+        root,line=fixture()
+        with self.assertRaisesRegex(ValueError,'Nicht geprüfter Quellenanker'):
+            inspect(root,8,(line,),require_original_anchors=True)
 
     def test_speaker_provenance_must_not_assume_target_recipient(self):
         root,line=fixture(chair=False)

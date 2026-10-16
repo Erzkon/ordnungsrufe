@@ -24,9 +24,27 @@ TARGETS = {
     28: (4468,),
     46: (4473,),
 }
+# Checked against the four original Bundestag XML grant paragraphs on 2026-10-16.
+# These are TEXT anchors only. They do not identify recipients or legal effects.
+ORIGINAL_ANCHORS = {
+    (8, 1419): 'Ich erteile Ihnen dafür einen Ordnungsruf.',
+    (23, 2649): 'Sie bekommen jetzt von mir einen Ordnungsruf',
+    (28, 4468): 'Dafür erteile ich jetzt auch einen Ordnungsruf.',
+    (46, 4473): 'für dieses „Warum nicht?“ von mir einen Ordnungsruf.',
+}
+
 MAX_BEFORE = 9
 MAX_AFTER = 5
 MAX_TEXT = 650
+
+
+def validate_original_anchor(session, line, text):
+    """Fail closed on changed original wording instead of reusing stale labels."""
+    expected = ORIGINAL_ANCHORS.get((session, line))
+    if expected is None:
+        raise ValueError(f'Nicht geprüfter Quellenanker: 21/{session:03d} L{line}')
+    if normal(expected).casefold() not in normal(text).casefold():
+        raise ValueError(f'Originalwortlaut/Quellenanker verändert: 21/{session:03d} L{line}')
 
 
 def speaker_provenance(element):
@@ -36,8 +54,14 @@ def speaker_provenance(element):
         return {'speaker_type':'unknown','speaker_id':None,'speaker_name':None}
     for prior in element.itersiblings(preceding=True):
         if prior.tag=='name':
+            name=normal(''.join(prior.itertext())).rstrip(':')
+            # A presidium marker is the SOURCE of the sanction wording,
+            # not a named interjection and never evidence of its recipient.
+            if re.search(r'\b(?:Präsident(?:in)?|Vizepräsident(?:in)?)\b',name,re.I):
+                return {'speaker_type':'presiding_chair',
+                        'speaker_id':None,'speaker_name':None}
             return {'speaker_type':'named_interjection',
-                    'speaker_id':None,'speaker_name':normal(''.join(prior.itertext()))[:100]}
+                    'speaker_id':None,'speaker_name':name[:100]}
         if prior.tag=='p' and prior.get('klasse')=='redner':
             speakers=prior.xpath('.//redner[@id]')
             if len(speakers)!=1:
@@ -63,7 +87,7 @@ def paragraph_record(element,text):
     }
 
 
-def inspect(root,session,lines):
+def inspect(root,session,lines,require_original_anchors=False):
     if root.get('wahlperiode')!='21' or int(root.get('sitzung-nr') or 0)!=session:
         raise ValueError('Fremdes oder beschädigtes XML-Protokoll')
     paras=list(iter_session_text(root))
@@ -90,6 +114,8 @@ def inspect(root,session,lines):
             raise ValueError(f'Anonyme Fundstelle schon einer Person zugeordnet: 21/{session:03d} L{line}')
         near_before=paras[max(0,idx-MAX_BEFORE):idx]
         near_after=paras[idx+1:idx+1+MAX_AFTER]
+        if require_original_anchors:
+            validate_original_anchor(session,line,txt)
         grant=paragraph_record(element,txt)
         if grant['issuer_type']!='chair_marker':
             raise ValueError(f'Ohne präsidialen XML-Quellenbezug: 21/{session:03d} L{line}')
@@ -99,6 +125,7 @@ def inspect(root,session,lines):
             'original_pdf':f'{HOST}/21{session:03d}.pdf',
             'original_xml':f'{HOST}/21{session:03d}.xml',
             'text_sha256':hashlib.sha256(txt.encode('utf-8')).hexdigest(),
+            'original_wording_anchor_checked':bool(require_original_anchors),
             'original_grant':grant,
             'previous_paragraphs':[paragraph_record(e,t) for e,t in near_before],
             'following_paragraphs':[paragraph_record(e,t) for e,t in near_after],
@@ -116,6 +143,9 @@ def inspect(root,session,lines):
 def collect(folder,targets=TARGETS):
     if len(targets)!=4 or sum(len(x) for x in targets.values())!=4:
         raise ValueError('Prüfstichprobe verändert: Neuprüfung erforderlich')
+    expected={(session,line) for session,lines in targets.items() for line in lines}
+    if set(ORIGINAL_ANCHORS)!=expected:
+        raise ValueError('Quellenanker und vier Prüffundstellen stimmen nicht überein')
     output=[]
     for session,lines in sorted(targets.items()):
         if type(session)!=int or not 1<=session<=450:
@@ -124,7 +154,7 @@ def collect(folder,targets=TARGETS):
         if data is None:
             raise ValueError(f'Amtliches XML 21/{session:03d} nicht verfügbar')
         root=safe_parse(data,session)
-        section=inspect(root,session,lines)
+        section=inspect(root,session,lines,require_original_anchors=True)
         output.extend(section)
         print(f'QUELLENKONTEXT {session:03d}: '+', '.join(
               f'L{x["xml_line"]}={x["original_grant"]["text"][:140]!r}'

@@ -19,6 +19,21 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: PR-Schutz gegen Änderungen bestätigter Zähler gegenüber main
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for path in daten/wirksame_ordnungsrufe_20wp.csv \
+                      daten/wirksame_ordnungsrufe_21wp.csv \
+                      docs/data/ordnungsrufe.json \
+                      docs/data/ordnungsrufe_21.json; do
+            if ! git show "FETCH_HEAD:$path" | cmp -s - "$path"; then
+              echo "::error file=$path::Bestätigte Zähler dürfen im PR nicht von main abweichen."
+              exit 1
+            fi
+          done
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -31,7 +46,7 @@ jobs:
             daten/wirksame_ordnungsrufe_21wp.csv \
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
-      - name: Anonyme Quellenanalyse mit 9 isolierten Negativpruefungen absichern
+      - name: Anonyme Quellenanker, Sprecherrollen und Negativfälle prüfen
         run: python -m unittest -v tests.test_wp21_anonyme_quellen
       - name: Amtliche XML-Originale zu allen 4 verbliebenen Fundstellen laden und einordnen
         run: |
@@ -57,7 +72,8 @@ jobs:
           import json,os
           from pathlib import Path
           d=json.loads(Path('.audit/anonymous_context.json').read_text())
-          if (d['anonymous_review_cases']!=4
+          if (any(not c['original_wording_anchor_checked'] for c in d['cases'])
+                  or d['anonymous_review_cases']!=4
                   or d['protocols_examined']!=4
                   or d['auto_confirmed_sanctions']!=0
                   or d['auto_identified_recipients']!=0):
