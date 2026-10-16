@@ -598,4 +598,14 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
         if line not in assigned and line not in used:
             proposals.append((grant,who))
             used.add(line)
+    # Independent original chair confirmations (26/3436 and 43/2405)
+    # and independently indexed original DIP person/location (43/3497).
+    # These supplement *review hints only*, not confirmed measures.
+    from wp21_amtliche_empfaenger import official_source_recipient_links
+    for grant,who in official_source_recipient_links(
+            paragraphs,index,assigned | used):
+        line=int(grant.sourceline)
+        if line not in assigned and line not in used:
+            proposals.append((grant,who))
+            used.add(line)
     return proposals
