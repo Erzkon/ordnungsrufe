@@ -102,6 +102,12 @@ jobs:
               encoding='utf-8')
           print('OFFICIAL_POSITION_DOCUMENT_INVENTORY_OK: 18 original cases, 22 positions, 0 automatic sanctions')
           PY
+      - name: Exactly validate 18 source-bound original plenary PDFs and four official rejected-appeal tenors
+        run: |
+          python wp21_18_dip_original_beschluesse.py \
+            --source .audit/document_probe/source_position_metadata.json \
+            --output .audit/document_probe/source_bound_original_and_decisions.json \
+            --brief .audit/document_probe/source_bound_original_and_decisions.md
       - name: Ensure public statistics remain byte identical
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
@@ -110,6 +116,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wp21-18-official-document-inventory-${{ github.run_id }}
-          path: .audit/document_probe/source_position_metadata.json
+          path: |
+            .audit/document_probe/source_position_metadata.json
+            .audit/document_probe/source_bound_original_and_decisions.json
+            .audit/document_probe/source_bound_original_and_decisions.md
           if-no-files-found: error
           retention-days: 30
