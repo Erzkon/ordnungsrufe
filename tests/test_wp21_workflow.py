@@ -50,6 +50,16 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertNotIn('  schedule:',wf)
         self.assertIn('sha256sum --check',wf)
 
+    def test_full_followup_original_xml_scan_is_manual_only(self):
+        full=Path('.github/workflows/wp21_18_vollstaendige_rechtsfolgen.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('  workflow_dispatch:',full)
+        self.assertNotIn('  pull_request:',full)
+        self.assertNotIn('  schedule:',full)
+        self.assertIn('sha256sum --check',full)
+        self.assertIn('--scan-summary .audit/full_legal_scan.json',full)
+        self.assertIn('source_session',full)
+
     def test_failure_watchdog_checks_all_upstream_failures(self):
         for term in ("needs.pruefen.result != 'success'",
                      "steps.dataartifact.outcome == 'failure'",

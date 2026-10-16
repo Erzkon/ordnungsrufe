@@ -1,13 +1,12 @@
 name: WP21 Vollständiger Original-XML-Rechtsfolgenabgleich 18 Fälle
 
-# One PR execution when the audit workflow is introduced/changed.
-# All later source-level production checks run read-only in pages.yml on main.
-# No automatic re-fetch of 101 original transcripts on unrelated commits.
+# One isolated PR audit completed successfully 16 October 2026:
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/38945916746
+# 101 official XMLs, 18 review cases, 8 correctly linked later source
+# passages and 2 false cross-episode links excluded; no count changes.
+# Future full 101+ transcript reruns are manual only. The normal daily
+# read-only XML followup check remains active in pages.yml on main.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_18_vollstaendige_rechtsfolgen.yml'
   workflow_dispatch:
 
 permissions:
