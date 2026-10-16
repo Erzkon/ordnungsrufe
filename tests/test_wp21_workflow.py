@@ -32,6 +32,14 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.fourRecipientEvidence.outcome == 'failure'", self.workflow)
         self.assertIn('wp21-vier-quellen-personenpruefung-', self.workflow)
 
+    def test_expensive_full_xml_audit_is_manual_only(self):
+        wf=Path('.github/workflows/wp21_full_audit.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('  workflow_dispatch:',wf)
+        self.assertNotIn('  pull_request:',wf)
+        self.assertNotIn('  schedule:',wf)
+        self.assertIn('sha256sum --check',wf)
+
     def test_failure_watchdog_checks_all_upstream_failures(self):
         for term in ("needs.pruefen.result != 'success'",
                      "steps.dataartifact.outcome == 'failure'",
