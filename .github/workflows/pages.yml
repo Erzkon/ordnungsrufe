@@ -274,6 +274,33 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+      - name: Originale DIP-Plenar-Fundstellen und Einspruchs-Tenöre separat überprüfen
+        if: github.event_name != 'pull_request' && steps.eighteenDIP.outcome == 'success'
+        id: eighteenSources
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_18_dip_verfahrenspositionen.json').read_text())
+          if (d['original_cases']!=18
+                  or d['source_verified_original_grant_positions']!=18
+                  or d['source_verified_independent_dip_rejected_appeals']!=4
+                  or d['automatically_confirmed_sanctions']!=0
+                  or d['automatically_rescinded_sanctions']!=0
+                  or d['protected_statistics_changed']):
+              raise ValueError('Amtliche DIP-Fundstellen oder Einspruchsbelege unvollständig')
+          lines=['## Verifizierte DIP-Original-Fundstellen – keine Zählerfreigabe',
+                 '- 18 Originalpositionen mit originalem Plenar-PDF/XML',
+                 '- Vier getrennte DIP-Beschlusstenöre: Zurückweisung des Einspruchs',
+                 '- Kein automatischer Schluss auf eigenständige rechtswirksame Rufe.']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as out:
+              out.write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
+      - name: Verbleibende Original-DIP-Quellenlücken explizit warnen
+        if: github.event_name != 'pull_request' && steps.eighteenSources.outcome == 'failure'
+        run: echo '::warning::DIP-Plenar-Fundstellen/Beschlüsse nicht für alle 18/4 Fälle quellengeprüft; bestätigte Zähler bleiben unverändert.'
       - name: Fehlenden DIP-18-Quellenverbund als Warnung ausgeben
         if: github.event_name != 'pull_request' && steps.eighteenDIP.outcome == 'failure'
         run: echo '::warning::DIP-18-Quellenverbund unvollständig, keine rechtliche Entscheidung und keine Änderung bestätigter Zähler.'

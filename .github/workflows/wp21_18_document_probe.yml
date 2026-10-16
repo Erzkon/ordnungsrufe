@@ -1,11 +1,12 @@
 name: WP21 DIP original document inventory 18 cases
 
-# One-time original official-source schema survey. No legal adjudication.
+# One-time read-only survey succeeded 16.10.2026, GitHub Actions
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/38955416096
+# Exactly 18 plenary grant Fundstellen and four explicit rejected objections.
+# The API drucksache list filter was observed returning 11967 unfiltered
+# documents; use only official f.vorgang-filtered Vorgangspositionen sources.
+# Future source re-fetchs are manual-only; daily metadata checks in pages.yml.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_18_document_probe.yml'
   workflow_dispatch:
 
 permissions:

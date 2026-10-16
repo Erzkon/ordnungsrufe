@@ -52,6 +52,24 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.eighteenDIP.outcome == 'success'", self.workflow)
         self.assertIn("steps.eighteenDIP.outcome == 'failure'", self.workflow)
 
+    def test_official_fundstelle_validation_fails_without_exact_eighteen_and_four(self):
+        self.assertIn('id: eighteenSources', self.workflow)
+        self.assertIn("steps.eighteenDIP.outcome == 'success'", self.workflow)
+        self.assertIn("d['source_verified_original_grant_positions']!=18", self.workflow)
+        self.assertIn("d['source_verified_independent_dip_rejected_appeals']!=4",
+                      self.workflow)
+        self.assertIn("steps.eighteenSources.outcome == 'failure'", self.workflow)
+        self.assertIn("github.event_name != 'pull_request'", self.workflow)
+
+    def test_original_document_source_survey_manual_only(self):
+        wf=Path('.github/workflows/wp21_18_document_probe.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('  workflow_dispatch:',wf)
+        self.assertNotIn('  pull_request:',wf)
+        self.assertNotIn('  schedule:',wf)
+        self.assertIn('sha256sum --check',wf)
+        self.assertIn('wp21_18_dip_original_beschluesse.py',wf)
+
     def test_full_dip_live_source_probe_is_manual_only(self):
         wf=Path('.github/workflows/wp21_18_dip_live_audit.yml').read_text(
             encoding='utf-8')

@@ -6,6 +6,10 @@ on:
     paths:
       - 'wp21_hochprioritaet_18.py'
       - 'wp21_18_dip_verfahrenspositionen.py'
+      - 'wp21_18_dip_original_beschluesse.py'
+      - 'wp21_dip_positionen.py'
+      - 'tests/test_wp21_dip_fundstellen.py'
+      - 'tests/test_wp21_18_dip_original_beschluesse.py'
       - 'tests/test_wp21_hochprioritaet_18.py'
       - 'tests/test_wp21_18_dip_verfahrenspositionen.py'
       - '.github/workflows/wp21_18_einzelakten.yml'
@@ -50,7 +54,7 @@ jobs:
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
       - name: Negative Originalquellen- und Wirksamkeitstests
-        run: python -m unittest -v tests.test_wp21_hochprioritaet_18 tests.test_wp21_18_dip_verfahrenspositionen
+        run: python -m unittest -v tests.test_wp21_hochprioritaet_18 tests.test_wp21_18_dip_verfahrenspositionen tests.test_wp21_dip_fundstellen tests.test_wp21_18_dip_original_beschluesse
       - name: 18 personenbezogene Akten aus 14 amtlichen XMLs erzeugen
         run: |
           python wp21_hochprioritaet_18.py \
