@@ -47,7 +47,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from wp21_scan import fetch
-          for number in (14,15,22,23,25,26,27,37,39,40,43,50,69,74,75,82):
+          for number in (14,15,22,23,25,26,27,37,39,40,43,49,50,51,65,69,74,75,82):
               data=fetch(number,Path('.audit/targeted_xml'))
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
@@ -71,6 +71,37 @@ jobs:
                         'parent=',node.getparent().tag if node.getparent() is not None else '',
                         'xml=',etree.tostring(node,encoding='unicode')[:1850],
                         flush=True)
+          PY
+      - name: Noch offene XML-Adressaten 26 43 49 51 65 mit Zwischenrufen prüfen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from wp21_scan import safe_parse
+          from parser import normal,issuer_context,iter_session_text,speaker_index,events
+          for number,targets in ((26,(3436,)),(43,(2405,3497)),
+                                 (49,(3280,)),(51,(3981,)),(65,(2044,))):
+              root=safe_parse(Path(f'.audit/targeted_xml/21{number:03d}.xml').read_bytes(),number)
+              paras=list(iter_session_text(root))
+              index=speaker_index([root])
+              found={int(x['line']):x for x in events(
+                  Path(f'21{number:03d}.xml'),root=root,index=index)}
+              for line in targets:
+                  print('CASE_START',number,line,flush=True)
+                  grant=next(p for p,t in paras if int(p.sourceline)==line)
+                  for p,t in paras:
+                      n=int(p.sourceline)
+                      if not line-15<=n<=line+8:continue
+                      issuer,kind=issuer_context(p)
+                      print('CASE_P',number,n,kind,issuer[:60],repr(t[:320]),
+                            'hint=',found.get(n,{}).get('person'),flush=True)
+                  rede=grant.getparent()
+                  siblings=list(rede)
+                  i=siblings.index(grant)
+                  for x in siblings[max(0,i-17):min(len(siblings),i+6)]:
+                      if x.tag in ('kommentar','name') or x.get('klasse')=='redner':
+                          txt=normal(''.join(x.itertext()))
+                          print('CASE_NODE',number,x.sourceline,x.tag,
+                                x.get('klasse'),repr(txt[:300]),flush=True)
           PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
