@@ -4,7 +4,7 @@ from unittest.mock import patch
 from pathlib import Path
 from lxml import etree
 from wp21_hochprioritaet_18 import (
-    EXPECTED_KEYS, TARGETS, assemble, legal_hints, original_entry, validate_scope)
+    EXPECTED_KEYS, ORIGINAL_LINES, TARGETS, assemble, legal_hints, original_entry, validate_scope)
 from wp21_dip_kontrolle import reference
 from wp21_autopruefung import norm
 
@@ -23,6 +23,8 @@ class EighteenIndividualSourceTests(TestCase):
         validate_scope()
         self.assertEqual(len(TARGETS),14)
         self.assertEqual(len(EXPECTED_KEYS),18)
+        self.assertEqual(set(ORIGINAL_LINES),EXPECTED_KEYS)
+        self.assertEqual(sum(map(len,ORIGINAL_LINES.values())),21)
         dip={(x['session'],norm(x['person'])) for x in reference()['entries']}
         self.assertTrue(EXPECTED_KEYS.issubset(dip))
 
@@ -88,9 +90,16 @@ class EighteenIndividualSourceTests(TestCase):
                        'identity_status':'matched_xml_person','person_id':'123',
                        'issuer':'Vizepräsidentin Andrea Lindholz',
                        'issuer_evidence':'chair_marker'}
+        fake_lines={key:(3,) for key in EXPECTED_KEYS}
         with patch('wp21_hochprioritaet_18.events',side_effect=fake_events):
-            report=assemble(roots,reference(),
-                            {(94,norm('Cansin Köktürk')):2})
+            with patch.dict('wp21_hochprioritaet_18.ORIGINAL_LINES',
+                            fake_lines,clear=True):
+                # Synthetic single-paragraph cases prove that even when
+                # the ledger has two calls, one source is never promoted.
+                with patch('wp21_hochprioritaet_18.validate_scope',
+                           return_value=None):
+                    report=assemble(roots,reference(),
+                                    {(94,norm('Cansin Köktürk')):2})
         self.assertEqual(report['person_session_cases'],18)
         self.assertEqual(report['official_protocols_reviewed'],14)
         self.assertEqual(report['automatically_confirmed_effective_sanctions'],0)

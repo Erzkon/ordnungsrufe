@@ -39,6 +39,30 @@ TARGETS = {
 }
 EXPECTED_KEYS = {(session,norm(name))
                  for session,names in TARGETS.items() for name in names}
+# Reviewed exact original XML issuance locations from successful official
+# 14-protocol dossier #38935257560, not counts of effective legal measures.
+# A changed/extra/missing XML source line fails closed until source review.
+ORIGINAL_LINES = {
+    (51,norm('Markus Frohnmaier')):(3979,3981),
+    (52,norm('Martin Hess')):(3749,),
+    (53,norm('Heidi Reichinnek')):(6149,),
+    (57,norm('Bernd Baumann')):(1487,),
+    (61,norm('Ulrich von Zons')):(4557,),
+    (65,norm('Luigi Pantisano')):(5104,),
+    (65,norm('Martin Reichardt')):(2044,2046),
+    (67,norm('Kathrin Gebel')):(3164,),
+    (67,norm('Kerstin Przygodda')):(3079,),
+    (68,norm('Paula Piechotta')):(5010,),
+    (69,norm('Fabian Fahl')):(2204,),
+    (69,norm('Timon Dzienus')):(2712,),
+    (71,norm('Mirze Edis')):(4772,),
+    (71,norm('Robin Jünger')):(2392,),
+    (86,norm('Cansin Köktürk')):(1895,),
+    (89,norm('Kai Whittaker')):(5865,),
+    (93,norm('Birgit Bessin')):(3285,),
+    (94,norm('Cansin Köktürk')):(1130,1140),
+}
+
 MAX_SOURCE_PARAGRAPHS = 5
 MAX_LEGAL_HINTS_PER_CASE = 12
 
@@ -47,6 +71,10 @@ def validate_scope():
     if (len(TARGETS)!=14 or len(EXPECTED_KEYS)!=18
             or sum(map(len,TARGETS.values()))!=18):
         raise ValueError('Hochprioritäts-Stichprobe verändert, Neuprüfung nötig')
+    if set(ORIGINAL_LINES)!=EXPECTED_KEYS:
+        raise ValueError('21 verifizierte Originalfundstellen nicht vollständig referenziert')
+    if sum(map(len,ORIGINAL_LINES.values()))!=21:
+        raise ValueError('Erteilungsformulierungs-Anker erfordern Neuprüfung')
     if len({(s,norm(name)) for s,group in TARGETS.items()
             for name in group})!=18:
         raise ValueError('Doppelte Personen/Sitzungen')
@@ -133,6 +161,10 @@ def assemble(roots, dip, reviewed, later_roots=None, last_scanned=None):
             lines=[x['xml_line'] for x in sources]
             if len(set(lines))!=len(lines):
                 raise ValueError('Doppelte Erteilungszeile im Parser')
+            if tuple(sorted(lines))!=ORIGINAL_LINES[key]:
+                raise ValueError(
+                    f'Amtliche Originalfundstellen verändert: 21/{session:03d} '
+                    f'{person}, gesehen {sorted(lines)}, erwartet {ORIGINAL_LINES[key]}')
             if (control['reported_grants'] not in (1,2,3)
                     or control['official_transcript']!=f'{HOST}/21{session:03d}.pdf'):
                 raise ValueError('DIP-Prüfgrundlage unplausibel')
