@@ -52,7 +52,11 @@ def inspect(roots):
         }[session]
         if (first_hits[0]['zuordnungsmethode']!=expected[1]
                 or last_hits[0]['zuordnungsmethode']!=expected[3]):
-            raise ValueError('Quellennachweis oder Empfängermethode verändert')
+            raise ValueError(
+                f'Quellennachweis oder Empfängermethode verändert: '
+                f'21/{session:03d}, erste={first_hits[0]["zuordnungsmethode"]!r}, '
+                f'zweite={last_hits[0]["zuordnungsmethode"]!r}, '
+                f'erwartet={(expected[1],expected[3])!r}')
         if session==49 and any(x['person']=='Thomas Stephan'
                                 for x in first_hits+last_hits):
             raise ValueError('False XML recipient Thomas Stephan')
