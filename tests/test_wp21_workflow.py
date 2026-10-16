@@ -62,6 +62,16 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('wp21_18_dip_verfahrenspositionen.py', wf)
         self.assertNotIn('export_wp21.py', wf)
 
+    def test_targeted_eighteen_official_dip_ids_can_only_run_manually(self):
+        wf=Path('.github/workflows/wp21_18_dip_targeted_confirm.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('  workflow_dispatch:', wf)
+        self.assertNotIn('  pull_request:', wf)
+        self.assertNotIn('  schedule:', wf)
+        self.assertIn('wp21_18_dip_verfahrenspositionen', wf)
+        self.assertIn('sha256sum --check', wf)
+        self.assertNotIn('export_wp21.py', wf)
+
     def test_expensive_full_xml_audit_is_manual_only(self):
         wf=Path('.github/workflows/wp21_full_audit.yml').read_text(
             encoding='utf-8')

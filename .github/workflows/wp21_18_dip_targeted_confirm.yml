@@ -1,12 +1,9 @@
 name: Gezielter DIP-Originalvorgang-Nachweis für 18 WP21-Fälle
 
-# One isolated PR live-probe after full 2026-10-16 DIP census.
-# Strictly read-only metadata; restore manual-only after successful run.
+# One isolated PR confirmation of 18 exact official DIP Vorgang IDs
+# triggered after the 2026-10-16 full source census. Future repetitions
+# are manual-only, never scheduled on unrelated changes or merged by CI.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_18_dip_targeted_confirm.yml'
   workflow_dispatch:
 
 permissions:
