@@ -100,7 +100,7 @@ jobs:
                       if (not isinstance(batch,list) or len(batch)>100
                           or type(n)!=int or n>150 or n<0
                           or not isinstance(cursor,(str,type(None)))):
-                          raise ValueError('Unexpected DIP document metadata page '+kind)
+                          raise ValueError('Unexpected DIP document metadata page '+kind+' '+json.dumps({'keys':sorted(data) if isinstance(data,dict) else 'not dict','total':n,'documents_type':type(batch).__name__,'len':len(batch) if isinstance(batch,list) else None,'cursor_type':type(cursor).__name__},ensure_ascii=False))
                       if total is None: total=n
                       if total!=n: raise ValueError('DIP document pagination changed')
                       for doc in batch:
