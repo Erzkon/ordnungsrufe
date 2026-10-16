@@ -33,22 +33,18 @@ jobs:
       - name: Hash immutable public files before requests
         run: |
           sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
-      - name: Check official DIP document association response schemas for all 18 cases
+      - name: Inspect only the officially parent-bound 18 DIP position source records
         timeout-minutes: 13
         env:
           DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
         run: |
           python - <<'PY'
-          import json,os,re,time
+          import json,os,re
           from pathlib import Path
-          from urllib.parse import urlencode
-          from urllib.request import Request,build_opener,HTTPRedirectHandler
-          from urllib.error import HTTPError,URLError
+          from wp21_dip_positionen import fetch_positions
+          from wp21_dip_monitor import PUBLIC_KEY
           from wp21_hochprioritaet_18 import EXPECTED_KEYS
           from wp21_autopruefung import norm
-          class NoRedirect(HTTPRedirectHandler):
-              def redirect_request(self,req,fp,code,msg,headers,newurl):
-                  raise ValueError('Do not follow unexpected official redirects')
           pairs=[
               (51,'Markus Frohnmaier',329623),(52,'Martin Hess',330133),
               (53,'Heidi Reichinnek',330237),(57,'Bernd Baumann',330700),
@@ -59,92 +55,52 @@ jobs:
               (71,'Mirze Edis',333814),(71,'Robin Jünger',333809),
               (86,'Cansin Köktürk',336641),(89,'Kai Whittaker',337087),
               (93,'Birgit Bessin',339006),(94,'Cansin Köktürk',339024)]
-          if {(s,norm(name)) for s,name,_ in pairs}!=EXPECTED_KEYS:
-              raise ValueError('Pinned official original cases unexpectedly changed')
-          api='https://search.dip.bundestag.de/api/v1/'
-          opener=build_opener(NoRedirect())
-          key=os.getenv('DIP_API_KEY') or 'R2BZaee.DjdCyihKZMf8AOjtScubP2EVydegzjmBIQ'
-          results=[]
+          if {(s,norm(person)) for s,person,_ in pairs}!=EXPECTED_KEYS:
+              raise ValueError('Pinned source cases mismatched')
+          key=os.environ.get('DIP_API_KEY') or PUBLIC_KEY
+          reports=[]
+          total=0
           for session,person,parent in pairs:
-              record={'session':session,'person':person,'original_dip_vorgang_id':parent}
-              for kind in ('drucksache','plenarprotokoll'):
-                  current=None
-                  docs=[]
-                  seen=set()
-                  total=None
-                  for page in range(8):
-                      params={'f.vorgang':str(parent),'f.wahlperiode':'21'}
-                      if current is not None:
-                          params['cursor']=current
-                      url=api+kind+'?'+urlencode(params)
-                      req=Request(url,headers={'Authorization':'ApiKey '+key,
-                          'Accept':'application/json',
-                          'User-Agent':'OrdnungsrufCounter/0.9 (official source inventory)'})
-                      err=None
-                      for attempt in range(3):
-                          try:
-                              with opener.open(req,timeout=30) as resp:
-                                  if resp.status!=200: raise ValueError('non-200 DIP document HTTP')
-                                  raw=resp.read(2000001)
-                              if len(raw)>2000000: raise ValueError('oversize metadata response')
-                              data=json.loads(raw.decode('utf-8'))
-                              err=None
-                              break
-                          except (HTTPError,URLError,TimeoutError,OSError) as exc:
-                              err=exc
-                              if attempt<2: time.sleep(2**attempt)
-                      if err: raise err
-                      batch=data.get('documents')
-                      n=data.get('numFound')
-                      cursor=data.get('cursor')
-                      if (not isinstance(batch,list) or len(batch)>100
-                          or type(n)!=int or n>150 or n<0
-                          or not isinstance(cursor,(str,type(None)))):
-                          raise ValueError('Unexpected DIP document metadata page '+kind+' '+json.dumps({'keys':sorted(data) if isinstance(data,dict) else 'not dict','total':n,'documents_type':type(batch).__name__,'len':len(batch) if isinstance(batch,list) else None,'cursor_type':type(cursor).__name__},ensure_ascii=False))
-                      if total is None: total=n
-                      if total!=n: raise ValueError('DIP document pagination changed')
-                      for doc in batch:
-                          ident=str(doc.get('id',''))
-                          if (not re.fullmatch(r'[1-9]\d{0,11}',ident)
-                              or ident in seen or doc.get('wahlperiode')!=21):
-                              raise ValueError('Malformed official document identity')
-                          seen.add(ident)
-                          docs.append({
-                              'id':ident,'document_number':doc.get('dokumentnummer'),
-                              'date':doc.get('datum'),
-                              'title':str(doc.get('titel',''))[:250],
-                              'document_type':doc.get('typ'),
-                              'reference_count':doc.get('vorgangsbezug_anzahl'),
-                              'referenced_vorgang_ids':[
-                                  x.get('id') for x in doc.get('vorgangsbezug',[])
-                                  if isinstance(x,dict)],
-                              'fundstelle':doc.get('fundstelle'),
-                              'field_names':sorted(doc),
-                          })
-                      if len(docs)==total: break
-                      if not cursor or cursor==current:
-                          raise ValueError('Incomplete original DIP document cursor')
-                      current=cursor
-                  else: raise ValueError('DIP document page cap reached')
-                  record[kind]={'reported_total':total,'documents':docs,
-                                'parent_filter':str(parent),'complete_pages':True}
-              results.append(record)
-              print(f"OFFICIAL_DOCS 21/{session:03d} {person}: "
-                    f"{record['drucksache']['reported_total']} Drucksachen, "
-                    f"{record['plenarprotokoll']['reported_total']} Plenarprotokolle",flush=True)
-          outfile=Path('.audit/document_probe')
-          outfile.mkdir(parents=True,exist_ok=True)
-          snapshot={'status':'read_only_official_dip_document_inventory',
-                    'cases':results,'official_dip_cases':len(results),
-                    'reported_drucksache_links':sum(r['drucksache']['reported_total'] for r in results),
-                    'reported_plenarprotokoll_links':sum(r['plenarprotokoll']['reported_total'] for r in results),
-                    'zero_automatic_legal_conclusions':True}
-          (outfile/'document_source_inventory.json').write_text(
-              json.dumps(snapshot,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-          print('DOCUMENT_INVENTORY_OK '+json.dumps({
-              'cases':len(results),
-              'drucksachen':snapshot['reported_drucksache_links'],
-              'plenarprotokolle':snapshot['reported_plenarprotokoll_links']}))
+              raw=fetch_positions(parent,key)
+              if not raw or len(raw)>12: raise ValueError('Unexpected original parent position count')
+              positions=[]
+              for doc in raw:
+                  if (str(doc.get('vorgang_id'))!=str(parent)
+                      or doc.get('wahlperiode') not in (21,None)
+                      or not re.fullmatch(r'[1-9]\d{0,11}',str(doc.get('id','')))):
+                      raise ValueError('Untrusted official position parent')
+                  # Capture original official metadata fields, including any
+                  # document fundstelle or activities. No legal adjudication.
+                  record={k:v for k,v in doc.items()
+                          if k not in ('text','volltext')}
+                  encoded=json.dumps(record,ensure_ascii=False,default=str)
+                  if len(encoded)>25000: raise ValueError('Position metadata unbounded')
+                  positions.append({
+                      'id':str(doc['id']),'field_names':sorted(doc),
+                      'source_api':'https://search.dip.bundestag.de/api/v1/vorgangsposition/'+str(doc['id']),
+                      'official_raw_metadata':record,
+                      'legal_outcome_not_confirmed_by_position_metadata':True,
+                  })
+              reports.append({'session':session,'person':person,
+                  'vorgang_id':str(parent),
+                  'vorgang_source':f'https://dip.bundestag.de/vorgang/{parent}',
+                  'positions':positions})
+              total+=len(positions)
+              print(f'POSITION_DOC_FIELDS 21/{session:03d} {person}: '
+                    f'{len(positions)} source positions / '
+                    f'{[x["field_names"] for x in positions]}',flush=True)
+          if len(reports)!=18 or total!=22:
+              raise ValueError('Official complete position inventory drifted: '
+                               +str((len(reports),total)))
+          output=Path('.audit/document_probe')
+          output.mkdir(parents=True,exist_ok=True)
+          (output/'source_position_metadata.json').write_text(
+              json.dumps({'status':'official_position_source_reference_inventory',
+                          'original_cases':len(reports),'positions':total,
+                          'no_automated_sanction_decisions':True,
+                          'cases':reports},ensure_ascii=False,indent=2)+'\n',
+              encoding='utf-8')
+          print('OFFICIAL_POSITION_DOCUMENT_INVENTORY_OK: 18 original cases, 22 positions, 0 automatic sanctions')
           PY
       - name: Ensure public statistics remain byte identical
         if: always()
@@ -154,6 +110,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wp21-18-official-document-inventory-${{ github.run_id }}
-          path: .audit/document_probe/document_source_inventory.json
+          path: .audit/document_probe/source_position_metadata.json
           if-no-files-found: error
           retention-days: 30
