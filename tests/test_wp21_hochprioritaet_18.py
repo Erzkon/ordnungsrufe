@@ -90,7 +90,7 @@ class EighteenIndividualSourceTests(TestCase):
                        'identity_status':'matched_xml_person','person_id':'123',
                        'issuer':'Vizepräsidentin Andrea Lindholz',
                        'issuer_evidence':'chair_marker'}
-        fake_lines={key:(3,) for key in EXPECTED_KEYS}
+        fake_lines={key:(1,) for key in EXPECTED_KEYS}
         with patch('wp21_hochprioritaet_18.events',side_effect=fake_events):
             with patch.dict('wp21_hochprioritaet_18.ORIGINAL_LINES',
                             fake_lines,clear=True):
