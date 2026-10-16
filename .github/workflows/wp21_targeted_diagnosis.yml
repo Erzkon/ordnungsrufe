@@ -103,6 +103,25 @@ jobs:
                           print('CASE_NODE',number,x.sourceline,x.tag,
                                 x.get('klasse'),repr(txt[:300]),flush=True)
           PY
+      - name: Originalprotokoll nach amtlichen Empfaengerklarstellungen durchsuchen
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          from wp21_scan import safe_parse
+          from parser import iter_session_text,normal
+          for session in (26,43,51,65):
+              root=safe_parse(Path(f'.audit/targeted_xml/21{session:03d}.xml').read_bytes(),session)
+              for p,txt in iter_session_text(root):
+                  if session==26 and (re.search(r'Fürs Protokoll|Ordnungsruf ging an',txt,re.I)):
+                      print('RETRO_26',p.sourceline,repr(txt[:650]),flush=True)
+                  elif session==43 and (re.search(r'(?:zweite Ordnungsruf|Ordnungsruf.*Keuter|Namen rufe ich gleich aus)',txt,re.I)):
+                      print('RETRO_43',p.sourceline,repr(txt[:650]),flush=True)
+                  elif session==51 and 3970<=p.sourceline<=3984:
+                      print('RETRO_51',p.sourceline,repr(txt[:500]),flush=True)
+                  elif session==65 and 2030<=p.sourceline<=2047:
+                      print('RETRO_65',p.sourceline,repr(txt[:500]),flush=True)
+          PY
       - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
         run: python wp21_source_regression.py --folder .audit/targeted_xml
       - name: Erst-/Zweiterteilungspaare WP21/040 gesondert pruefen
