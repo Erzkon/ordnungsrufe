@@ -5,7 +5,7 @@ from wp21_40_mehrfach_akte import (
     PHRASES_40,PHRASES_42,inspect,render_markdown)
 
 
-def fixture(number,rewrites=None):
+def fixture(number,rewrites=None,duplicate=None):
     orig=[
         'Ich erteile Ihnen jetzt einen Ordnungsruf, weil Sie mit dem Finger auf Kollegen gezeigt haben; das ist unparlamentarisch.',
         'Ich erteile Ihnen auch für den Widerspruch gerade einen zweiten Ordnungsruf; das kann ich.',
@@ -22,6 +22,8 @@ def fixture(number,rewrites=None):
     if rewrites:
         for idx,value in rewrites.items():
             body[idx]=value
+    if duplicate:
+        body.append(duplicate)
     date='13.11.2025' if number==40 else '25.11.2025'
     src=(
         f'<dbtplenarprotokoll wahlperiode="21" sitzung-nr="{number}" sitzung-datum="{date}">'
@@ -68,10 +70,8 @@ class CaseFortySourceCrossChecks(unittest.TestCase):
             inspect({40:fixture(40),42:bad})
 
     def test_same_paragraph_duplicate_fails_closed(self):
-        bad=fixture(42)
-        bad.find('.//tagesordnungspunkt').append(
-            etree.Element('p'))
-        bad.findall('.//p')[-1].text='Wer stimmt für den Einspruch des Abgeordneten Martin Sichert?'
+        bad=fixture(42,duplicate=(
+            'Wer stimmt für den Einspruch des Abgeordneten Martin Sichert?'))
         with self.assertRaisesRegex(ValueError,'Sichert_objection_vote'):
             inspect({40:fixture(40),42:bad})
 
