@@ -159,12 +159,31 @@ def crosswalk(vorgang, positionen, dip_reference=None):
                     or not isinstance(p.get('title',''),str)
                     or not isinstance(p.get('signal_fields',[]),list)):
                 raise ValueError('Beschädigte Position eines zugeordneten DIP-Vorgangs')
+            # Real DIP metadata records: "Ordnungsruf" on the original
+            # sitting day and later "Abstimmung" on each of the four
+            # independently sourced appeal-decision dates. A generic
+            # "Abstimmung" alone does NOT prove the outcome of the vote.
+            procedural_word=' '.join(p['step'].casefold().split())
+            position_date=p.get('date')
+            if procedural_word=='ordnungsruf' and position_date==dates[key]:
+                role='original_grant_step_metadata_only'
+            elif (procedural_word=='abstimmung'
+                  and key in decisions
+                  and position_date==decisions[key]['decision_date']):
+                role='appeal_date_vote_step_independently_corroborated'
+            else:
+                role='other_or_ambiguous_procedural_step'
             pos.append({
                 'id':pid,'parent_id':ident,'updated':p.get('updated'),
-                'date':p.get('date'),'step':p['step'][:350],
+                'date':position_date,'step':p['step'][:350],
                 'title':p['title'][:230],
                 'kind':p['kind'],'signal_fields':p['signal_fields'],
                 'source':row['source'],
+                'procedural_step_role_for_review':role,
+                'independent_bundestag_appeal_report':(
+                    decisions[key]['source']
+                    if role=='appeal_date_vote_step_independently_corroborated'
+                    else None),
                 'is_individual_appeal_outcome_legally_confirmed':False,
             })
             total_bound_positions+=1
@@ -203,6 +222,14 @@ def crosswalk(vorgang, positionen, dip_reference=None):
                                                 for x in records),
         'bound_vorgang_candidates':found_bound,
         'bound_position_hints':total_bound_positions,
+        'original_grant_step_metadata_positions':sum(
+            p['procedural_step_role_for_review']=='original_grant_step_metadata_only'
+            for case in records for parent in case['candidate_vorgaenge']
+            for p in parent['procedural_position_hints']),
+        'independent_appeal_date_vote_metadata_positions':sum(
+            p['procedural_step_role_for_review']=='appeal_date_vote_step_independently_corroborated'
+            for case in records for parent in case['candidate_vorgaenge']
+            for p in parent['procedural_position_hints']),
         'unbound_same_name_vorgaenge':len(ambiguous),
         'independently_documented_appeal_date_candidates':sum(
             p['original_source_link_type']=='independently_documented_appeal_date_candidate'
@@ -234,6 +261,10 @@ def render_markdown(report):
         f"**DIP-Positionenstand:** {report['sources']['position_snapshot_utc']}  ",
         f"**Gebundene Vorgänge:** {report['bound_vorgang_candidates']}  ",
         f"**Positionen:** {report['bound_position_hints']}  ",
+        f"**Ursprüngliche Erteilungs-Positionshinweise:** "
+        f"{report['original_grant_step_metadata_positions']}  ",
+        f"**Abstimmungspositionen mit unabhängigen Beschlussberichten:** "
+        f"{report['independent_appeal_date_vote_metadata_positions']}  ",
         f"**Nur über separat belegtes Einspruchsdatum verknüpfte Vorgänge:** "
         f"{report['independently_documented_appeal_date_candidates']}  ",
         f"**Nicht sicher gebundene Namensvorgänge:** {report['unbound_same_name_vorgaenge']}",
@@ -272,7 +303,11 @@ def render_markdown(report):
         '  Sitzungsbezug, das Erteilungsdatum oder ein **unabhängig amtlich',
         '  belegtes Einspruchsentscheidungsdatum** können einen **unbestätigten**',
         '  DIP-Vorgangskandidaten an genau eine Originalakte binden.',
-        '- Die Verfahrenspositionen bleiben über originale DIP-Vorgang-IDs',
+        '- Originalpositionen „Ordnungsruf“ und spätere Positionen',
+        '  „Abstimmung“ bleiben eigenständige Metadatenbelege; die',
+        '  Abstimmungszuordnung setzt einen externen Beschlussbericht',
+        '  mit genau diesem Namen, dieser Sitzung und diesem Datum voraus.',
+        '- Die Verfahrenspositionen bleiben über originale DIP-Vorgang-IDs'
         '  verbunden. Schlagwörter wie Einspruch, Rücknahme und Ablehnung',
         '  sind **keine** unabhängig geprüften Beschlüsse.',
         '- Ältere, inaktive Metadaten bleiben im inkrementellen',

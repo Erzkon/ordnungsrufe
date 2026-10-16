@@ -132,6 +132,31 @@ class OriginalDIPCrosswalkTests(unittest.TestCase):
         self.assertFalse(result['protected_statistics_changed'])
         self.assertIn('belegtes Einspruchsdatum',render_markdown(result))
 
+    def test_metadata_roles_only_with_exact_grant_or_independent_appeal_dates(self):
+        a,b=state([parent(330133,'Erteilung eines Ordnungsrufes an Martin Hess',
+                          '2026-01-15')],
+                  [{**position(684560,330133,kind='verfahrensschritt',
+                               step='Ordnungsruf'),'date':'2026-01-14'},
+                   {**position(684717,330133,kind='verfahrensschritt',
+                               step='Abstimmung'),'date':'2026-01-15'},
+                   {**position(684718,330133,kind='verfahrensschritt',
+                               step='Abstimmung'),'date':'2026-01-17'}])
+        r=crosswalk(a,b)
+        self.assertEqual(r['bound_position_hints'],3)
+        self.assertEqual(r['original_grant_step_metadata_positions'],1)
+        self.assertEqual(r['independent_appeal_date_vote_metadata_positions'],1)
+        pos=r['cases'][1]['candidate_vorgaenge'][0]['procedural_position_hints']
+        roles=[p['procedural_step_role_for_review'] for p in pos]
+        self.assertEqual(roles,[
+            'original_grant_step_metadata_only',
+            'appeal_date_vote_step_independently_corroborated',
+            'other_or_ambiguous_procedural_step'])
+        self.assertTrue(all(not p['is_individual_appeal_outcome_legally_confirmed']
+                            for p in pos))
+        self.assertIn('bundestag.de',
+                      pos[1]['independent_bundestag_appeal_report'])
+        self.assertIsNone(pos[2]['independent_bundestag_appeal_report'])
+
     def test_name_only_with_wrong_appeal_date_never_assumed_legal_effect(self):
         a,b=state([parent(330133,'Erteilung eines Ordnungsrufes '
                                  'an Martin Hess','2026-01-16')])
