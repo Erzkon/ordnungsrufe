@@ -608,4 +608,15 @@ def infer_source_linked_hints(paragraphs, index, local_lines):
         if line not in assigned and line not in used:
             proposals.append((grant,who))
             used.add(line)
+    # The original chairs occasionally split one discussion episode
+    # into multiple <p> elements. Source-bound recipient review evidence
+    # for 49/3280, 51/3981 and 65/2044 is NOT proof of three
+    # independent effective sanctions, or any increment in the counter.
+    from wp21_episoden import episode_recipient_hints
+    for grant,who in episode_recipient_hints(
+            paragraphs,index,assigned | used):
+        line=int(grant.sourceline)
+        if line not in assigned and line not in used:
+            proposals.append((grant,who))
+            used.add(line)
     return proposals
