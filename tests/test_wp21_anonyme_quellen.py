@@ -4,7 +4,7 @@ import unittest
 from lxml import etree
 from wp21_anonyme_quellen import (
     ORIGINAL_ANCHORS, TARGETS, inspect, speaker_provenance,
-    validate_original_anchor,
+    validate_original_anchor, nearby_original_reactions,
 )
 
 
@@ -62,6 +62,31 @@ class AnonymousSourceDossierTests(unittest.TestCase):
         self.assertFalse(row['original_wording_anchor_checked'])
         self.assertEqual(row['original_pdf'],
                          'https://dserver.bundestag.de/btp/21/21008.pdf')
+
+    def test_original_comments_are_evidence_not_recipient_claims(self):
+        root,line=fixture()
+        previous=next(p for p in root.iter('p') if p.sourceline==line).getprevious()
+        previous.addnext(etree.fromstring(
+            '<kommentar>(Franz Beispiel [AfD]: Das ist falsch!)</kommentar>'))
+        node=next(p for p in root.iter('p') if p.sourceline==line)
+        rows=nearby_original_reactions(root,int(node.sourceline),node)
+        self.assertEqual(len(rows),1)
+        self.assertFalse(rows[0]['recipient_proved'])
+        self.assertTrue(rows[0]['same_xml_rede_as_grant'])
+        self.assertIn('Franz Beispiel',rows[0]['original_text'])
+        self.assertEqual(len(rows[0]['text_sha256']),64)
+
+    def test_context_comment_from_other_speech_has_no_rede_link(self):
+        root,line=fixture()
+        course=root.find('sitzungsverlauf/tagesordnungspunkt')
+        preceding=etree.fromstring(
+            '<rede><kommentar>(Jemand: Zuruf!)</kommentar></rede>')
+        course.insert(0,preceding)
+        node=next(p for p in root.iter('p') if 'Ordnungsruf' in ''.join(p.itertext()))
+        comments=nearby_original_reactions(root,int(node.sourceline),node)
+        self.assertEqual(len(comments),1)
+        self.assertFalse(comments[0]['same_xml_rede_as_grant'])
+        self.assertFalse(comments[0]['recipient_proved'])
 
     def test_existing_named_grant_fails_closed(self):
         root,line=fixture(sentences=[

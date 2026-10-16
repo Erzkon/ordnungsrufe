@@ -36,6 +36,9 @@ ORIGINAL_ANCHORS = {
 MAX_BEFORE = 9
 MAX_AFTER = 5
 MAX_TEXT = 650
+COMMENT_WINDOW_BEFORE = 32
+COMMENT_WINDOW_AFTER = 9
+MAX_COMMENTS = 24
 
 
 def validate_original_anchor(session, line, text):
@@ -87,6 +90,39 @@ def paragraph_record(element,text):
     }
 
 
+def nearby_original_reactions(root, line, grant):
+    """Source-line-limited original XML reactions; NEVER recipient assertions.
+
+    Comments may be outside the grant's <rede> (e.g. final lines of
+    a previous speech). Neither a name in a comment nor adjacency alone
+    proves who received a legal measure.
+    """
+    result=[]
+    used=set()
+    course=root.find('sitzungsverlauf')
+    if course is None:
+        raise ValueError('Sitzungsverlauf für Kontext nicht verfügbar')
+    for node in course.iter('kommentar'):
+        at=int(node.sourceline or 0)
+        if line-COMMENT_WINDOW_BEFORE<=at<=line+COMMENT_WINDOW_AFTER:
+            if at in used:
+                raise ValueError('Kontextkommentar ohne eindeutige Originalzeile')
+            used.add(at)
+            txt=normal(''.join(node.itertext()))
+            if not txt or len(txt)>3000:
+                raise ValueError('Originalreaktion leer oder zu lang')
+            result.append({
+                'xml_line':at,
+                'original_text':txt[:MAX_TEXT],
+                'text_sha256':hashlib.sha256(txt.encode('utf-8')).hexdigest(),
+                'same_xml_rede_as_grant':node.getparent() is grant.getparent(),
+                'recipient_proved':False,
+            })
+    if len(result)>MAX_COMMENTS:
+        raise ValueError('Kontextfenster mit zu vielen Originalreaktionen')
+    return sorted(result,key=lambda item:item['xml_line'])
+
+
 def inspect(root,session,lines,require_original_anchors=False):
     if root.get('wahlperiode')!='21' or int(root.get('sitzung-nr') or 0)!=session:
         raise ValueError('Fremdes oder beschädigtes XML-Protokoll')
@@ -127,6 +163,7 @@ def inspect(root,session,lines,require_original_anchors=False):
             'text_sha256':hashlib.sha256(txt.encode('utf-8')).hexdigest(),
             'original_wording_anchor_checked':bool(require_original_anchors),
             'original_grant':grant,
+            'nearby_original_xml_reactions':nearby_original_reactions(root,line,element),
             'previous_paragraphs':[paragraph_record(e,t) for e,t in near_before],
             'following_paragraphs':[paragraph_record(e,t) for e,t in near_after],
             'other_anonymous_grant_lines_nearby':sorted(
@@ -159,6 +196,15 @@ def collect(folder,targets=TARGETS):
         print(f'QUELLENKONTEXT {session:03d}: '+', '.join(
               f'L{x["xml_line"]}={x["original_grant"]["text"][:140]!r}'
               for x in section),flush=True)
+        for case in section:
+            relevant=[x for x in case['nearby_original_xml_reactions']
+                      if 0<case['xml_line']-x['xml_line']<=12]
+            for item in relevant[-4:]:
+                print(f"QUELLENREAKTION {session:03d} "
+                      f"L{item['xml_line']} zu L{case['xml_line']}: "
+                      f"{item['original_text'][:210]!r} "
+                      f"(gleiche Rede={item['same_xml_rede_as_grant']})",
+                      flush=True)
     if len(output)!=4 or len({x['case_id'] for x in output})!=4:
         raise ValueError('Original-XML-Prüfziele unvollständig')
     return {
