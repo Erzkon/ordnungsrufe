@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from wp21_weitere_einspruchsberichte import (
-    EVIDENCE, SOURCES, OTHER_MEASURE, OFFICIAL_ARTICLE_CASES,
+    EVIDENCE, SOURCES, OTHER_MEASURE, OFFICIAL_ARTICLE_CASES, PROTOCOL40,
     validate, build_report, render_markdown, run)
 
 
@@ -27,6 +27,27 @@ class IndependentAdditionalObjectionTests(unittest.TestCase):
                          if x['person']=='Steffen Janich'),[1,2])
         self.assertEqual({x['original_date'] for x in rows},{'2025-11-13'})
         self.assertEqual({x['decision_date'] for x in rows},{'2025-11-25'})
+
+    def test_five_original_grants_but_only_four_rejected_objections_in_40_42(self):
+        original=PROTOCOL40['original_grants_by_person']
+        votes=PROTOCOL40['rejected_objections_in_this_article_by_person']
+        self.assertEqual(original,{'Martin Sichert':1,'Steffen Janich':2,
+                                   'Kay Gottschalk':2})
+        self.assertEqual(votes,{'Martin Sichert':1,'Steffen Janich':2,
+                                'Kay Gottschalk':1})
+        result=build_report()
+        snap=result['original_40_and_vote_42_source_comparison']
+        self.assertEqual(snap['five_originally_issued_calls'],5)
+        self.assertEqual(snap['four_objections_rejected_in_vote_42'],4)
+        self.assertTrue(snap['second_gottschalk_grant_not_resolved_by_this_article'])
+        self.assertIsNone(snap['legally_effective_measure_count_from_these_sources'])
+        local=[x for x in result['cases'] if x['original_session']==40]
+        self.assertEqual(len(local),4)
+        self.assertEqual({x['original_plenary_pdf_page_for_40'] for x in local},
+                         {'https://dserver.bundestag.de/btp/21/21040.pdf#P.4626',
+                          'https://dserver.bundestag.de/btp/21/21040.pdf#P.4635'})
+        self.assertEqual({x['decision_plenary_pdf_page_for_40'] for x in local},
+                         {'https://dserver.bundestag.de/btp/21/21042.pdf#P.4865'})
 
     def test_twice_brandner_and_multiple_reichardt_dates_are_not_same_case(self):
         june=[r for r in EVIDENCE if r['person']=='Stephan Brandner'
@@ -51,10 +72,13 @@ class IndependentAdditionalObjectionTests(unittest.TestCase):
         self.assertEqual(result['automatically_confirmed_additional_sanctions'],0)
         self.assertEqual(result['automatically_rescinded_sanctions'],0)
         known=[x for x in result['cases'] if x['original_session'] is not None]
-        self.assertEqual({x['original_session'] for x in known},{77,90})
+        self.assertEqual({x['original_session'] for x in known},{40,77,90})
+        self.assertEqual(sum(x['original_session']==40 for x in known),4)
         self.assertTrue(all(x['prior_verified_counter_reference_present']
                             and x['reviewed_effective_measures_in_existing_partial_ledger']==1
-                            for x in known))
+                            for x in known if x['original_session'] in (77,90)))
+        self.assertTrue(all(x['reviewed_effective_measures_in_existing_partial_ledger']==0
+                            for x in known if x['original_session']==40))
         self.assertTrue(all(not x['verified_individual_effective_sanction_from_this_appeal']
                             for x in result['cases']))
 
@@ -106,6 +130,7 @@ class IndependentAdditionalObjectionTests(unittest.TestCase):
         md=render_markdown(build_report())
         self.assertIn('13 weitere eigenständig dokumentierte',md)
         self.assertIn('Steffen Janich',md)
+        self.assertIn('fünf ursprünglich erteilte Ordnungsrufe',md)
         self.assertIn('Ordnungsgeld',md)
         self.assertIn('bereits bestätigt (keine Doppelzählung)',md)
         self.assertNotIn('13 neue wirksame Ordnungsrufe',md)
