@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/wp21_targeted_diagnosis.yml'
       - 'wp21_source_regression.py'
+      - 'wp21_vier_quellenbelege.py'
       - 'wp21_rueckbezug.py'
       - 'wp21_episoden.py'
       - 'wp21_episoden_akte.py'
@@ -53,7 +54,7 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from wp21_scan import fetch
-          for number in (14,15,22,23,25,26,27,37,39,40,43,49,50,51,65,69,74,75,82):
+          for number in (8,14,15,22,23,25,26,27,28,37,39,40,43,46,49,50,51,65,69,74,75,82):
               data=fetch(number,Path('.audit/targeted_xml'))
               if data is None:
                   raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')

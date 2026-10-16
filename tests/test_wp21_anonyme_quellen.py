@@ -88,6 +88,12 @@ class AnonymousSourceDossierTests(unittest.TestCase):
         self.assertFalse(comments[0]['same_xml_rede_as_grant'])
         self.assertFalse(comments[0]['recipient_proved'])
 
+    def test_unreviewed_synthetic_xml_has_no_recipient_source_link(self):
+        root,line=fixture()
+        case=inspect(root,8,(line,))[0]
+        self.assertIsNone(case['source_linked_recipient_review_hint'])
+        self.assertFalse(case['legally_effective_sanction_automatically_confirmed'])
+
     def test_existing_named_grant_fails_closed(self):
         root,line=fixture(sentences=[
             'Der Abgeordnete Franz Beispiel kommt zu Wort.',

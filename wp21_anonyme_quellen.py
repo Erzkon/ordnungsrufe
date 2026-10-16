@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only, source-bound dossiers for the 4 remaining high-priority anonymous grants.
+"""Read-only source dossiers for four previously anonymous original-XML grants.
 
 Every dossier preserves the original XML grant line and neighboring speaker
 turns. A preceding speaker marker, nearby personal name, or repeated phrase
@@ -144,9 +144,27 @@ def inspect(root,session,lines,require_original_anchors=False):
         element,txt=paras[idx]
         if classify(txt)!='possible_grant':
             raise ValueError(f'Erteilungstext nicht mehr als Prüffall erkannt: 21/{session:03d} L{line}')
-        if linked.get(line):
-            # A source link added by a later parser fix must be explicitly
-            # reviewed before this *anonymous* legacy queue is updated.
+        source_hint=None
+        if require_original_anchors:
+            from wp21_vier_quellenbelege import SOURCES
+            expected_person=SOURCES[session][2]
+            matches=linked.get(line,[])
+            if (len(matches)!=1 or matches[0]['person']!=expected_person
+                    or matches[0]['status']!='review_required'
+                    or not matches[0]['zuordnungsmethode'].startswith(
+                        ('original_karte_rednerid_xmlzeile_',
+                         'original_kommentar_name_xmlzeile_'))):
+                raise ValueError(f'Original-XML-Personenbeleg nicht eindeutig: 21/{session:03d} L{line}')
+            event=matches[0]
+            source_hint={
+                'person_for_review':event['person'],
+                'identity_status':event['identity_status'],
+                'original_xml_person_id_if_known':event['person_id'],
+                'source_method':event['zuordnungsmethode'],
+                'status':'review_required',
+                'legally_effective_confirmed':False,
+            }
+        elif linked.get(line):
             raise ValueError(f'Anonyme Fundstelle schon einer Person zugeordnet: 21/{session:03d} L{line}')
         near_before=paras[max(0,idx-MAX_BEFORE):idx]
         near_after=paras[idx+1:idx+1+MAX_AFTER]
@@ -163,6 +181,7 @@ def inspect(root,session,lines,require_original_anchors=False):
             'text_sha256':hashlib.sha256(txt.encode('utf-8')).hexdigest(),
             'original_wording_anchor_checked':bool(require_original_anchors),
             'original_grant':grant,
+            'source_linked_recipient_review_hint':source_hint,
             'nearby_original_xml_reactions':nearby_original_reactions(root,line,element),
             'previous_paragraphs':[paragraph_record(e,t) for e,t in near_before],
             'following_paragraphs':[paragraph_record(e,t) for e,t in near_after],
@@ -208,10 +227,14 @@ def collect(folder,targets=TARGETS):
     if len(output)!=4 or len({x['case_id'] for x in output})!=4:
         raise ValueError('Original-XML-Prüfziele unvollständig')
     return {
-        'status':'nur_anonyme_original_xml_pruefhinweise',
+        'status':'historisch_anonyme_originalstellen_mit_personen_pruefhinweisen',
         'wahlperiode':21,
         'protocols_examined':len(targets),
         'anonymous_review_cases':len(output),
+        'source_linked_recipient_review_hints':sum(
+            bool(x['source_linked_recipient_review_hint']) for x in output),
+        'still_unattributed_original_locations':sum(
+            not x['source_linked_recipient_review_hint'] for x in output),
         'auto_confirmed_sanctions':0,
         'auto_identified_recipients':0,
         'warning':('Vorherige Redner-IDs, nachfolgende Äußerungen und '
@@ -233,8 +256,9 @@ def main():
     temp.write_text(json.dumps(obj,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     temp.replace(dest)
     print(f'QUELLENKONTEXT_OK {obj["anonymous_review_cases"]} '
-          'anonyme Fundstellen, 0 bestätigte Maßnahmen, 0 '
-          'automatisch zugeschriebene Personen.',flush=True)
+          'zuvor anonyme Fundstellen, '
+          f'{obj["source_linked_recipient_review_hints"]} '
+          'unbestätigte Empfängerhinweise, 0 bestätigte Maßnahmen.',flush=True)
 
 
 if __name__=='__main__':

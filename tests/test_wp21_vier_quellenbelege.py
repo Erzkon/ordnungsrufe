@@ -2,7 +2,11 @@
 import unittest
 from html import escape
 from lxml import etree
-from wp21_vier_quellenbelege import SOURCES, verify_original
+from wp21_vier_quellenbelege import (
+    SOURCES, verify_original, parser_recipient_review_links,
+)
+from parser import events, iter_session_text, speaker_index
+from pathlib import Path
 
 COMMENTS={
     8:'(Die Rednerin hält eine Plastikkarte hoch)',
@@ -54,6 +58,35 @@ class FixedOriginalEvidenceTests(unittest.TestCase):
                 self.assertEqual(len(case['original_grant_sha256']),64)
                 self.assertEqual(bool(case['person_xml_id_when_originally_verified']),
                                  session==8)
+
+    def test_parser_four_review_hints_no_effective_measures(self):
+        for session,(line,prior,name,_,_,_) in SOURCES.items():
+            with self.subTest(session=session):
+                root=fixture(session)
+                out=list(events(Path(f'21{session:03d}.xml'),
+                     root=root,index=speaker_index([root])))
+                rows=[item for item in out if item['line']==line]
+                self.assertEqual(len(rows),1)
+                self.assertEqual(rows[0]['person'],name)
+                self.assertEqual(rows[0]['status'],'review_required')
+                self.assertTrue(rows[0]['zuordnungsmethode'].endswith(
+                    f'xmlzeile_{prior}'))
+                self.assertEqual(bool(rows[0]['person_id']),session==8)
+
+    def test_parser_does_not_duplicate_or_borrow_bad_sources(self):
+        for session,(line,_,_,_,_,_) in SOURCES.items():
+            with self.subTest(session=session):
+                root=fixture(session)
+                paragraphs=list(iter_session_text(root))
+                index=speaker_index([root])
+                self.assertEqual(parser_recipient_review_links(
+                    paragraphs,index,{line}),[])
+                self.assertEqual(len(parser_recipient_review_links(
+                    paragraphs,index,set())),1)
+                changed=fixture(session,comment='(Beifall)')
+                self.assertFalse(list(events(
+                    Path(f'21{session:03d}.xml'),root=changed,
+                    index=speaker_index([changed]))))
 
     def test_wrong_interjector_does_not_identify_recipient(self):
         for session in (23,28,46):

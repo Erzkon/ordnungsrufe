@@ -12,6 +12,11 @@ from parser import candidates, events, iter_session_text, speaker_index
 from wp21_scan import safe_parse
 
 SOURCE_FRAGMENTS = {
+    # Four original previously anonymous locations; recipient REVIEW only.
+    (8,'ich erteile ihnen dafür einen ordnungsruf'):('linked_hint','Bachmann'),
+    (23,'sie bekommen jetzt von mir einen ordnungsruf dafür, dass sie die sitzungsleitung kritisiert haben'):('linked_hint','Bachmann'),
+    (28,'nein, das haben nicht sie zu entscheiden. dafür erteile ich jetzt auch einen ordnungsruf'):('linked_hint','Bochmann'),
+    (46,'sie bekommen jetzt für dieses „warum nicht?“ von mir einen ordnungsruf'):('linked_hint','Edis'),
     # Three president-speech episodes with explicitly unresolved number of
     # independent legal measures; a source paragraph is NOT a count.
     (49, 'möchte ich dem abgeordneten stephan brandner von der afd einen ordnungsruf erteilen'):
@@ -194,7 +199,9 @@ def run(folder):
                            'zweitgenannte_erteilung_vorsitz_klaerung_xmlzeile_',
                            'erstes_erteilungswort_redner_sichert_xmlzeile_',
                            'zweitvergabe_zu_benanntem_zwischenruf_xmlzeile_',
-                           'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_'))):
+                           'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_',
+                           'original_karte_rednerid_xmlzeile_',
+                           'original_kommentar_name_xmlzeile_'))):
                     raise AssertionError(f'Beleggebundener Personen-Prüfhinweis '
                                          f'21/{session} fehlt oder uneindeutig: '
                                          f'{cls=} {names=} {people=}')

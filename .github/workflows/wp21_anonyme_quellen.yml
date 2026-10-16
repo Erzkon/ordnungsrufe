@@ -84,6 +84,8 @@ jobs:
           d=json.loads(Path('.audit/anonymous_context.json').read_text())
           if (any(not c['original_wording_anchor_checked'] for c in d['cases'])
                   or d['anonymous_review_cases']!=4
+                  or d['source_linked_recipient_review_hints']!=4
+                  or d['still_unattributed_original_locations']!=0
                   or d['protocols_examined']!=4
                   or d['auto_confirmed_sanctions']!=0
                   or d['auto_identified_recipients']!=0):
@@ -94,10 +96,11 @@ jobs:
                   or proof['automatically_changed_public_counts']!=0):
               raise ValueError('Vier Original-XML-Empfängerprüfbelege unvollständig')
           lines=[
-              '## Original-XML-Quellenakten: 4 noch anonyme Erteilungsstellen',
+              '## Vier früher anonyme Original-XML-Erteilungsstellen',
               '- Amtliche Protokolle: 4',
-              '- Anonyme Orte: 4',
-              '- Automatisch zugeordnete Personen: 0',
+              '- Quellengebundene Personen-Prüfhinweise: 4',
+              '- Im Parser weiterhin ohne Personenhinweis: 0',
+              '- Automatisch rechtlich bestätigte Personen: 0',
               '- Automatisch bestaetigte oder aufgehobene Massnahmen: 0',
               '- Vier ergänzende, ungeprüfte Empfängerhinweise aus Original-XML archiviert.',
               '- Individuelle Rechtswirkung und Einspruchsprüfung bleiben offen.',

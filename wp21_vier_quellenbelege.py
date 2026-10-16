@@ -91,6 +91,58 @@ def verify_original(root,session):
     }
 
 
+def parser_recipient_review_links(paragraphs,index,excluded):
+    """Source-proven PERSON review hints only; no verified legal measures.
+
+    The parser reuses the strict source validator instead of inferring
+    identities from adjacent paragraphs. Drift yields no hint, while
+    official-XML regressions separately surface a source change.
+    """
+    from parser import candidate_name, _with_method
+    if not paragraphs:
+        return []
+    root=paragraphs[0][0].getroottree().getroot()
+    if root.get('wahlperiode')!='21':
+        return []
+    try:
+        session=int(root.get('sitzung-nr') or 0)
+    except (TypeError,ValueError):
+        return []
+    if session not in SOURCES:
+        return []
+    line,comment_line,name,_,_,_=SOURCES[session]
+    if line in excluded:
+        return []
+    try:
+        evidence=verify_original(root,session)
+    except (ValueError,KeyError):
+        return []
+    if evidence['person_for_manual_review']!=name:
+        return []
+    grants=[el for el,txt in paragraphs if el.sourceline==line]
+    if len(grants)!=1:
+        return []
+    grant=grants[0]
+    if session==8:
+        person=_identity_from_xml_speech(grant,index)
+        if (not person or person['person']!=name
+                or not person.get('person_id')
+                or person['person_id']!=
+                   evidence['person_xml_id_when_originally_verified']
+                or person['identity_status']!='matched_xml_person'):
+            return []
+        method='original_karte_rednerid_xmlzeile_'
+    else:
+        person=candidate_name(name,index)
+        if (not person or person['person'].casefold()!=name.casefold()
+                or person['identity_status']!='matched_xml_person'):
+            # Never invent an XML speaker ID for a named heckler.
+            person={'person':name,'person_id':'','fraktion':'',
+                    'identity_status':'named_official_source_reference'}
+        method='original_kommentar_name_xmlzeile_'
+    return [(grant,_with_method([person],method+str(comment_line))[0])]
+
+
 def collect(cache):
     if len(SOURCES)!=4:
         raise ValueError('Die vier festen Originalziele wurden verändert')
