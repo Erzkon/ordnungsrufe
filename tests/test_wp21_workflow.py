@@ -42,6 +42,16 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.eighteenDossiers.outcome == 'failure'",self.workflow)
         self.assertIn("github.event_name != 'pull_request'",self.workflow)
 
+    def test_dip_case_crosswalk_only_after_complete_position_pipeline(self):
+        self.assertIn('id: eighteenDIP', self.workflow)
+        self.assertIn("steps.dipqueue.outcome == 'success'", self.workflow)
+        self.assertIn('python wp21_18_dip_verfahrenspositionen.py', self.workflow)
+        self.assertIn('--vorgang-state .cache/dip21/state.json', self.workflow)
+        self.assertIn('--position-state .cache/dip21/positionen.json', self.workflow)
+        self.assertIn('wp21-18-dip-quellenverbund-', self.workflow)
+        self.assertIn("steps.eighteenDIP.outcome == 'success'", self.workflow)
+        self.assertIn("steps.eighteenDIP.outcome == 'failure'", self.workflow)
+
     def test_expensive_full_xml_audit_is_manual_only(self):
         wf=Path('.github/workflows/wp21_full_audit.yml').read_text(
             encoding='utf-8')

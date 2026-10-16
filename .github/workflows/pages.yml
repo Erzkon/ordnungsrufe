@@ -30,6 +30,7 @@ on:
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
       - 'wp21_hochprioritaet_18.py'
+      - 'wp21_18_dip_verfahrenspositionen.py'
       - 'wp21_fallkontext.py'
       - 'wp21_source_regression.py'
       - 'wp21_rueckbezug.py'
@@ -63,6 +64,7 @@ on:
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
       - 'wp21_hochprioritaet_18.py'
+      - 'wp21_18_dip_verfahrenspositionen.py'
       - 'wp21_fallkontext.py'
       - 'wp21_source_regression.py'
       - 'wp21_rueckbezug.py'
@@ -251,6 +253,30 @@ jobs:
           path: wp21_dip_verknuepfte_faelle.json
           if-no-files-found: error
           retention-days: 30
+      - name: 18 Einzelakten mit vollständigen amtlichen DIP-Vorgangspositionen abgleichen
+        if: github.event_name != 'pull_request' && steps.dipqueue.outcome == 'success'
+        id: eighteenDIP
+        continue-on-error: true
+        run: |
+          python wp21_18_dip_verfahrenspositionen.py \
+            --vorgang-state .cache/dip21/state.json \
+            --position-state .cache/dip21/positionen.json \
+            --output .audit/wp21_18_dip_verfahrenspositionen.json \
+            --brief .audit/wp21_18_dip_verfahrenspositionen.md
+      - name: Quellenscharfe DIP-Verfahrenspositionen als reine Prüfdaten archivieren
+        if: github.event_name != 'pull_request' && steps.eighteenDIP.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-18-dip-quellenverbund-${{ github.run_id }}
+          path: |
+            .audit/wp21_18_dip_verfahrenspositionen.json
+            .audit/wp21_18_dip_verfahrenspositionen.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Fehlenden DIP-18-Quellenverbund als Warnung ausgeben
+        if: github.event_name != 'pull_request' && steps.eighteenDIP.outcome == 'failure'
+        run: echo '::warning::DIP-18-Quellenverbund unvollständig, keine rechtliche Entscheidung und keine Änderung bestätigter Zähler.'
       - name: DIP-Vorgangspositionen-Änderungen archivieren
         if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
         uses: actions/upload-artifact@v4
