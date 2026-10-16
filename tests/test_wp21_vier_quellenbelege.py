@@ -86,7 +86,7 @@ class FixedOriginalEvidenceTests(unittest.TestCase):
 
     def test_unrelated_rede_comments_are_not_recipient_proof(self):
         for session in SOURCES:
-            with self.assertRaisesRegex(ValueError,'Kommentar'):
+            with self.assertRaisesRegex(ValueError,'[Kk]ommentar'):
                 verify_original(fixture(session,other_rede=True),session)
 
     def test_different_election_period_and_session_are_rejected(self):
