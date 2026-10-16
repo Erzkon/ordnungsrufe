@@ -74,6 +74,13 @@ jobs:
           scan=json.loads(Path('.audit/full_legal_scan.json').read_text(encoding='utf-8'))
           r=json.loads(Path('.audit/wp21_18_complete_followups.json').read_text(encoding='utf-8'))
           last=scan['letzte_sitzung']
+          # Regression: the Reichardt objection against grant 21/077
+          # appearing in XML 21/078 is NOT his distinct 21/065 case.
+          reichardt=next(c for c in r['cases']
+                         if c['session']==65 and c['person_for_review']=='Martin Reichardt')
+          if any(x['source_session']==78
+                 for x in reichardt['later_sitting_explicit_full_name_legal_keyword_signals_unverified']):
+              raise ValueError('Unrelated 21/077 Reichardt objection wrongly linked to 21/065')
           if (scan['status']!='bereit' or last<101
                   or r['later_protocols_searched']!=last
                   or r['person_session_cases']!=18

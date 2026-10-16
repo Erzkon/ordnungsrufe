@@ -5,7 +5,8 @@ from pathlib import Path
 from lxml import etree
 from wp21_hochprioritaet_18 import (
     EXPECTED_KEYS, ORIGINAL_LINES, TARGETS, assemble, legal_hints,
-    original_entry, render_manual_review_brief, validate_scope)
+    original_entry, render_manual_review_brief, validate_scope,
+    explicit_original_sitting_refs)
 from wp21_dip_kontrolle import reference
 from wp21_einspruchsbelege import EVIDENCE
 from wp21_autopruefung import norm
@@ -96,6 +97,35 @@ class EighteenIndividualSourceTests(TestCase):
         self.assertFalse(legal_hints(roots[53],53,subject='Martin Hess',
                                     origin_session=67)[0]['explicit_original_session_reference_in_same_paragraph'])
         self.assertEqual(legal_hints(roots[53],53,subject='Heidi Reichinnek'),[])
+
+    def test_other_original_sitting_must_not_borrow_the_same_politicians_appeal(self):
+        # Real official 21/078 discusses Reichardt's *other* 21/077
+        # original grant. Previous generic full-name matching wrongly put
+        # this in the 21/065 high-priority case's follow-up dossier.
+        later=fixture(78,
+            'Der Abgeordnete Martin Reichardt hat Einspruch gegen den '
+            'ihm in der 77. Sitzung erteilten Ordnungsruf eingelegt.')
+        self.assertEqual(explicit_original_sitting_refs(
+            'Dem Abgeordneten wurde in der 77. Sitzung ein Ordnungsruf erteilt.'),
+            {77})
+        self.assertEqual(legal_hints(
+            later,78,subject='Martin Reichardt',origin_session=65),[])
+        self.assertEqual(len(legal_hints(
+            later,78,subject='Martin Reichardt',origin_session=77)),1)
+        ambiguous=fixture(78,
+            'Martin Reichardt und der Ordnungsruf aus der 65. Sitzung '
+            'sowie der 77. Sitzung waren Gegenstand eines Einspruchs.')
+        self.assertEqual(legal_hints(
+            ambiguous,78,subject='Martin Reichardt',origin_session=65),[])
+        # Generic same-name keyword mentions without an original sitting
+        # remain unverified review hints, NOT outcome determinations.
+        vague=fixture(66,
+            'Martin Reichardt hat fristgerecht Einspruch gegen den '
+            'Ordnungsruf der vergangenen Sitzung eingelegt.')
+        hints=legal_hints(vague,66,subject='Martin Reichardt',origin_session=65)
+        self.assertEqual(len(hints),1)
+        self.assertFalse(hints[0]['explicit_original_session_reference_in_same_paragraph'])
+        self.assertTrue(hints[0]['cross_sitting_identity_and_legal_outcome_unverified'])
 
     def test_missing_originals_and_incomplete_followups_fail(self):
         roots={s:fixture(s) for s in TARGETS}

@@ -117,6 +117,17 @@ def original_entry(row,paragraphs):
     }
 
 
+
+def explicit_original_sitting_refs(text):
+    """Only *explicit* grammatical 21st-WP references from this paragraph.
+
+    Never transfer a differently numbered appeal to the same politician's
+    earlier original grant merely because their full name matches.
+    """
+    return {int(num) for num in re.findall(
+        r'\b(?:in|aus)\s+der\s+(\d{1,3})\.\s*Sitzung\b',text,re.I)}
+
+
 def legal_hints(root, session, subject=None, origin_session=None):
     """Unconfirmed source matches: full named person AND procedural terms.
 
@@ -133,13 +144,21 @@ def legal_hints(root, session, subject=None, origin_session=None):
             # Later protocols: accept only the explicit FULL name.
             # Same surnames (e.g. Reichardt) are not unique enough.
             continue
-        explicit_origin=(origin_session is not None and bool(
-            re.search(r'\b(?:in|aus)\s+der\s+'+re.escape(str(origin_session))
-                      +r'\.\s*Sitzung\b',text,re.I)))
+        referenced_sittings=explicit_original_sitting_refs(text)
+        if (origin_session is not None and referenced_sittings
+                and referenced_sittings!={origin_session}):
+            # Example: 21/078 discusses Reichardt's 21/077 objection.
+            # It must NEVER leak into his DIFFERENT 21/065 source dossier.
+            # Multiple competing original-sitting numbers are ambiguous too.
+            continue
+        explicit_origin=(origin_session is not None
+                         and referenced_sittings=={origin_session})
         found.append({
             'source_session':session,
             'explicit_original_session_reference_in_same_paragraph':explicit_origin,
             'original_session_under_review':origin_session,
+            'all_explicit_original_sitting_references':sorted(referenced_sittings),
+            'cross_sitting_identity_and_legal_outcome_unverified':True,
             'xml_line':int(node.sourceline),
             'signal_type':hit[0],
             'signal_terms':hit[1],
