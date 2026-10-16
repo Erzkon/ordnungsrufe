@@ -173,6 +173,33 @@ def crosswalk(vorgang, positionen, dip_reference=None):
                 role='appeal_date_vote_step_independently_corroborated'
             else:
                 role='other_or_ambiguous_procedural_step'
+            doc_session=p.get('official_plenary_session')
+            doc_date=p.get('official_plenary_date')
+            doc_pdf=p.get('official_plenary_pdf_url')
+            doc_xml=p.get('official_plenary_xml_url')
+            tenors=p.get('official_decision_tenors',[])
+            abstract=p.get('official_position_abstract_excerpt','')
+            if doc_session is not None and (
+                    type(doc_session)!=int or not 1<=doc_session<=450
+                    or not isinstance(doc_date,str) or not isinstance(doc_pdf,str)
+                    or not isinstance(doc_xml,str) or not isinstance(tenors,list)):
+                raise ValueError('Ungültiger DIP-Originalfundstellenbeleg')
+            if (role=='original_grant_step_metadata_only' and doc_session is not None
+                    and doc_session!=key[0]):
+                raise ValueError('Fremde ursprüngliche Sitzungsquelle in DIP')
+            if (role=='appeal_date_vote_step_independently_corroborated'
+                    and doc_session is not None and doc_session<=key[0]):
+                raise ValueError('Einspruchsabstimmung nicht in späterer Sitzung')
+            source_verified_grant=(role=='original_grant_step_metadata_only'
+                and doc_session==key[0] and doc_date==dates[key]
+                and bool(doc_pdf and doc_xml))
+            source_verified_rejection=(
+                role=='appeal_date_vote_step_independently_corroborated'
+                and doc_session is not None and doc_session>key[0]
+                and doc_date==decisions[key]['decision_date']
+                and tenors==['Zurückweisung des Einspruchs']
+                and isinstance(abstract,str) and named(abstract,key[1])
+                and bool(doc_pdf and doc_xml))
             pos.append({
                 'id':pid,'parent_id':ident,'updated':p.get('updated'),
                 'date':position_date,'step':p['step'][:350],
@@ -184,6 +211,13 @@ def crosswalk(vorgang, positionen, dip_reference=None):
                     decisions[key]['source']
                     if role=='appeal_date_vote_step_independently_corroborated'
                     else None),
+                'official_plenary_protocol_session':doc_session,
+                'official_plenary_pdf_page':doc_pdf,
+                'official_plenary_xml':doc_xml,
+                'official_position_decision_tenors_review_only':tenors,
+                'official_original_grant_position_source_verified':source_verified_grant,
+                'independent_dip_appeal_rejection_tenor_source_verified':source_verified_rejection,
+                'legal_measure_count_from_metadata':None,
                 'is_individual_appeal_outcome_legally_confirmed':False,
             })
             total_bound_positions+=1
@@ -222,6 +256,14 @@ def crosswalk(vorgang, positionen, dip_reference=None):
                                                 for x in records),
         'bound_vorgang_candidates':found_bound,
         'bound_position_hints':total_bound_positions,
+        'source_verified_original_grant_positions':sum(
+            p['official_original_grant_position_source_verified']
+            for case in records for parent in case['candidate_vorgaenge']
+            for p in parent['procedural_position_hints']),
+        'source_verified_independent_dip_rejected_appeals':sum(
+            p['independent_dip_appeal_rejection_tenor_source_verified']
+            for case in records for parent in case['candidate_vorgaenge']
+            for p in parent['procedural_position_hints']),
         'original_grant_step_metadata_positions':sum(
             p['procedural_step_role_for_review']=='original_grant_step_metadata_only'
             for case in records for parent in case['candidate_vorgaenge']
@@ -261,6 +303,10 @@ def render_markdown(report):
         f"**DIP-Positionenstand:** {report['sources']['position_snapshot_utc']}  ",
         f"**Gebundene Vorgänge:** {report['bound_vorgang_candidates']}  ",
         f"**Positionen:** {report['bound_position_hints']}  ",
+        f"**Quellengeprüfte Originalprotokoll-Positionen:** "
+        f"{report['source_verified_original_grant_positions']}  ",
+        f"**Quellengeprüfte DIP-Einspruchszurückweisungen:** "
+        f"{report['source_verified_independent_dip_rejected_appeals']}  ",
         f"**Ursprüngliche Erteilungs-Positionshinweise:** "
         f"{report['original_grant_step_metadata_positions']}  ",
         f"**Abstimmungspositionen mit unabhängigen Beschlussberichten:** "

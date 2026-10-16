@@ -81,6 +81,60 @@ def fetch_positions(parent_id, key, load=position_page):
     raise ValueError('DIP-Position: Seitenlimit erreicht')
 
 
+def position_document_evidence(raw):
+    """Conservative DIP Fundstelle and Beschlussfassung source metadata."""
+    fund=raw.get('fundstelle')
+    session=None
+    docdate=None
+    pdf=None
+    xml=None
+    if fund is not None:
+        if not isinstance(fund,dict):
+            raise ValueError('DIP-Fundstelle ist kein Objekt')
+        if fund.get('dokumentart')=='Plenarprotokoll':
+            number=fund.get('dokumentnummer')
+            if not isinstance(number,str) or not re.fullmatch(r'21/[1-9]\d{0,2}',number):
+                raise ValueError('Unerwartete Fundstellen-Sitzungsnummer')
+            session=int(number.split('/')[1])
+            docdate=fund.get('datum')
+            pdf=fund.get('pdf_url')
+            xml=fund.get('xml_url')
+            if type(docdate)!=str:
+                raise ValueError('Kein amtliches Protokolldatum')
+            datetime.strptime(docdate,'%Y-%m-%d')
+            if raw.get('datum') and raw['datum']!=docdate:
+                raise ValueError('DIP-Position und Protokolltag widersprechen sich')
+            expected=f'https://dserver.bundestag.de/btp/21/21{session:03d}'
+            if (xml!=expected+'.xml' or type(pdf)!=str
+                    or not re.fullmatch(re.escape(expected)+r'\.pdf#P\.[1-9]\d{0,5}',pdf)):
+                raise ValueError('DIP-Fundstelle hat nichtamtliche oder fremde Links')
+    raw_tenors=raw.get('beschlussfassung') or []
+    if not isinstance(raw_tenors,list) or len(raw_tenors)>10:
+        raise ValueError('DIP-Beschlussfassung ungültig')
+    tenors=[]
+    for entry in raw_tenors:
+        if not isinstance(entry,dict):
+            raise ValueError('Beschlussfassung muss strukturierter Eintrag sein')
+        text=entry.get('beschlusstenor')
+        if not isinstance(text,str) or not text or len(text)>300:
+            raise ValueError('DIP-Beschlusstenor fehlt oder ist ungültig')
+        tenors.append(' '.join(text.split()))
+    if len(tenors)!=len(set(tenors)):
+        raise ValueError('Doppelte DIP-Beschlusstenöre')
+    abstract=raw.get('abstract') or ''
+    if not isinstance(abstract,str) or len(abstract)>5000:
+        raise ValueError('DIP-Positionsabstract ungültig')
+    return {
+        'official_plenary_session':session,
+        'official_plenary_date':docdate,
+        'official_plenary_pdf_url':pdf,
+        'official_plenary_xml_url':xml,
+        'official_decision_tenors':tenors,
+        'official_position_abstract_excerpt':' '.join(abstract.split())[:500],
+        'source_metadata_is_only_a_review_hint':True,
+    }
+
+
 def normalize_position(raw):
     ident = str(raw['id'])
     parent = str(raw['vorgang_id'])
@@ -113,6 +167,11 @@ def normalize_position(raw):
         signal_fields.append('titel')
     if LEGAL.search(' '.join(activity_text)):
         signal_fields.append('aktivitaet_anzeige')
+    extra=position_document_evidence(raw)
+    if LEGAL.search(' '.join(extra['official_decision_tenors'])):
+        signal_fields.append('beschlussfassung')
+    if LEGAL.search(extra['official_position_abstract_excerpt']):
+        signal_fields.append('abstract')
     updated = iso(utc(raw['aktualisiert']))
     date = raw.get('datum') or ''
     if date:
@@ -124,6 +183,7 @@ def normalize_position(raw):
         'signal_fields':signal_fields,
         'afterword': bool(raw.get('nachtrag', False)),
         'source': 'https://dip.bundestag.de/vorgang/' + parent,
+        **extra,
     }
 
 
