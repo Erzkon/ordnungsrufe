@@ -177,3 +177,36 @@ class EpisodeSourceRegression(unittest.TestCase):
         self.assertTrue(all(
             not episode_summary(n)['individual_legal_event_count_verified']
             for n in (49,51,65)))
+
+    def test_dossier_separates_episode_from_legal_effect(self):
+        from wp21_episoden_akte import inspect
+        data=inspect({49:xml_fragment(49),51:xml_fragment(51),
+                      65:xml_fragment(65)})
+        self.assertEqual(data['protocols'],3)
+        self.assertEqual(data['episodes'],3)
+        self.assertEqual(data['source_issuance_phrases'],6)
+        self.assertIsNone(data['distinct_effective_sanctions'])
+        self.assertEqual(data['automatically_confirmed_effective_sanctions'],0)
+        self.assertEqual(data['automatically_rescinded_sanctions'],0)
+        self.assertEqual([case['recipient_review_reference'] for case in data['cases']],
+                         ['Stephan Brandner','Markus Frohnmaier','Martin Reichardt'])
+        for case in data['cases']:
+            self.assertIsNone(case['distinct_legal_measures'])
+            self.assertTrue(case['requires_independent_individual_legal_outcome'])
+            self.assertEqual(len(case['original_chair_issuance_phrases']),2)
+            self.assertTrue(all(
+                len(x['sha256'])==64 and
+                not x['is_independently_legally_effective_confirmed']
+                for x in case['original_chair_issuance_phrases']))
+
+    def test_dossier_does_not_accept_false_thomas_stephan(self):
+        from wp21_episoden_akte import inspect
+        wrong=xml_fragment(49,{
+            3278:('p',FIRST49.replace('Stephan Brandner','Thomas Stephan'))})
+        with self.assertRaisesRegex(ValueError,'Quellenerteilung|Originalempfänger'):
+            inspect({49:wrong,51:xml_fragment(51),65:xml_fragment(65)})
+
+    def test_dossier_rejects_incomplete_original_source_set(self):
+        from wp21_episoden_akte import inspect
+        with self.assertRaisesRegex(ValueError,'drei amtliche'):
+            inspect({49:xml_fragment(49),51:xml_fragment(51)})
