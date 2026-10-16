@@ -50,8 +50,17 @@ def inspect(roots):
             65:(first,'gleiche_erteilungsepisode_spaetere_anrede_xmlzeile_2046',
                 last,'anrede_vor_erteilung'),
         }[session]
+        # Real 21/065 has an even stronger independent original proof:
+        # a unique formal chair introduction at XML line 1920.
+        # Synthetic isolated XML cannot include this earlier introduction,
+        # so it uses the directly named address in line 2046.
+        later_method=last_hits[0]['zuordnungsmethode']
+        accepted_later=(
+            later_method==expected[3]
+            or (session==65 and later_method.startswith(
+                'vollname_vorsitz_einleitung_xmlzeile_')))
         if (first_hits[0]['zuordnungsmethode']!=expected[1]
-                or last_hits[0]['zuordnungsmethode']!=expected[3]):
+                or not accepted_later):
             raise ValueError(
                 f'Quellennachweis oder Empfängermethode verändert: '
                 f'21/{session:03d}, erste={first_hits[0]["zuordnungsmethode"]!r}, '
