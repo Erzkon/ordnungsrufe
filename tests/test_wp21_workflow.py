@@ -78,6 +78,18 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.individual2025.outcome == 'failure'",self.workflow)
         self.assertIn("github.event_name != 'pull_request'",self.workflow)
 
+    def test_complete_2025_twelve_measure_official_source_live_probe_is_manual_only(self):
+        source=Path('.github/workflows/wp21_2025_lifecycle_live_validation.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('  workflow_dispatch:',source)
+        self.assertNotIn('  pull_request:',source)
+        self.assertNotIn('  schedule:',source)
+        self.assertIn('wp21_2025_massnahmen_lifecycle.py',source)
+        self.assertIn('wp21_2025_sieben_originalzeilen.py',source)
+        self.assertIn('identified_original_xml_issuance_lines',source)
+        self.assertIn('sha256sum --check',source)
+        self.assertNotIn('export_wp21.py',source)
+
     def test_2025_case_review_uses_completed_dip_cache_and_full_survey_is_manual(self):
         self.assertIn('id: original2025',self.workflow)
         self.assertIn("steps.dippositions.outcome == 'success'",self.workflow)

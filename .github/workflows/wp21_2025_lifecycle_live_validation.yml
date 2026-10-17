@@ -1,12 +1,13 @@
 name: Isolierte 2025-DIP-plus-Original-XML-Einzelmaßnahmen-Vollprüfung
 
-# One-time live end-to-end source check introduced via PR; manual-only
-# after the first successful confirmation. No automatic legal counts.
+# Original official sources verified in isolated one-time PR run:
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/39025586386
+# 10 real DIP parent IDs + 21 positions, eight original XML sessions,
+# 12 separate original issued calls, 11 XML paragraph issuance anchors,
+# one still missing first-Janich original line, 11 rejected objections.
+# Full live re-fetch is expensive; future runs are manual-only. The
+# daily cache-backed review is separate and does NOT publish counters.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_2025_lifecycle_live_validation.yml'
   workflow_dispatch:
 
 permissions:
