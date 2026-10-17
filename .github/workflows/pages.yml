@@ -30,6 +30,7 @@ on:
       - 'wp21_weitere_einspruchsberichte.py'
       - 'wp21_2025_dip_einzelakten.py'
       - 'wp21_2025_massnahmen_lifecycle.py'
+      - 'wp21_2025_sieben_originalzeilen.py'
       - 'wp21_40_mehrfach_akte.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
@@ -68,6 +69,7 @@ on:
       - 'wp21_weitere_einspruchsberichte.py'
       - 'wp21_2025_dip_einzelakten.py'
       - 'wp21_2025_massnahmen_lifecycle.py'
+      - 'wp21_2025_sieben_originalzeilen.py'
       - 'wp21_40_mehrfach_akte.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
@@ -510,6 +512,29 @@ jobs:
       - name: Fehlende Originalbelege zu Sitzung 40/42 warnen, nie automatisch zählen
         if: github.event_name != 'pull_request' && steps.fortyDossier.outcome == 'failure'
         run: echo '::warning::Sitzungen 21/040/042 mit ursprünglichen Mehrfachrufen nicht quellenverifiziert; kein Zählerupdate.'
+      - name: Weitere sieben 2025 Original-XML-Erteilungsstellen quellengenau absichern
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: sevenOriginals
+        continue-on-error: true
+        run: |
+          python wp21_2025_sieben_originalzeilen.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_2025_7_original_lines.json \
+            --brief .audit/wp21_2025_7_original_lines.md
+      - name: Amtliche sieben 2025-Erteilungszeilen separat als nichtzählende Quellen archivieren
+        if: github.event_name != 'pull_request' && steps.sevenOriginals.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-2025-seven-original-source-loci-${{ github.run_id }}
+          path: |
+            .audit/wp21_2025_7_original_lines.json
+            .audit/wp21_2025_7_original_lines.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Verschobene oder ungeprüfte sieben Originalfundstellen ohne Zähleränderung warnen
+        if: github.event_name != 'pull_request' && steps.sevenOriginals.outcome == 'failure'
+        run: echo '::warning::Sieben amtliche 2025-Erteilungszeilen nicht vollständig bestätigt; keine Freigabe rechtswirksamer Einzelrufe.'
       - name: Zwölf individuell belegte Erteilungen aus zehn DIP-Vorgängen mit elf Einspruchsentscheidungen verknüpfen
         if: github.event_name != 'pull_request' && steps.original2025.outcome == 'success' && steps.fortyDossier.outcome == 'success'
         id: individual2025

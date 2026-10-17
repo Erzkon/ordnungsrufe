@@ -1,11 +1,12 @@
 name: Isolierte 2025-Erteilungs-Fundstellen in acht Originalprotokollen
 
-# Initial PR one-time evidence survey, restore manual-only after evidence audit.
+# Read-only source survey finished 17 October 2026:
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/39024535122
+# Eight original protocols, 38 review-only Ordnungsruf phrase candidates.
+# Dedicated seven-source validation runs on PR changes, and the daily
+# XML monitor reuses already cached files after merge. This full
+# eight-protocol exploratory listing remains strictly manual-only.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_2025_original_xml_probe.yml'
   workflow_dispatch:
 
 permissions:

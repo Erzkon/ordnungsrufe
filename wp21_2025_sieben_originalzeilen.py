@@ -96,12 +96,9 @@ def inspect(roots):
         paragraphs=[(int(p.sourceline),text) for p,text in iter_session_text(root)]
         if len(paragraphs)<30:
             raise ValueError('Missing official spoken-paragraph source')
-        for case,_,ident,sit,decision,number,votes in CASES:
-            if sit!=session:
-                continue
-            person=next(p for date,p,i,s,d,g,v in CASES
-                        if date==case and i==ident and s==session)
-            records.append(exact_match(paragraphs,session,person))
+        for original_date,person,ident,sit,decision,number,votes in CASES:
+            if sit==session:
+                records.append(exact_match(paragraphs,session,person))
     if len(records)!=7 or len({(x['session'],norm(x['person'])) for x in records})!=7:
         raise ValueError('Seven original person/session lines not uniquely attributable')
     return {

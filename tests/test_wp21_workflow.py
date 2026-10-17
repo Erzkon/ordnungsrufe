@@ -52,6 +52,17 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('measure_lifecycle_review.md',wf)
         self.assertIn('sha256sum --check',wf)
 
+    def test_seven_more_original_xml_sittings_are_reviewed_without_counts(self):
+        self.assertIn('id: sevenOriginals',self.workflow)
+        self.assertIn('python wp21_2025_sieben_originalzeilen.py',self.workflow)
+        self.assertIn('--cache .cache/wp21',self.workflow)
+        self.assertIn("steps.sevenOriginals.outcome == 'failure'",self.workflow)
+        probe=Path('.github/workflows/wp21_2025_original_xml_probe.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('  workflow_dispatch:',probe)
+        self.assertNotIn('  pull_request:',probe)
+        self.assertNotIn('  schedule:',probe)
+
     def test_one_person_one_measures_not_objections_dossier_is_independently_queued(self):
         self.assertIn('id: individual2025',self.workflow)
         self.assertIn("steps.original2025.outcome == 'success'",self.workflow)

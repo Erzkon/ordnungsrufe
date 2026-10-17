@@ -10,6 +10,9 @@ on:
       - 'wp21_weitere_einspruchsberichte.py'
       - 'wp21_2025_dip_einzelakten.py'
       - 'wp21_2025_massnahmen_lifecycle.py'
+      - 'wp21_2025_sieben_originalzeilen.py'
+      - 'tests/test_wp21_2025_sieben_originalzeilen.py'
+      - '.github/workflows/wp21_2025_original_xml_probe.yml'
       - 'tests/test_wp21_2025_massnahmen_lifecycle.py'
       - '.github/workflows/wp21_2025_original_case_probe.yml'
       - 'tests/test_wp21_2025_dip_einzelakten.py'
@@ -63,7 +66,7 @@ jobs:
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
       - name: Negative Originalquellen- und Wirksamkeitstests
-        run: python -m unittest -v tests.test_wp21_hochprioritaet_18 tests.test_wp21_18_dip_verfahrenspositionen tests.test_wp21_dip_fundstellen tests.test_wp21_18_dip_original_beschluesse tests.test_wp21_weitere_einspruchsberichte tests.test_wp21_40_mehrfach_akte tests.test_wp21_2025_dip_einzelakten tests.test_wp21_2025_massnahmen_lifecycle
+        run: python -m unittest -v tests.test_wp21_hochprioritaet_18 tests.test_wp21_18_dip_verfahrenspositionen tests.test_wp21_dip_fundstellen tests.test_wp21_18_dip_original_beschluesse tests.test_wp21_weitere_einspruchsberichte tests.test_wp21_40_mehrfach_akte tests.test_wp21_2025_dip_einzelakten tests.test_wp21_2025_massnahmen_lifecycle tests.test_wp21_2025_sieben_originalzeilen
       - name: 18 personenbezogene Akten aus 14 amtlichen XMLs erzeugen
         run: |
           python wp21_hochprioritaet_18.py \
@@ -81,6 +84,12 @@ jobs:
             --cache .audit/high_priority_xml \
             --output .audit/wp21_40_42_source_episodes.json \
             --brief .audit/wp21_40_42_source_episodes.md
+      - name: Sieben weitere 2025-Originalerteilungen an amtlichen XML-Zeilen überprüfen
+        run: |
+          python wp21_2025_sieben_originalzeilen.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_2025_7_original_lines.json \
+            --brief .audit/wp21_2025_7_original_lines.md
       - name: Bestätigte Statistikdateien müssen bytegleich bleiben
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
@@ -96,6 +105,8 @@ jobs:
             .audit/wp21_weitere_einsprueche.md
             .audit/wp21_40_42_source_episodes.json
             .audit/wp21_40_42_source_episodes.md
+            .audit/wp21_2025_7_original_lines.json
+            .audit/wp21_2025_7_original_lines.md
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
