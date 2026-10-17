@@ -116,6 +116,18 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertNotIn('git push',workflow)
         self.assertNotIn('git merge',workflow)
 
+    def test_gottschalk_mixl_comment_markers_only_create_source_evidence(self):
+        original = Path('.github/workflows/wp21_18_einzelakten.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('tests.test_wp21_40_empfaenger_belege', original)
+        self.assertIn('python wp21_40_empfaenger_belege.py', original)
+        self.assertIn('wp21_40_empfaenger_belege.json', original)
+        self.assertIn('sha256sum --check', original)
+        self.assertIn('id: gottschalkMixlSourceRoles', self.workflow)
+        self.assertIn("steps.janichFullOriginal.outcome == 'success'", self.workflow)
+        self.assertIn("steps.gottschalkMixlSourceRoles.outcome == 'failure'", self.workflow)
+        self.assertIn('wp21-gottschalk-mixl-speaker-evidence-', self.workflow)
+
     def test_janich_complete_original_sitting_is_read_only_dossier(self):
         wf = Path('.github/workflows/wp21_18_einzelakten.yml').read_text(
             encoding='utf-8')

@@ -20,6 +20,8 @@ on:
       - 'wp21_janich_erste_quellenkritik.py'
       - 'wp21_janich_original_scope.py'
       - 'wp21_janich_full_original.py'
+      - 'wp21_40_empfaenger_belege.py'
+      - 'tests/test_wp21_40_empfaenger_belege.py'
       - 'tests/test_wp21_janich_full_original.py'
       - 'tests/test_wp21_janich_original_scope.py'
       - 'tests/test_wp21_janich_erste_quellenkritik.py'
@@ -92,7 +94,7 @@ jobs:
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
       - name: Negative Originalquellen- und Wirksamkeitstests
-        run: python -m unittest -v tests.test_wp21_hochprioritaet_18 tests.test_wp21_18_dip_verfahrenspositionen tests.test_wp21_dip_fundstellen tests.test_wp21_18_dip_original_beschluesse tests.test_wp21_weitere_einspruchsberichte tests.test_wp21_40_mehrfach_akte tests.test_wp21_2025_dip_einzelakten tests.test_wp21_2025_massnahmen_lifecycle tests.test_wp21_2025_sieben_originalzeilen tests.test_wp21_janich_erste_quellenkritik tests.test_wp21_janich_original_scope tests.test_wp21_janich_full_original tests.test_wp21_gottschalk_bounded_review tests.test_wp21_gottschalk_folgebeobachter
+        run: python -m unittest -v tests.test_wp21_hochprioritaet_18 tests.test_wp21_18_dip_verfahrenspositionen tests.test_wp21_dip_fundstellen tests.test_wp21_18_dip_original_beschluesse tests.test_wp21_weitere_einspruchsberichte tests.test_wp21_40_mehrfach_akte tests.test_wp21_2025_dip_einzelakten tests.test_wp21_2025_massnahmen_lifecycle tests.test_wp21_2025_sieben_originalzeilen tests.test_wp21_janich_erste_quellenkritik tests.test_wp21_janich_original_scope tests.test_wp21_janich_full_original tests.test_wp21_40_empfaenger_belege tests.test_wp21_gottschalk_bounded_review tests.test_wp21_gottschalk_folgebeobachter
       - name: 18 personenbezogene Akten aus 14 amtlichen XMLs erzeugen
         run: |
           python wp21_hochprioritaet_18.py \
@@ -128,6 +130,12 @@ jobs:
             --cache .audit/high_priority_xml \
             --output .audit/wp21_janich_full_original.json \
             --brief .audit/wp21_janich_full_original.md
+      - name: Amtliche Sprecher-/Zwischenrufbelege Gottschalk Mixl aus 21/040 und 21/042 prüfen
+        run: |
+          python wp21_40_empfaenger_belege.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_40_empfaenger_belege.json \
+            --brief .audit/wp21_40_empfaenger_belege.md
       - name: Sieben weitere 2025-Originalerteilungen an amtlichen XML-Zeilen überprüfen
         run: |
           python wp21_2025_sieben_originalzeilen.py \
@@ -155,6 +163,8 @@ jobs:
             .audit/wp21_janich_original_context.md
             .audit/wp21_janich_full_original.json
             .audit/wp21_janich_full_original.md
+            .audit/wp21_40_empfaenger_belege.json
+            .audit/wp21_40_empfaenger_belege.md
             .audit/wp21_2025_7_original_lines.json
             .audit/wp21_2025_7_original_lines.md
           include-hidden-files: true

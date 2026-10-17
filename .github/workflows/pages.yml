@@ -33,6 +33,7 @@ on:
       - 'wp21_2025_sieben_originalzeilen.py'
       - 'wp21_40_mehrfach_akte.py'
       - 'wp21_janich_erste_quellenkritik.py'
+      - 'wp21_40_empfaenger_belege.py'
       - 'wp21_gottschalk_folgebeobachter.py'
       - 'wp21_gottschalk_plenar_folgen.py'
       - 'wp21_gottschalk_amtliche_beschluesse.py'
@@ -77,6 +78,7 @@ on:
       - 'wp21_2025_sieben_originalzeilen.py'
       - 'wp21_40_mehrfach_akte.py'
       - 'wp21_janich_erste_quellenkritik.py'
+      - 'wp21_40_empfaenger_belege.py'
       - 'wp21_gottschalk_folgebeobachter.py'
       - 'wp21_gottschalk_plenar_folgen.py'
       - 'wp21_gottschalk_amtliche_beschluesse.py'
@@ -666,6 +668,29 @@ jobs:
       - name: Fehlende Janich-Ursprungsquelle nur warnen
         if: github.event_name != 'pull_request' && steps.janichFullOriginal.outcome == 'failure'
         run: echo '::warning::Janich-Vollsitzung nicht validiert; keine neue Erteilungszuordnung und keine Zähleränderung.'
+      - name: Gottschalk und Mixl mit Redner- und Kommentar-Knoten gesondert prüfen
+        if: github.event_name != 'pull_request' && steps.janichFullOriginal.outcome == 'success'
+        id: gottschalkMixlSourceRoles
+        continue-on-error: true
+        run: |
+          python wp21_40_empfaenger_belege.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_40_empfaenger_belege.json \
+            --brief .audit/wp21_40_empfaenger_belege.md
+      - name: Sprecher- und Zwischenrufbelege nur lesend archivieren
+        if: github.event_name != 'pull_request' && steps.gottschalkMixlSourceRoles.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-gottschalk-mixl-speaker-evidence-${{ github.run_id }}
+          path: |
+            .audit/wp21_40_empfaenger_belege.json
+            .audit/wp21_40_empfaenger_belege.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Unvollständige Stenografie-Markierungen nur warnen
+        if: github.event_name != 'pull_request' && steps.gottschalkMixlSourceRoles.outcome == 'failure'
+        run: echo '::warning::Sprecher-/Zwischenrufbelege nicht validiert; keine Rechtsfolgen- oder Zähleränderung.'
       - name: Weitere sieben 2025 Original-XML-Erteilungsstellen quellengenau absichern
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
         id: sevenOriginals
