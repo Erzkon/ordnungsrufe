@@ -1,0 +1,62 @@
+name: Source-only 21/040 speaker structure probe
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_40_speaker_probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-xml-speaking-structure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.txt
+      - name: Inspect named speakers, chair speech boundaries and raw paragraphs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from lxml import etree
+          from wp21_scan import fetch,safe_parse
+          from parser import normal
+          root=safe_parse(fetch(40,Path('.audit/speaker_probe')),40)
+          course=root.find('sitzungsverlauf')
+          if course is None:raise ValueError('No official speaking course')
+          for lo,hi in ((8707,8725),(8799,8816),(8977,9015)):
+              print('\n=== SEGMENT',lo,hi,'===')
+              for el in course.iter():
+                  line=el.sourceline
+                  if line is None or not lo<=line<=hi:continue
+                  if el.tag not in ('p','rede','redner','name','vorname','nachname','praesidium','kommentar'):continue
+                  val=normal(''.join(el.itertext()))[:500]
+                  if el.tag in ('redner','name','vorname','nachname'):
+                      print('XML_NODE',line,el.tag,el.attrib,'TEXT',repr(val[:150]))
+                  if el.tag=='p' and (el.get('klasse')!='redner' or val):
+                      parents=[]
+                      parent=el.getparent()
+                      for _ in range(4):
+                          if parent is None:break
+                          parents.append((parent.tag,parent.get('id'),parent.sourceline))
+                          parent=parent.getparent()
+                      print('XML_P',line,'CLASS',el.get('klasse'),'TEXT',repr(val),'PARENTS',parents)
+          for line in (8715,8717,8719,8812,8990,8992,8995,9001,9003,9005,9008):
+              elems=[el for el in course.iter('p') if el.sourceline==line]
+              for el in elems:
+                  parent=el.getparent()
+                  containing=next((p for p in el.iterancestors() if p.tag=='rede'),None)
+                  if containing is not None:
+                      redner=containing.find('redner')
+                      print('TARGET',line,'rede_ID',containing.get('id'),'redner',
+                            normal(''.join(redner.itertext()))[:220] if redner is not None else '(none)',
+                            'preceding',[(s.tag,s.sourceline,normal(''.join(s.itertext()))[:90]) for s in list(el.itersiblings(preceding=True))[:3]])
+                  else:
+                      print('TARGET',line,'outside_rede','parent',parent.tag if parent is not None else None)
+          PY
