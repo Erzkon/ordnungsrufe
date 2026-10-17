@@ -316,6 +316,33 @@ jobs:
       - name: Wenn Gottschalks amtlicher Verfahrensabgleich fehlschlägt, warnen
         if: github.event_name != 'pull_request' && steps.gottschalkWatch.outcome == 'failure'
         run: echo '::warning::Gottschalk-Originalvorgang oder spätere amtliche Position unvollständig; rechtliche Quellenprüfung erforderlich, kein Zählerupdate.'
+      - name: Unabhängig von Vorgangstiteln neue Gottschalk-DIP-Positionen im 14-Tage-Fenster sichten
+        if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
+        id: gottschalkPositionWide
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          START=$(date -u -d '13 days ago' +%F)
+          END=$(date -u +%F)
+          python wp21_gottschalk_unkategorisierte_positionen.py \
+            --start "$START" --end "$END" \
+            --output .audit/gottschalk_current_positions.json \
+            --brief .audit/gottschalk_current_positions.md
+      - name: Titelunabhängige aktuelle Gottschalk-DIP-Hinweise archivieren
+        if: github.event_name != 'pull_request' && steps.gottschalkPositionWide.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-gottschalk-positions-current-${{ github.run_id }}
+          path: |
+            .audit/gottschalk_current_positions.json
+            .audit/gottschalk_current_positions.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Bei unvollständiger titelunabhängiger Positionsquelle nur warnen
+        if: github.event_name != 'pull_request' && steps.gottschalkPositionWide.outcome == 'failure'
+        run: echo '::warning::Titelfreie DIP-Positionsquelle im aktuellen 14-Tage-Fenster unvollständig; keine Zähleränderung, keine Negativaussage.'
       - name: Zehn 2025-Originalvorgänge und differenzierte Einsprüche aus erfolgreichem DIP-Cache prüfen
         if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
         id: original2025

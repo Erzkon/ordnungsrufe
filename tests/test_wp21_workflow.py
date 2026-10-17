@@ -56,6 +56,15 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('sha256sum --check',source)
         self.assertIn('--start "$WINDOW_START" --end "$WINDOW_END"',source)
 
+    def test_title_independent_gottschalk_positions_watch_uses_recent_window_only(self):
+        self.assertIn('id: gottschalkPositionWide', self.workflow)
+        self.assertIn('wp21_gottschalk_unkategorisierte_positionen.py', self.workflow)
+        self.assertIn("steps.dippositions.outcome == 'success'", self.workflow)
+        self.assertIn("steps.gottschalkPositionWide.outcome == 'success'", self.workflow)
+        self.assertIn("steps.gottschalkPositionWide.outcome == 'failure'", self.workflow)
+        self.assertIn("date -u -d '13 days ago'", self.workflow)
+        self.assertIn('wp21-gottschalk-positions-current-', self.workflow)
+
     def test_janich_conditional_original_wording_is_review_only(self):
         self.assertIn('id: janichContext',self.workflow)
         self.assertIn('wp21_janich_erste_quellenkritik.py',self.workflow)
