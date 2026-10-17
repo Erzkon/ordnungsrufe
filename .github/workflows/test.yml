@@ -23,5 +23,11 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install pytest
 
+      - name: Browser-Vertrag vor Parser prüfen
+        run: |
+          node --check docs/verified_contract.js
+          node --check docs/app.js
+          node --test tests/frontend_contract.test.cjs
+
       - name: Parser testen
         run: python -m pytest -v

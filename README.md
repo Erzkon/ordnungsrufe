@@ -4,6 +4,16 @@
 
 Unabhängiges, nichtamtliches Transparenzprojekt zu personenbezogenen Ordnungsrufen im Deutschen Bundestag mit Originalprotokoll-Links.
 
+## Version 1.0: begrenzte, überprüfbare Veröffentlichung
+
+Der nächste Meilenstein ist eine **historische Auswertung der 20. Wahlperiode**
+mit einer ausdrücklich **unvollständigen Vorschau für die 21. Wahlperiode**.
+Eine neue Gesamtzahl der aktuellen Wahlperiode wird dabei nicht behauptet.
+Der [Release-Vertrag](V1_RELEASE.md) legt Quellenstand,
+ungeklärte Personendifferenz, Datenintegrität, Browser-Negativtests und
+die manuell erforderliche Merge-Freigabe fest. Ein grüner PR-Test ist
+**keine Erlaubnis**, bestätigte Zähler automatisch zu verändern.
+
 ## Datenstände
 
 - **20. Wahlperiode (2021–2025):** 135 einzeln überprüfte wirksame personenbezogene Maßnahmen, 123 Vorgänge. Zwei zurückgenommene Maßnahmen ausgeschlossen. Die veröffentlichte personenbezogene Statistik zu Beatrix von Storch (19) weicht von unserer geprüften Einzelliste (18) ab. Siehe [QUELLENABGLEICH.md](QUELLENABGLEICH.md).

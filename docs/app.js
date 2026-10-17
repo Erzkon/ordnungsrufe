@@ -141,9 +141,12 @@ function activate(period) {
   $('ranking-caption').textContent = period === '20'
     ? 'Alle Angaben basieren auf den einzeln belegten, wirksamen Maßnahmen der 20. Wahlperiode.'
     : 'Ausschließlich die bisher manuell geprüften Beispiele. Diese Ranglisten sind noch nicht repräsentativ.';
+  const snapshot = dateDE(payload.meta.snapshot_date);
+  $('hero-snapshot').textContent = 'DATENSTAND ' + snapshot +
+    (period === '21' ? ' · NUR GEPRÜFTE TEILMENGE' : '');
   $('footer-period').textContent = period === '20'
-    ? '20. WAHLPERIODE · DATENSTAND 14.10.2026'
-    : '21. WAHLPERIODE · UNVOLLSTÄNDIGE ERFASSUNG';
+    ? '20. WAHLPERIODE · DATENSTAND ' + snapshot + ' · PERSONENDIFFERENZ OFFEN'
+    : '21. WAHLPERIODE · DATENSTAND ' + snapshot + ' · UNVOLLSTÄNDIGE ERFASSUNG';
   $('wp20-note').hidden = period !== '20';
   $('wp21-note').hidden = period !== '21';
   $('wp21-scan').hidden = period !== '21';
@@ -454,9 +457,7 @@ function start() {
     if(responses.some(r=>!r.ok)) throw new Error('Datenabruf fehlgeschlagen');
     const [twenty,twentyOne]=await Promise.all(responses.map(r=>r.json()));
     for(const [period,payload] of [['20',twenty],['21',twentyOne]]) {
-      if(!payload.meta || !Array.isArray(payload.records) || payload.meta.count !== payload.records.length
-          || payload.meta.legislature !== Number(period)) throw new Error(`Datenfehler: ${period}`);
-      state.datasets[period]=payload;
+      state.datasets[period] = validatePublishedDataset(period, payload);
     }
     const initial=new URL(window.location.href).searchParams.get('wp')==='21'?'21':'20';
     activate(initial);
