@@ -64,8 +64,58 @@ def validate_40_42(xml):
     return originals,votes
 
 
-def review(official,xml):
+def validate_seven_other_source_lines(report):
+    """Recheck independently sourced seven 2025 issuer line identities.
+
+    The seven-source JSON is emitted only after parsing each official
+    original XML document, matching the strict issuer phrase, and hashing
+    that exact original paragraph. No replacement by a same-name mention.
+    """
+    from wp21_2025_sieben_originalzeilen import LOCATIONS,DAYS
+    if (not isinstance(report,dict)
+            or report.get('schema')!='wp21-2025-seven-verified-original-xml-loci-v1'
+            or report.get('individually_sourced_original_xml_lines')!=7
+            or report.get('known_other_21_040_lines_validated_separately')!=4
+            or report.get('first_janich_original_xml_line_is_still_unlocated') is not True
+            or report.get('automatically_confirmed_effective_sanctions')!=0
+            or report.get('automatically_rescinded_sanctions')!=0
+            or report.get('public_counter_delta')!=0):
+        raise ValueError('Amtliche sieben Original-XML-Fundstellen unvollständig')
+    records=report.get('cases')
+    if not isinstance(records,list) or len(records)!=7:
+        raise ValueError('Genau sieben unzensierte individuelle Erteilungsquellen')
+    index={}
+    for row in records:
+        if not isinstance(row,dict):
+            raise ValueError('Ungültiger amtlicher XML-Einzelfall')
+        session=row.get('session')
+        person=row.get('person')
+        if type(session)!=int or not isinstance(person,str):
+            raise ValueError('Amtliche Ursprungsidentität fehlt')
+        key=(session,norm(person))
+        if key not in LOCATIONS or key in index:
+            raise ValueError('XML-Zeile fremder oder doppelter Ursprungsmaßnahme')
+        expected_line=LOCATIONS[key][0]
+        expected_xml=f'https://dserver.bundestag.de/btp/21/21{session:03d}.xml'
+        expected_pdf=f'https://dserver.bundestag.de/btp/21/21{session:03d}.pdf'
+        if (row.get('original_date')!=DAYS[session]
+                or row.get('original_xml_line')!=expected_line
+                or row.get('original_xml_source')!=expected_xml
+                or row.get('original_pdf_source')!=expected_pdf
+                or not re.fullmatch(r'[0-9a-f]{64}',str(row.get('paragraph_sha256','')))
+                or row.get('legally_effective_individual_sanction_confirmed') is not False
+                or row.get('automatic_public_counter_delta')!=0):
+            raise ValueError('Amtlicher Quellenabsatz/Zeitpunkt/Status widersprüchlich')
+        index[key]={'line':expected_line,'sha256':row['paragraph_sha256']}
+    if set(index)!=set(LOCATIONS):
+        raise ValueError('Sieben individuell identifizierte Quellabsätze fehlen')
+    return index
+
+
+def review(official,xml,seven_other_origins=None):
     originals,xml_votes=validate_40_42(xml)
+    extra_sources=(validate_seven_other_source_lines(seven_other_origins)
+                   if seven_other_origins is not None else {})
     if (not isinstance(official,dict)
             or official.get('schema')!='wp21-2025-ten-cases-original-votes-review-v1'
             or official.get('case_count')!=10
@@ -140,7 +190,9 @@ def review(official,xml):
         if len(mapped)!=objection_count:
             raise ValueError('Einspruchspositionsanzahl nicht identisch zu gebundenen Maßnahmennummern')
         for ordinal in range(1,number+1):
-            original_xml=originals.get((person,ordinal)) if sitting==40 else None
+            original_xml=(originals.get((person,ordinal)) if sitting==40
+                          else extra_sources.get((sitting,norm(person)))
+                          if ordinal==1 else None)
             decided=mapped.get(ordinal)
             decision_xml=xml_votes.get((person,ordinal)) if decided and sitting==40 else None
             if sitting==40 and person=='Steffen Janich' and ordinal==1:
@@ -199,8 +251,13 @@ def review(official,xml):
         'initially_issued_individual_grants_review_only':12,
         'separately_rejected_objections':11,
         'no_vote_in_examined_parent':1,
-        'identified_original_xml_issuance_lines':4,
-        'still_unlocated_original_xml_issuance_lines':8,
+        'identified_original_xml_issuance_lines':4+len(extra_sources),
+        'still_unlocated_original_xml_issuance_lines':8-len(extra_sources),
+        'seven_independently_source_bound_2025_originals':len(extra_sources),
+        'source_line_completeness_scope':(
+            '11_of_12_with_first_janich_line_unlocated'
+            if len(extra_sources)==7 else
+            'four_21_040_lines_only_others_not_checked_in_this_invocation'),
         'Gottschalk_second_grant_status_not_exhaustively_established':True,
         'automatically_confirmed_legally_effective_measures':0,
         'automatically_rescinded_measures':0,
@@ -208,9 +265,15 @@ def review(official,xml):
         'warning':('Beschlüsse über Einsprüche sind keine weiteren '
                    'Ordnungsrufe. Ein in diesem Vorgang fehlender '
                    'Einspruchsentscheid kann außerhalb des geprüften '
-                   'Vorgangs vorliegen. Eine genaue Erteilungszeile '
-                   'fehlt noch bei Janichs erstem Ruf und sieben '
-                   'weiteren 2025-Fällen. Keine automatische Rechtsfreigabe.'),
+                   'Vorgangs vorliegen. '
+                   + ('Eine genaue Erteilungszeile fehlt noch bei Janichs '
+                      'erstem Ruf. Die elf anderen individuellen '
+                      'Originalzeilen sind überprüft.'
+                      if len(extra_sources)==7 else
+                      'Eine genaue Erteilungszeile fehlt bei Janichs '
+                      'erstem Ruf und sieben anderen ungeprüften '
+                      '2025-Fällen.') +
+                   ' Keine automatische Rechtsfreigabe.'),
         'measures':result,
     }
 
@@ -243,7 +306,9 @@ def markdown(report):
             f"{item['person']} – Nr. {item['ordinal_within_official_parent']} "
             f"([DIP]({item['official_parent_url']})) | {locus} | {vote} |")
     lines.extend(['','## Beweisgrenzen','',
-        '- Der erste Ruf bei Steffen Janich besitzt noch keinen eigenen',
+        f"- Individuell geprüfte Erteilungszeilen: "
+        f"{report['identified_original_xml_issuance_lines']} von 12.",
+        '- Der erste Ruf bei Steffen Janich besitzt noch keinen eigenen'
         '  durchgängig eindeutig lokalisierten Original-XML-Zeilenanker.',
         '- Gottschalks zweiter Ruf besitzt ein ausdrücklich belegtes',
         '  Erteilungswort, aber keinen zweiten Zurückweisungsbeschluss',
@@ -258,10 +323,12 @@ def markdown(report):
     return '\n'.join(lines)
 
 
-def run(dip_report,plenary_report,output,brief):
+def run(dip_report,plenary_report,output,brief,seven_original_report=None):
     official=json.loads(Path(dip_report).read_text(encoding='utf-8'))
     xml=json.loads(Path(plenary_report).read_text(encoding='utf-8'))
-    report=review(official,xml)
+    extra=(json.loads(Path(seven_original_report).read_text(encoding='utf-8'))
+           if seven_original_report is not None else None)
+    report=review(official,xml,extra)
     prose=markdown(report)
     for path,body in ((Path(output),json.dumps(report,indent=2,ensure_ascii=False)+'\n'),
                       (Path(brief),prose)):
@@ -279,7 +346,9 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--dip-report',type=Path,required=True)
     p.add_argument('--plenary-report',type=Path,required=True)
+    p.add_argument('--seven-original-report',type=Path)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--brief',type=Path,required=True)
     args=p.parse_args()
-    run(args.dip_report,args.plenary_report,args.output,args.brief)
+    run(args.dip_report,args.plenary_report,args.output,args.brief,
+        args.seven_original_report)

@@ -9,6 +9,7 @@ from tests.test_wp21_2025_dip_einzelakten import example_source_snapshot
 from wp21_2025_dip_einzelakten import inspect
 from wp21_2025_massnahmen_lifecycle import (
     ORIGINAL_40,VOTES_42,review,markdown,run)
+from wp21_2025_sieben_originalzeilen import LOCATIONS,DAYS
 
 
 def plenary_example():
@@ -39,7 +40,70 @@ def report_example():
     return inspect(example_source_snapshot())
 
 
+def seven_official_originals_example():
+    rows=[]
+    for (session,person),(line,pattern) in LOCATIONS.items():
+        name=next(person_name for d,person_name,pid,ss,v,g,o
+                  in __import__('wp21_2025_dip_einzelakten',
+                                fromlist=['CASES']).CASES
+                  if ss==session)
+        rows.append({
+            'session':session,'person':name,'original_date':DAYS[session],
+            'original_xml_line':line,
+            'original_xml_source':f'https://dserver.bundestag.de/btp/21/21{session:03d}.xml',
+            'original_pdf_source':f'https://dserver.bundestag.de/btp/21/21{session:03d}.pdf',
+            'paragraph_sha256':format(line,'064x'),
+            'legally_effective_individual_sanction_confirmed':False,
+            'automatic_public_counter_delta':0,
+        })
+    return {
+        'schema':'wp21-2025-seven-verified-original-xml-loci-v1',
+        'individually_sourced_original_xml_lines':7,
+        'known_other_21_040_lines_validated_separately':4,
+        'first_janich_original_xml_line_is_still_unlocated':True,
+        'automatically_confirmed_effective_sanctions':0,
+        'automatically_rescinded_sanctions':0,
+        'public_counter_delta':0,
+        'cases':rows,
+    }
+
+
 class IndividualMeasureLifecycleTests(unittest.TestCase):
+    def test_eleven_exact_individual_original_xml_utterances_with_only_janich_first_missing(self):
+        result=review(report_example(),plenary_example(),
+                      seven_official_originals_example())
+        self.assertEqual(result['identified_original_xml_issuance_lines'],11)
+        self.assertEqual(result['still_unlocated_original_xml_issuance_lines'],1)
+        self.assertEqual(result['seven_independently_source_bound_2025_originals'],7)
+        self.assertEqual(result['initially_issued_individual_grants_review_only'],12)
+        self.assertEqual(result['separately_rejected_objections'],11)
+        self.assertEqual(result['automatically_confirmed_legally_effective_measures'],0)
+        self.assertEqual(result['public_counter_delta'],0)
+        janich=[x for x in result['measures'] if x['person']=='Steffen Janich']
+        self.assertIsNone(janich[0]['specific_original_issuance_xml_source'])
+        self.assertEqual(janich[1]['specific_original_issuance_xml_source']['line'],8719)
+        other=[x for x in result['measures'] if x['original_sitting']!=40]
+        self.assertEqual(len(other),7)
+        self.assertTrue(all(x['specific_original_issuance_xml_source']
+                            for x in other))
+        self.assertIn('11 von 12',markdown(result))
+
+    def test_wrong_extra_original_xml_session_line_or_counter_fails_closed(self):
+        for change,value in [
+            ('original_xml_line',123),
+            ('original_xml_source','https://fake.example/btp/21/21010.xml'),
+            ('legally_effective_individual_sanction_confirmed',True),
+            ('automatic_public_counter_delta',1),
+        ]:
+            source=seven_official_originals_example()
+            source['cases'][0][change]=value
+            with self.subTest(change=change),self.assertRaises(ValueError):
+                review(report_example(),plenary_example(),source)
+        source=seven_official_originals_example()
+        source['cases'].pop()
+        with self.assertRaises(ValueError):
+            review(report_example(),plenary_example(),source)
+
     def test_twelve_originals_eleven_separate_decided_objections(self):
         result=review(report_example(),plenary_example())
         self.assertEqual(len(result['measures']),12)
