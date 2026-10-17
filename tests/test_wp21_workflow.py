@@ -47,6 +47,9 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('wp21_2025_dip_einzelakten.py',wf)
         self.assertIn('tests.test_wp21_2025_dip_einzelakten',wf)
         self.assertIn('verified_individual_cases.json',wf)
+        self.assertIn('wp21_2025_massnahmen_lifecycle.py',wf)
+        self.assertIn('original_40_42.xml_review.json',wf)
+        self.assertIn('measure_lifecycle_review.md',wf)
         self.assertIn('sha256sum --check',wf)
 
     def test_one_person_one_measures_not_objections_dossier_is_independently_queued(self):

@@ -159,6 +159,21 @@ jobs:
             --source .audit/2025-dip-survey/official_case_candidates.json \
             --output .audit/2025-dip-survey/verified_individual_cases.json \
             --brief .audit/2025-dip-survey/verified_individual_cases.md
+      - name: Zwei Original-XML-Protokolle zusätzlich direkt amtlich überprüfen
+        timeout-minutes: 8
+        run: |
+          python wp21_40_mehrfach_akte.py \
+            --cache .audit/2025-dip-survey/source_xml \
+            --output .audit/2025-dip-survey/original_40_42.xml_review.json \
+            --brief .audit/2025-dip-survey/original_40_42.xml_review.md
+      - name: Zwölf einzeln identifizierte Erteilungen auf elf getrennte Beschlüsse beziehen
+        run: |
+          python -m unittest -v tests.test_wp21_2025_massnahmen_lifecycle
+          python wp21_2025_massnahmen_lifecycle.py \
+            --dip-report .audit/2025-dip-survey/verified_individual_cases.json \
+            --plenary-report .audit/2025-dip-survey/original_40_42.xml_review.json \
+            --output .audit/2025-dip-survey/measure_lifecycle_review.json \
+            --brief .audit/2025-dip-survey/measure_lifecycle_review.md
       - name: SHA256-Zählerschutz immer erneut prüfen
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
@@ -171,6 +186,10 @@ jobs:
             .audit/2025-dip-survey/official_case_candidates.json
             .audit/2025-dip-survey/verified_individual_cases.json
             .audit/2025-dip-survey/verified_individual_cases.md
+            .audit/2025-dip-survey/original_40_42.xml_review.json
+            .audit/2025-dip-survey/original_40_42.xml_review.md
+            .audit/2025-dip-survey/measure_lifecycle_review.json
+            .audit/2025-dip-survey/measure_lifecycle_review.md
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 30
