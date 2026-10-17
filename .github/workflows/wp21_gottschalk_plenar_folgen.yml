@@ -33,11 +33,11 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - name: Namens-/Einspruchs-Kontexte und Negativbelege prüfen
-        run: python -m unittest -v tests.test_wp21_gottschalk_plenar_folgen tests.test_wp21_gottschalk_amtliche_beschluesse
       - name: Bytegleichheit bestätigter Zähler sichern
         run: |
           sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Namens-/Einspruchs-Kontexte und Negativbelege prüfen
+        run: python -m unittest -v tests.test_wp21_gottschalk_plenar_folgen tests.test_wp21_gottschalk_amtliche_beschluesse
       - name: Alle späteren veröffentlichten Original-XMLs personen- und entscheidungskritisch durchsuchen
         run: |
           python wp21_gottschalk_plenar_folgen.py \

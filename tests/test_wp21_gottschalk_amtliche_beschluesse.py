@@ -12,12 +12,12 @@ from wp21_gottschalk_amtliche_beschluesse import (
 def pages(session):
     first = f'21. Wahlperiode\nAmtliches Protokoll\n{session}. Sitzung des Deutschen Bundestages\n'
     if session == 42:
-        return [first+'Einzelplan 01',
+        return [first+'Einzelplan 01 und weitere amtliche Sitzungsgegenstände',
                 'Zusatzpunkt 4\nDer Einspruch gemäß § 39 der Geschäftsordnung '
                 'des Abgeordneten Kay Gottschalk gegen den am 13. November 2025 '
-                'erteilten Ord-\nnungsruf wird zurückgewiesen.\n', 'Sitzungsende']
-    return [first+'Tagesordnungspunkt 5\nKeine besondere Entscheidung',
-            'Kay Gottschalk beantragt die Annahme eines Gesetzentwurfs.']
+                'erteilten Ord-\nnungsruf wird zurückgewiesen.\n', 'Die nächste Sitzung wird vom Bundestag turnusmäßig einberufen.']
+    return [first+'Tagesordnungspunkt 5\nKeine besondere Entscheidung im parlamentarischen Beschlussverfahren',
+            'Kay Gottschalk beantragt die Annahme eines Gesetzentwurfs im Bundestag.']
 
 
 def html():
@@ -56,7 +56,7 @@ class OfficialResolutions(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Sitzungsidentität'):
             hints_for_pages(pages(97),96,SOURCES[1][1])
         with self.assertRaisesRegex(ValueError,'erste'):
-            hints_for_pages([pages(42)[0],'Gottschalk Rede',pages(42)[2]],
+            hints_for_pages([pages(42)[0],'Gottschalk hält eine allgemeine Rede zu einem Gesetzentwurf.',pages(42)[2]],
                             42,SOURCES[0][1])
 
     def test_provisional_103_is_never_called_final_or_complete(self):
