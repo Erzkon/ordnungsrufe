@@ -116,6 +116,19 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertNotIn('git push',workflow)
         self.assertNotIn('git merge',workflow)
 
+    def test_gottschalk_mixl_dip_crosswalk_sources_are_read_only(self):
+        source=Path('.github/workflows/wp21_18_einzelakten.yml').read_text(encoding='utf-8')
+        weekly=Path('.github/workflows/wp21_amtliche_katalog.yml').read_text(encoding='utf-8')
+        self.assertIn('tests.test_wp21_40_dip_rechtsfolgen_crosswalk',source)
+        self.assertIn('python wp21_40_dip_rechtsfolgen_crosswalk.py',source)
+        self.assertIn('wp21_40_dip_rechtsfolgen_crosswalk.json',source)
+        self.assertIn('sha256sum --check',source)
+        self.assertIn('tests.test_wp21_40_dip_rechtsfolgen_crosswalk',weekly)
+        self.assertIn('gottschalk_mixl_dip_crosswalk.json',weekly)
+        self.assertIn('wp21_40_empfaenger_belege.py',weekly)
+        self.assertIn('sha256sum --check',weekly)
+        self.assertNotIn('git push',weekly)
+
     def test_gottschalk_mixl_comment_markers_only_create_source_evidence(self):
         original = Path('.github/workflows/wp21_18_einzelakten.yml').read_text(
             encoding='utf-8')

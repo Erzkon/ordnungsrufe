@@ -9,6 +9,9 @@ on:
       - '.github/workflows/wp21_amtliche_katalog.yml'
       - 'wp21_gottschalk_amtliche_beschluesse.py'
       - 'wp21_minuten_delta.py'
+      - 'wp21_40_dip_rechtsfolgen_crosswalk.py'
+      - 'tests/test_wp21_40_dip_rechtsfolgen_crosswalk.py'
+      - 'wp21_40_empfaenger_belege.py'
       - 'tests/test_wp21_minuten_delta.py'
       - 'daten/wp21_amtliche_protokolle_baseline.json'
   workflow_dispatch:
@@ -56,6 +59,20 @@ jobs:
             --baseline daten/wp21_amtliche_protokolle_baseline.json \
             --output .audit/amtliche_minuten_delta.json \
             --brief .audit/amtliche_minuten_delta.md
+      - name: Gottschalk/Mixl-DIP-Fallakte und juristische Nichtzählung testen
+        run: python -m unittest -v tests.test_wp21_40_dip_rechtsfolgen_crosswalk
+      - name: Original-Sprecher und Zwischenrufer aus amtlichen 21/040 und 21/042 XML erneut prüfen
+        run: |
+          python wp21_40_empfaenger_belege.py \
+            --cache .audit/amtliche_40_42_xml \
+            --output .audit/gottschalk_mixl_original_source.json \
+            --brief .audit/gottschalk_mixl_original_source.md
+      - name: DIP-Personenpositionen von amtlichem Beschluss und Originalerteilung getrennt halten
+        run: |
+          python wp21_40_dip_rechtsfolgen_crosswalk.py \
+            --source-case .audit/gottschalk_mixl_original_source.json \
+            --output .audit/gottschalk_mixl_dip_crosswalk.json \
+            --brief .audit/gottschalk_mixl_dip_crosswalk.md
       - name: Amtliche Quellenabdeckung im Actions-Protokoll festhalten
         run: |
           python - <<'PY'
@@ -96,6 +113,8 @@ jobs:
             .audit/amtliche_minuten_vollkatalog.md
             .audit/amtliche_minuten_delta.json
             .audit/amtliche_minuten_delta.md
+            .audit/gottschalk_mixl_dip_crosswalk.json
+            .audit/gottschalk_mixl_dip_crosswalk.md
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
