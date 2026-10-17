@@ -1,0 +1,52 @@
+name: WP21 DIP Fundstellen-Schema Diagnose
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/wp21_dip_fundstelle_diagnose.yml'
+      - 'wp21_dip_positionen.py'
+      - 'tests/test_wp21_dip_positionen.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-dip-diagnostic:
+    name: Three official Bundesrat references remain strictly non-counting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Recheck three actual official DIP positions (read only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from wp21_dip_monitor import PUBLIC_KEY
+          from wp21_dip_positionen import fetch_positions, normalize_position
+
+          expected = (
+              ('321963','670644',1054),
+              ('325401','678924',1058),
+              ('325513','678887',1058),
+          )
+          for parent, position_id, bundesrat_session in expected:
+              positions = fetch_positions(parent, PUBLIC_KEY)
+              hit = next((x for x in positions if str(x.get('id')) == position_id), None)
+              if hit is None:
+                  raise AssertionError(f'Official DIP position {position_id} missing')
+              record = normalize_position(hit)
+              assert record['official_plenary_chamber'] == 'Bundesrat', parent
+              assert record['official_bundesrat_session'] == bundesrat_session, parent
+              assert record['official_plenary_session'] is None, parent
+              assert record['official_plenary_xml_url'] is None, parent
+              assert record['official_plenary_pdf_url'].startswith(
+                  f'https://dserver.bundestag.de/brp/{bundesrat_session}.pdf#P.'), parent
+              assert record['source_metadata_is_only_a_review_hint'] is True, parent
+              print('OFFICIAL_BUNDESRAT_POSITION_PASS',parent,position_id,bundesrat_session)
+          print('DIP_FUNDSTELLE_LIVE_REGRESSION_PASS 3 positions; 0 statistics modified')
+          PY

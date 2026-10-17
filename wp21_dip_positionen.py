@@ -82,9 +82,17 @@ def fetch_positions(parent_id, key, load=position_page):
 
 
 def position_document_evidence(raw):
-    """Conservative DIP Fundstelle and Beschlussfassung source metadata."""
+    """Preserve validated Bundestag and Bundesrat DIP plenary references.
+
+    DIP uses dokumentart="Plenarprotokoll" for both chambers. Bundesrat
+    records have a numerical document number (e.g. 1058), a /brp/ PDF,
+    and no Bundestag XML. Never map a Bundesrat session to a Bundestag
+    sitting or infer legal effectiveness from the referenced protocol.
+    """
     fund=raw.get('fundstelle')
     session=None
+    bundesrat_session=None
+    chamber=None
     docdate=None
     pdf=None
     xml=None
@@ -93,9 +101,6 @@ def position_document_evidence(raw):
             raise ValueError('DIP-Fundstelle ist kein Objekt')
         if fund.get('dokumentart')=='Plenarprotokoll':
             number=fund.get('dokumentnummer')
-            if not isinstance(number,str) or not re.fullmatch(r'21/[1-9]\d{0,2}',number):
-                raise ValueError('Unerwartete Fundstellen-Sitzungsnummer')
-            session=int(number.split('/')[1])
             docdate=fund.get('datum')
             pdf=fund.get('pdf_url')
             xml=fund.get('xml_url')
@@ -104,10 +109,27 @@ def position_document_evidence(raw):
             datetime.strptime(docdate,'%Y-%m-%d')
             if raw.get('datum') and raw['datum']!=docdate:
                 raise ValueError('DIP-Position und Protokolltag widersprechen sich')
-            expected=f'https://dserver.bundestag.de/btp/21/21{session:03d}'
-            if (xml!=expected+'.xml' or type(pdf)!=str
-                    or not re.fullmatch(re.escape(expected)+r'\.pdf#P\.[1-9]\d{0,5}',pdf)):
-                raise ValueError('DIP-Fundstelle hat nichtamtliche oder fremde Links')
+            if not isinstance(number,str):
+                raise ValueError('Unerwartete Fundstellen-Sitzungsnummer')
+            if re.fullmatch(r'21/[1-9]\d{0,2}',number):
+                chamber='Bundestag'
+                session=int(number.split('/')[1])
+                expected=f'https://dserver.bundestag.de/btp/21/21{session:03d}'
+                if (xml!=expected+'.xml' or type(pdf)!=str
+                        or not re.fullmatch(re.escape(expected)+r'\.pdf#P\.[1-9]\d{0,5}',pdf)):
+                    raise ValueError('DIP-Fundstelle hat nichtamtliche oder fremde Links')
+            elif re.fullmatch(r'[1-9]\d{2,3}',number):
+                # Actual official DIP records 670644, 678924 and 678887
+                # reference Bundesrat plenary documents 1054 and 1058.
+                # Keep that evidence separate from WP21 Bundestag sittings.
+                chamber='Bundesrat'
+                bundesrat_session=int(number)
+                expected=f'https://dserver.bundestag.de/brp/{number}'
+                if (xml is not None or type(pdf)!=str
+                        or not re.fullmatch(re.escape(expected)+r'\.pdf#P\.[1-9]\d{0,5}',pdf)):
+                    raise ValueError('DIP-Bundesratsfundstelle hat nichtamtliche oder fremde Links')
+            else:
+                raise ValueError('Unerwartete Fundstellen-Sitzungsnummer')
     raw_tenors=raw.get('beschlussfassung') or []
     if not isinstance(raw_tenors,list) or len(raw_tenors)>10:
         raise ValueError('DIP-Beschlussfassung ungültig')
@@ -125,6 +147,8 @@ def position_document_evidence(raw):
     if not isinstance(abstract,str) or len(abstract)>5000:
         raise ValueError('DIP-Positionsabstract ungültig')
     return {
+        'official_plenary_chamber':chamber,
+        'official_bundesrat_session':bundesrat_session,
         'official_plenary_session':session,
         'official_plenary_date':docdate,
         'official_plenary_pdf_url':pdf,

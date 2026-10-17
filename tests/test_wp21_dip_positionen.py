@@ -7,7 +7,7 @@ from pathlib import Path
 
 from wp21_dip_monitor import iso
 from wp21_dip_positionen import (fetch_positions,normalize_position,read_position_state,
-                                  evaluate,run,MAX_PARENTS)
+                                  evaluate,run,MAX_PARENTS,position_document_evidence)
 
 NOW=datetime.now(timezone.utc)
 
@@ -98,6 +98,79 @@ class DIPPositions(unittest.TestCase):
         raw['aktivitaet_anzeige']=[{'titel':{'incorrect':'object'}}]
         with self.assertRaises(ValueError):
             normalize_position(raw)
+
+    def test_actual_bundesrat_fundstellen_are_read_only_and_not_bundestag_sittings(self):
+        # Official DIP records confirmed in the live 17 October 2026 probe.
+        for pid, parent, number, page, day in (
+                ('670644','321963','1054','130','2025-05-23'),
+                ('678924','325401','1058','366','2025-10-17'),
+                ('678887','325513','1058','354','2025-10-17')):
+            with self.subTest(position_id=pid):
+                raw=position(pid,parent=parent)
+                raw['datum']=day
+                raw['fundstelle']={
+                    'dokumentart':'Plenarprotokoll',
+                    'dokumentnummer':number,'datum':day,
+                    'pdf_url':f'https://dserver.bundestag.de/brp/{number}.pdf#P.{page}',
+                }
+                evidence=position_document_evidence(raw)
+                self.assertEqual(evidence['official_plenary_chamber'],'Bundesrat')
+                self.assertEqual(evidence['official_bundesrat_session'],int(number))
+                self.assertIsNone(evidence['official_plenary_session'])
+                self.assertIsNone(evidence['official_plenary_xml_url'])
+                self.assertTrue(evidence['source_metadata_is_only_a_review_hint'])
+                normalized=normalize_position(raw)
+                self.assertEqual(normalized['official_plenary_chamber'],'Bundesrat')
+                _, report, _=evaluate({'items':{}},[raw],{parent},NOW)
+                self.assertEqual(report['automatically_confirmed_sanctions'],0)
+                self.assertEqual(report['automatically_rescinded_sanctions'],0)
+
+    def test_bundesrat_pdf_provenance_and_date_must_match(self):
+        from copy import deepcopy
+        raw=position(670644,parent='321963')
+        raw['datum']='2025-05-23'
+        raw['fundstelle']={
+            'dokumentart':'Plenarprotokoll','dokumentnummer':'1054',
+            'datum':'2025-05-23',
+            'pdf_url':'https://dserver.bundestag.de/brp/1054.pdf#P.130',
+        }
+        for field,value in (
+                ('dokumentnummer','0'),
+                ('dokumentnummer','21/1054'),
+                ('dokumentnummer','20/104'),
+                ('pdf_url','https://evil.example/brp/1054.pdf#P.130'),
+                ('pdf_url','https://dserver.bundestag.de/brp/1058.pdf#P.130'),
+                ('pdf_url','https://dserver.bundestag.de/btp/21/211054.pdf#P.130'),
+                ('pdf_url','https://dserver.bundestag.de/brp/1054.pdf'),
+                ('pdf_url','https://dserver.bundestag.de/brp/1054.pdf#P.0'),
+                ('xml_url','https://dserver.bundestag.de/btp/21/21054.xml'),
+                ('datum','2025-05-24'),
+        ):
+            with self.subTest(field=field,value=value):
+                altered=deepcopy(raw)
+                altered['fundstelle'][field]=value
+                with self.assertRaises(ValueError):
+                    position_document_evidence(altered)
+        altered=deepcopy(raw)
+        altered['datum']='2025-05-24'
+        with self.assertRaisesRegex(ValueError,'widersprechen'):
+            position_document_evidence(altered)
+
+    def test_bundestag_plenary_strict_url_check_still_applies(self):
+        raw=position(700001)
+        raw['fundstelle']={
+            'dokumentart':'Plenarprotokoll','dokumentnummer':'21/40',
+            'datum':raw['datum'],
+            'pdf_url':'https://dserver.bundestag.de/btp/21/21040.pdf#P.130',
+            'xml_url':'https://dserver.bundestag.de/btp/21/21040.xml',
+        }
+        doc=position_document_evidence(raw)
+        self.assertEqual(doc['official_plenary_chamber'],'Bundestag')
+        self.assertEqual(doc['official_plenary_session'],40)
+        self.assertIsNone(doc['official_bundesrat_session'])
+        raw['fundstelle']['xml_url']='https://dserver.bundestag.de/brp/1054.xml'
+        with self.assertRaisesRegex(ValueError,'nichtamtliche'):
+            position_document_evidence(raw)
 
     def test_second_identical_run_is_idempotent(self):
         current,new_report,_=evaluate({'items':{}},[position(1)],{'330701'},NOW)
