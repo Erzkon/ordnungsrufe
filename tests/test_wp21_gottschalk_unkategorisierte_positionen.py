@@ -51,6 +51,22 @@ class UnfilteredPositions(unittest.TestCase):
                          ['aktivitaet_anzeige.titel'])
         self.assertEqual(r['automatically_confirmed_effective_sanctions'], 0)
 
+    def test_historical_original_position_is_baseline_not_new_appeal(self):
+        historical = position('681046', title='Zwei Ordnungsrufe an Kay Gottschalk',
+                              day='2025-11-13', step='Ordnungsruf')
+        report = inspect([first(), historical], START, END, 1)
+        self.assertFalse(report['manual_review_required'])
+        self.assertEqual(report['other_candidate_positions'], 0)
+        self.assertEqual(report['known_baseline_position_ids'],
+                         ['681046', '681803'])
+        origin = next(row for row in report['candidates']
+                      if row['position_id'] == '681046')
+        self.assertTrue(origin['known_original_position'])
+        altered = historical.copy()
+        altered['datum'] = '2025-12-01'
+        with self.assertRaisesRegex(ValueError, 'ursprüngliche'):
+            inspect([first(), altered], START, END, 1)
+
     def test_related_parent_without_name_is_safely_discovered(self):
         other = position('699999', title='Weitere Position')
         r = inspect([first(), other], START, END, 1)

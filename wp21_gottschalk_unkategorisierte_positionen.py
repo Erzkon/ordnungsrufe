@@ -17,7 +17,9 @@ from wp21_dip_positionen import normalize_position, position_page
 
 PARENT = '328225'
 KNOWN_VOTE = '681803'
+KNOWN_ORIGIN = '681046'
 KNOWN_DATE = date(2025, 11, 25)
+ORIGIN_DATE = date(2025, 11, 13)
 EARLIEST = date(2025, 11, 13)
 MAX_DAYS = 45
 MAX_PAGES = 160
@@ -130,6 +132,10 @@ def inspect(rows, start, end, page_count):
         if parent != PARENT and not (names and contexts):
             continue
         normalized = normalize_position(raw)
+        if ident == KNOWN_ORIGIN:
+            if (parent != PARENT or raw['datum'] != ORIGIN_DATE.isoformat()
+                    or normalized['step'] != 'Ordnungsruf'):
+                raise ValueError('Bekannte ursprüngliche Gottschalk-Position verändert')
         if ident == KNOWN_VOTE:
             if (parent != PARENT or raw['datum'] != KNOWN_DATE.isoformat()
                     or normalized['step'] != 'Abstimmung'
@@ -146,6 +152,7 @@ def inspect(rows, start, end, page_count):
             'procedural_fields': sorted(set(contexts)),
             'known_parent': parent == PARENT,
             'known_first_rejected_appeal': ident == KNOWN_VOTE,
+            'known_original_position': ident == KNOWN_ORIGIN,
             'potential_second_measure': bool(
                 SECOND.search(' '.join(val for _, val in items))),
             'decision_tenors': normalized['official_decision_tenors'],
@@ -154,7 +161,8 @@ def inspect(rows, start, end, page_count):
     if begin <= KNOWN_DATE <= finish and not known:
         raise ValueError('Bekannte Gottschalk-Positivkontrolle 681803 fehlt')
     candidates.sort(key=lambda r: (r['date'], int(r['position_id'])))
-    other = [row for row in candidates if row['position_id'] != KNOWN_VOTE]
+    other = [row for row in candidates
+             if row['position_id'] not in (KNOWN_ORIGIN, KNOWN_VOTE)]
     return {
         'schema': 'wp21-gottschalk-title-independent-positions-v1',
         'source_endpoint': 'https://search.dip.bundestag.de/api/v1/vorgangsposition',
@@ -165,6 +173,7 @@ def inspect(rows, start, end, page_count):
             known if begin <= KNOWN_DATE <= finish else None,
         'candidates': candidates,
         'other_candidate_positions': len(other),
+        'known_baseline_position_ids': [KNOWN_ORIGIN, KNOWN_VOTE],
         'manual_review_required': bool(other),
         'unsearched_dates_and_source_types_remain_open': True,
         'absence_of_second_appeal_not_established': True,
