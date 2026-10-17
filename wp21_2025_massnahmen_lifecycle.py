@@ -240,8 +240,8 @@ def review(official,xml,seven_other_origins=None):
         raise ValueError('Ungesicherter Einspruchsstand falsch zugeordnet')
     if len({x['measure_id'] for x in result})!=12:
         raise ValueError('Einzelmaßnahme mehrfach in Prüfliste enthalten')
-    if sum(bool(x['specific_original_issuance_xml_source']) for x in result)!=4:
-        raise ValueError('Vier unabhängig bekannte 21/040-Erteilungszeilen fehlen')
+    if sum(bool(x['specific_original_issuance_xml_source']) for x in result)!=(4+len(extra_sources)):
+        raise ValueError('Nicht alle separat bestätigten Original-XML-Erteilungszeilen zugeordnet')
     result.sort(key=lambda x:(x['original_date'],x['original_sitting'],
                               norm(x['person']),x['ordinal_within_official_parent']))
     return {
