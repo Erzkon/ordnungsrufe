@@ -9,12 +9,92 @@ on:
       - 'export_webdaten.py'
       - 'export_wp21.py'
       - 'wp21_scan.py'
+      - 'wp21_autopruefung.py'
+      - 'wp21_rechtsfolgen.py'
+      - 'wp21_betriebsbericht.py'
+      - 'wp21_benchmark.py'
+      - 'wp21_dip_kontrolle.py'
+      - 'wp21_dip_monitor.py'
+      - 'wp21_dip_positionen.py'
+      - 'wp21_pruefqueue.py'
+      - 'wp21_dip_live_probe.py'
+      - 'wp21_premerge_dryrun.py'
+      - 'v1_release_gate.py'
+      - 'wp21_vollstaendigkeit.py'
+      - 'wp21_pruefbericht.py'
+      - 'wp21_mehrfach_40.py'
+      - 'wp21_episoden.py'
+      - 'wp21_episoden_akte.py'
+      - 'wp21_amtliche_empfaenger.py'
+      - 'wp21_offizielle_empfaenger_akte.py'
+      - 'wp21_einspruchsbelege.py'
+      - 'wp21_weitere_einspruchsberichte.py'
+      - 'wp21_2025_dip_einzelakten.py'
+      - 'wp21_2025_massnahmen_lifecycle.py'
+      - 'wp21_2025_sieben_originalzeilen.py'
+      - 'wp21_40_mehrfach_akte.py'
+      - 'wp21_janich_erste_quellenkritik.py'
+      - 'wp21_40_empfaenger_belege.py'
+      - 'wp21_gottschalk_folgebeobachter.py'
+      - 'wp21_gottschalk_plenar_folgen.py'
+      - 'wp21_gottschalk_amtliche_beschluesse.py'
+      - 'wp21_gottschalk_bounded_review.py'
+      - 'wp21_anonyme_quellen.py'
+      - 'wp21_vier_quellenbelege.py'
+      - 'wp21_hochprioritaet_18.py'
+      - 'wp21_18_dip_verfahrenspositionen.py'
+      - 'wp21_fallkontext.py'
+      - 'wp21_source_regression.py'
+      - 'wp21_rueckbezug.py'
+      - 'wp21_quellen_adressaten.py'
+      - 'tests/test_wp21_quellen_adressaten.py'
+      - 'parser.py'
       - 'tests/**'
       - 'WP21.md'
       - 'QUELLENABGLEICH.md'
       - '.github/workflows/pages.yml'
   pull_request:
     paths:
+      - 'wp21_autopruefung.py'
+      - 'wp21_rechtsfolgen.py'
+      - 'wp21_betriebsbericht.py'
+      - 'wp21_benchmark.py'
+      - 'wp21_dip_kontrolle.py'
+      - 'wp21_dip_monitor.py'
+      - 'wp21_dip_positionen.py'
+      - 'wp21_pruefqueue.py'
+      - 'wp21_dip_live_probe.py'
+      - 'wp21_premerge_dryrun.py'
+      - 'v1_release_gate.py'
+      - 'wp21_vollstaendigkeit.py'
+      - 'wp21_pruefbericht.py'
+      - 'wp21_mehrfach_40.py'
+      - 'wp21_episoden.py'
+      - 'wp21_episoden_akte.py'
+      - 'wp21_amtliche_empfaenger.py'
+      - 'wp21_offizielle_empfaenger_akte.py'
+      - 'wp21_einspruchsbelege.py'
+      - 'wp21_weitere_einspruchsberichte.py'
+      - 'wp21_2025_dip_einzelakten.py'
+      - 'wp21_2025_massnahmen_lifecycle.py'
+      - 'wp21_2025_sieben_originalzeilen.py'
+      - 'wp21_40_mehrfach_akte.py'
+      - 'wp21_janich_erste_quellenkritik.py'
+      - 'wp21_40_empfaenger_belege.py'
+      - 'wp21_gottschalk_folgebeobachter.py'
+      - 'wp21_gottschalk_plenar_folgen.py'
+      - 'wp21_gottschalk_amtliche_beschluesse.py'
+      - 'wp21_gottschalk_bounded_review.py'
+      - 'wp21_anonyme_quellen.py'
+      - 'wp21_vier_quellenbelege.py'
+      - 'wp21_hochprioritaet_18.py'
+      - 'wp21_18_dip_verfahrenspositionen.py'
+      - 'wp21_fallkontext.py'
+      - 'wp21_source_regression.py'
+      - 'wp21_rueckbezug.py'
+      - 'wp21_quellen_adressaten.py'
+      - 'tests/test_wp21_quellen_adressaten.py'
+      - 'parser.py'
       - 'docs/**'
       - 'daten/**'
       - 'export_webdaten.py'
@@ -28,6 +108,12 @@ on:
     # Täglich um 06:23 UTC (Sommer-/Winterzeit in Deutschland beachten).
     - cron: '23 6 * * *'
   workflow_dispatch:
+    inputs:
+      vollstaendiger_dip_trockenlauf:
+        description: 'Amtlichen DIP-Erstlauf vollstaendig und isoliert testweise ausfuehren'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -42,18 +128,95 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - name: PR-Schutz gegen Änderungen bestätigter Zähler gegenüber main
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for path in daten/wirksame_ordnungsrufe_20wp.csv \
+                      daten/wirksame_ordnungsrufe_21wp.csv \
+                      docs/data/ordnungsrufe.json \
+                      docs/data/ordnungsrufe_21.json; do
+            if ! git show "FETCH_HEAD:$path" | cmp -s - "$path"; then
+              echo "::error file=$path::Bestätigte Zähler dürfen im PR nicht von main abweichen."
+              exit 1
+            fi
+          done
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
       - name: Python-Abhaengigkeiten installieren
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt 'pytest>=8,<10'
       - name: Datenexporte mit Isolationstests validieren
         run: |
-          python -m unittest discover -s tests -p 'test_web_export.py' -v
-          python -m unittest discover -s tests -p 'test_wp21.py' -v
-          python -m unittest discover -s tests -p 'test_wp21_feed.py' -v
+          python -m unittest discover -s tests -p 'test_*.py' -v
+          python -m pytest -q tests
+      - name: Version 1.0 – echte Browserdaten und Ablehnungsfälle prüfen
+        run: |
+          node --check docs/verified_contract.js
+          node --test tests/frontend_contract.test.cjs
+          node --check docs/source_health.js
+          node --test tests/source_health.test.cjs
+      - name: Version 1.0 – begrenzten Veröffentlichungskandidaten mit geprüften CSVs absichern
+        run: |
+          python v1_release_gate.py \
+            --output .audit/v1_release.json \
+            --brief .audit/v1_release.md
+      - name: Version-1.0-Freigabeakte archivieren (keine Merge-Freigabe)
+        uses: actions/upload-artifact@v6
+        with:
+          name: ordnungsruf-v1-readiness-${{ github.run_id }}
+          path: |
+            .audit/v1_release.json
+            .audit/v1_release.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Echte DIP-API kurz auf Erreichbarkeit und Schema pruefen
+        id: dipprobe
+        timeout-minutes: 3
+        continue-on-error: true
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: python wp21_dip_live_probe.py
+      - name: Bei DIP-Endpunktproblemen Warnung ausgeben
+        if: steps.dipprobe.outcome == 'failure'
+        run: echo '::warning::DIP-Endpunkt/Schnittstellenformat nicht bestätigt; automatische Zähler bleiben unverändert.'
+      - name: Gesamte bisherige DIP-21.-WP-Historie isoliert vor Merge testweise verarbeiten
+        if: github.event_name == 'workflow_dispatch' && inputs.vollstaendiger_dip_trockenlauf == true && steps.dipprobe.outcome == 'success'
+        id: dipdryrun
+        continue-on-error: true
+        timeout-minutes: 25
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: python wp21_premerge_dryrun.py --output wp21_premerge_dryrun.json
+      - name: Ersten kompletten DIP-API-Durchlauf als Prüfprotokoll archivieren
+        if: github.event_name == 'workflow_dispatch' && steps.dipdryrun.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-vollstaendiger-dip-trockenlauf-${{ github.run_id }}
+          path: wp21_premerge_dryrun.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Warnung bei fehlgeschlagenem historischem DIP-Trockenlauf
+        if: github.event_name == 'workflow_dispatch' && steps.dipdryrun.outcome == 'failure'
+        run: echo '::warning::Vollständige DIP-Erstladung noch nicht erfolgreich validiert; keine automatische Zählung.'
+      - name: Quellenbasierte Positiv- und Negativkontrollen gegen historische Referenz pruefen
+        run: python wp21_benchmark.py --output wp21_regression_audit.json
+      - name: Quellenbenchmark mit konkreten Gegenbeispielen archivieren
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-quellenbenchmark-${{ github.run_id }}
+          path: wp21_regression_audit.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Unabhaengige DIP-Positivstichprobe mit belegtem Anfangsbestand vergleichen
+        run: python wp21_dip_kontrolle.py --report docs/data/dip_kontrolle_21.json
+      - name: Website-JavaScript auf Syntaxfehler pruefen
+        run: node --check docs/app.js
       - name: Historische und aktuelle Quellenlisten gegen veroeffentlichte JSONs pruefen
         run: |
           python export_webdaten.py --check
@@ -66,6 +229,16 @@ jobs:
           key: wp21-xml-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             wp21-xml-
+      - name: Letzten erfolgreichen DIP-Metadatenzustand wiederverwenden
+        if: github.event_name != 'pull_request'
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/dip21/state.json
+            .cache/dip21/positionen.json
+          key: dip21-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            dip21-state-
       - name: Letzten erfolgreichen Website-Quellenstand wiederverwenden
         if: github.event_name != 'pull_request'
         uses: actions/cache@v4
@@ -73,9 +246,277 @@ jobs:
           path: |
             docs/data/scan_21.json
             docs/data/hinweise_21.json
+            docs/data/autopruefung_21.json
+            docs/data/rechtsfolgen_21.json
+            docs/data/dip_kontrolle_21.json
+            docs/data/dip_live_21.json
+            docs/data/dip_positionen_21.json
+            docs/data/dip_prueffalle_21.json
+            docs/data/vollstaendigkeit_21.json
           key: wp21-feed-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             wp21-feed-
+      - name: Amtliche DIP-Vorgaenge auf Neuerungen und geaenderte Entscheidungen pruefen
+        if: github.event_name != 'pull_request'
+        id: diplive
+        continue-on-error: true
+        env:
+          # Optionaler eigener Key; sonst oeffentlich dokumentierter DIP-Key.
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_dip_monitor.py \
+            --state .cache/dip21/state.json \
+            --report docs/data/dip_live_21.json \
+            --changes wp21_dip_aenderungen.json
+      - name: Vorgangspositionen und nachtraegliche Entscheidungen nach DIP-Vorgang verknuepfen
+        if: github.event_name != 'pull_request' && steps.diplive.outcome == 'success'
+        id: dippositions
+        continue-on-error: true
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_dip_positionen.py \
+            --vorgang-state .cache/dip21/state.json \
+            --position-state .cache/dip21/positionen.json \
+            --report docs/data/dip_positionen_21.json \
+            --changes wp21_dip_positionen_aenderungen.json
+      - name: Amtliche DIP-Vorgänge mit ihren Verfahrensschritten verknüpfen
+        if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
+        id: dipqueue
+        continue-on-error: true
+        run: |
+          python wp21_pruefqueue.py \
+            --vorgang-state .cache/dip21/state.json \
+            --position-state .cache/dip21/positionen.json \
+            --report docs/data/dip_prueffalle_21.json \
+            --full wp21_dip_verknuepfte_faelle.json
+      - name: Vollständige verknüpfte DIP-Prüffälle archivieren
+        if: github.event_name != 'pull_request' && steps.dipqueue.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-dip-verknuepfte-prueffalle-${{ github.run_id }}
+          path: wp21_dip_verknuepfte_faelle.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Zusätzliche amtliche Einspruchsentscheidungen und ein getrenntes Ordnungsgeld prüfen
+        if: github.event_name != 'pull_request'
+        id: additionalAppeals
+        continue-on-error: true
+        run: |
+          python wp21_weitere_einspruchsberichte.py \
+            --ledger daten/wirksame_ordnungsrufe_21wp.csv \
+            --output .audit/wp21_weitere_einsprueche.json \
+            --brief .audit/wp21_weitere_einsprueche.md
+      - name: Weitere Einspruchsentscheidungen ausschließlich als Prüfdaten archivieren
+        if: github.event_name != 'pull_request' && steps.additionalAppeals.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-weitere-einspruchsberichte-${{ github.run_id }}
+          path: |
+            .audit/wp21_weitere_einsprueche.json
+            .audit/wp21_weitere_einsprueche.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Fehlerhafte zusätzliche Einspruchsquellen ausschließlich warnen
+        if: github.event_name != 'pull_request' && steps.additionalAppeals.outcome == 'failure'
+        run: echo '::warning::Zusätzliche amtliche Einspruchsquellen unvollständig oder ungültig; keine automatische Zählerkorrektur.'
+      - name: Mögliche neue Gottschalk-Verfahren nach ursprünglicher Zweiterteilung separat überwachen
+        if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
+        id: gottschalkWatch
+        continue-on-error: true
+        run: |
+          python wp21_gottschalk_folgebeobachter.py \
+            --vorgang-state .cache/dip21/state.json \
+            --position-state .cache/dip21/positionen.json \
+            --output .audit/wp21_gottschalk_weitere_verfahren.json \
+            --brief .audit/wp21_gottschalk_weitere_verfahren.md
+      - name: Nur lesenden Gottschalk-Folgebeobachter als separate Prüfakte archivieren
+        if: github.event_name != 'pull_request' && steps.gottschalkWatch.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-gottschalk-folgebeobachter-${{ github.run_id }}
+          path: |
+            .audit/wp21_gottschalk_weitere_verfahren.json
+            .audit/wp21_gottschalk_weitere_verfahren.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Wenn Gottschalks amtlicher Verfahrensabgleich fehlschlägt, warnen
+        if: github.event_name != 'pull_request' && steps.gottschalkWatch.outcome == 'failure'
+        run: echo '::warning::Gottschalk-Originalvorgang oder spätere amtliche Position unvollständig; rechtliche Quellenprüfung erforderlich, kein Zählerupdate.'
+      - name: Unabhängig von Vorgangstiteln neue Gottschalk-DIP-Positionen im 14-Tage-Fenster sichten
+        if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
+        id: gottschalkPositionWide
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          START=$(date -u -d '13 days ago' +%F)
+          END=$(date -u +%F)
+          python wp21_gottschalk_unkategorisierte_positionen.py \
+            --start "$START" --end "$END" \
+            --output .audit/gottschalk_current_positions.json \
+            --brief .audit/gottschalk_current_positions.md
+      - name: Titelunabhängige aktuelle Gottschalk-DIP-Hinweise archivieren
+        if: github.event_name != 'pull_request' && steps.gottschalkPositionWide.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-gottschalk-positions-current-${{ github.run_id }}
+          path: |
+            .audit/gottschalk_current_positions.json
+            .audit/gottschalk_current_positions.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Bei unvollständiger titelunabhängiger Positionsquelle nur warnen
+        if: github.event_name != 'pull_request' && steps.gottschalkPositionWide.outcome == 'failure'
+        run: echo '::warning::Titelfreie DIP-Positionsquelle im aktuellen 14-Tage-Fenster unvollständig; keine Zähleränderung, keine Negativaussage.'
+      - name: Gottschalk-Einsprüche zusätzlich im echten Plenar-XML-Cache prüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: gottschalkPlenary
+        continue-on-error: true
+        run: |
+          LAST=$(python -c 'import json;print(json.load(open("docs/data/scan_21.json"))["letzte_sitzung"])')
+          python wp21_gottschalk_plenar_folgen.py \
+            --cache .cache/wp21 --cache-only --max-session 150 \
+            --last-session "$LAST" \
+            --output .audit/wp21_gottschalk_plenary.json \
+            --brief .audit/wp21_gottschalk_plenary.md
+      - name: Nur lesende Gottschalk-Plenarakte archivieren
+        if: github.event_name != 'pull_request' && steps.gottschalkPlenary.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-gottschalk-plenar-followup-${{ github.run_id }}
+          path: |
+            .audit/wp21_gottschalk_plenary.json
+            .audit/wp21_gottschalk_plenary.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Bei unvollständigen Folge-Plenarprotokollen nur warnen
+        if: github.event_name != 'pull_request' && steps.gottschalkPlenary.outcome == 'failure'
+        run: echo '::warning::Gottschalk-Folgeprotokolle nicht vollständig; keine automatische Einspruchsentscheidung oder Zähleränderung.'
+      - name: Amtliche Gottschalk-Beschlussprotokolle plus vorläufige Sitzung 21/103 nur lesen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: gottschalkOfficialMinutes
+        continue-on-error: true
+        run: |
+          python wp21_gottschalk_amtliche_beschluesse.py \
+            --output .audit/gottschalk_amtliche_protokolle.json \
+            --brief .audit/gottschalk_amtliche_protokolle.md
+      - name: Amtliche unabhängige PDF-Stichprobe separat archivieren
+        if: github.event_name != 'pull_request' && steps.gottschalkOfficialMinutes.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-gottschalk-amtliche-protokolle-${{ github.run_id }}
+          path: |
+            .audit/gottschalk_amtliche_protokolle.json
+            .audit/gottschalk_amtliche_protokolle.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Amtliche Beschlussprotokoll-Ausfälle ausschließlich warnen
+        if: github.event_name != 'pull_request' && steps.gottschalkOfficialMinutes.outcome == 'failure'
+        run: echo '::warning::Amtliche Beschlussprotokoll-Stichprobe oder vorläufige 21/103 nicht verfügbar; keine Zähleränderung.'
+      - name: Zehn 2025-Originalvorgänge und differenzierte Einsprüche aus erfolgreichem DIP-Cache prüfen
+        if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
+        id: original2025
+        continue-on-error: true
+        run: |
+          python wp21_2025_dip_einzelakten.py \
+            --vorgang-state .cache/dip21/state.json \
+            --position-state .cache/dip21/positionen.json \
+            --output .audit/wp21_2025_dip_origins_and_appeals.json \
+            --brief .audit/wp21_2025_dip_origins_and_appeals.md
+      - name: 2025-DIP-Originalfallakte als nichtzählende amtliche Belege archivieren
+        if: github.event_name != 'pull_request' && steps.original2025.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-2025-dip-origins-and-appeals-${{ github.run_id }}
+          path: |
+            .audit/wp21_2025_dip_origins_and_appeals.json
+            .audit/wp21_2025_dip_origins_and_appeals.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Bei neuem/fehlendem 2025-DIP-Verfahrensschritt warnen statt statistisch korrigieren
+        if: github.event_name != 'pull_request' && steps.original2025.outcome == 'failure'
+        run: |
+          echo '::warning::Historische DIP-2025-Originalfälle oder Einsprüche haben sich geändert: fachliche Quellenprüfung erforderlich, keine Zähleränderung.'
+      - name: 18 Einzelakten mit vollständigen amtlichen DIP-Vorgangspositionen abgleichen
+        if: github.event_name != 'pull_request' && steps.dipqueue.outcome == 'success'
+        id: eighteenDIP
+        continue-on-error: true
+        run: |
+          python wp21_18_dip_verfahrenspositionen.py \
+            --vorgang-state .cache/dip21/state.json \
+            --position-state .cache/dip21/positionen.json \
+            --output .audit/wp21_18_dip_verfahrenspositionen.json \
+            --brief .audit/wp21_18_dip_verfahrenspositionen.md
+      - name: Quellenscharfe DIP-Verfahrenspositionen als reine Prüfdaten archivieren
+        if: github.event_name != 'pull_request' && steps.eighteenDIP.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-18-dip-quellenverbund-${{ github.run_id }}
+          path: |
+            .audit/wp21_18_dip_verfahrenspositionen.json
+            .audit/wp21_18_dip_verfahrenspositionen.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Originale DIP-Plenar-Fundstellen und Einspruchs-Tenöre separat überprüfen
+        if: github.event_name != 'pull_request' && steps.eighteenDIP.outcome == 'success'
+        id: eighteenSources
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_18_dip_verfahrenspositionen.json').read_text())
+          if (d['original_cases']!=18
+                  or d['source_verified_original_grant_positions']!=18
+                  or d['source_verified_independent_dip_rejected_appeals']!=4
+                  or d['automatically_confirmed_sanctions']!=0
+                  or d['automatically_rescinded_sanctions']!=0
+                  or d['protected_statistics_changed']):
+              raise ValueError('Amtliche DIP-Fundstellen oder Einspruchsbelege unvollständig')
+          lines=['## Verifizierte DIP-Original-Fundstellen – keine Zählerfreigabe',
+                 '- 18 Originalpositionen mit originalem Plenar-PDF/XML',
+                 '- Vier getrennte DIP-Beschlusstenöre: Zurückweisung des Einspruchs',
+                 '- Kein automatischer Schluss auf eigenständige rechtswirksame Rufe.']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as out:
+              out.write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
+      - name: Verbleibende Original-DIP-Quellenlücken explizit warnen
+        if: github.event_name != 'pull_request' && steps.eighteenSources.outcome == 'failure'
+        run: echo '::warning::DIP-Plenar-Fundstellen/Beschlüsse nicht für alle 18/4 Fälle quellengeprüft; bestätigte Zähler bleiben unverändert.'
+      - name: Fehlenden DIP-18-Quellenverbund als Warnung ausgeben
+        if: github.event_name != 'pull_request' && steps.eighteenDIP.outcome == 'failure'
+        run: echo '::warning::DIP-18-Quellenverbund unvollständig, keine rechtliche Entscheidung und keine Änderung bestätigter Zähler.'
+      - name: DIP-Vorgangspositionen-Änderungen archivieren
+        if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-dip-positionen-${{ github.run_id }}
+          path: wp21_dip_positionen_aenderungen.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Geaenderte DIP-Positionen nicht verfuegbar
+        if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'failure'
+        run: echo '::warning::Positionen-Abgleich fehlgeschlagen; vorheriger erfolgreicher Status bleibt unverändert.'
+      - name: Amtliche DIP-Aenderungen archivieren
+        if: github.event_name != 'pull_request' && steps.diplive.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-dip-aenderungen-${{ github.run_id }}
+          path: wp21_dip_aenderungen.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Voruebergehend fehlgeschlagene DIP-Suche vermerken
+        if: github.event_name != 'pull_request' && steps.diplive.outcome == 'failure'
+        run: echo '::warning::DIP-API-Daten derzeit nicht aktuell; alter erfolgreicher Bericht bleibt sichtbar, bestaetigte Zahlen unveraendert.'
       - name: Offizielle XML-Protokolle der 21. Wahlperiode auf neue Hinweise pruefen
         if: github.event_name != 'pull_request'
         id: scan
@@ -88,20 +529,429 @@ jobs:
             --candidates wp21_hinweise.csv \
             --summary docs/data/scan_21.json \
             --public-feed docs/data/hinweise_21.json
+      - name: WP21/040 Zweierpaare gesondert absichern
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: multiple40
+        continue-on-error: true
+        run: python wp21_mehrfach_40.py --cache .cache/wp21 --output .audit/wp21_040_pairs.json
+      - name: WP21/040 Quellenakten archivieren
+        if: github.event_name != 'pull_request' && steps.multiple40.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-040-getrennte-erteilungen-${{ github.run_id }}
+          path: .audit/wp21_040_pairs.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Drei amtliche Janich-Keuter-Brucker Empfängerhinweise prüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: officialRecipients
+        continue-on-error: true
+        run: python wp21_offizielle_empfaenger_akte.py --cache .cache/wp21 --output .audit/wp21_offizielle_empfaenger.json
+      - name: Amtliche Empfängerprüfakte archivieren
+        if: github.event_name != 'pull_request' && steps.officialRecipients.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-offizielle-empfaenger-${{ github.run_id }}
+          path: .audit/wp21_offizielle_empfaenger.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Zusammengehörige Ordnungsruf-Passagen in WP21 49-51-65 prüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: episodeDossier
+        continue-on-error: true
+        run: python wp21_episoden_akte.py --cache .cache/wp21 --output .audit/wp21_episoden.json
+      - name: Original-XML-Episodenbelege 49-51-65 archivieren
+        if: github.event_name != 'pull_request' && steps.episodeDossier.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-episoden-49-51-65-${{ github.run_id }}
+          path: .audit/wp21_episoden.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Vier anonyme Original-XML-Erteilungsstellen täglich quellengebunden prüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: anonymousDossier
+        continue-on-error: true
+        run: |
+          python wp21_anonyme_quellen.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_anonyme_quellen.json
+      - name: Vier amtliche Personen-Prüfhinweise getrennt von Zählern validieren
+        if: github.event_name != 'pull_request' && steps.anonymousDossier.outcome == 'success'
+        id: fourRecipientEvidence
+        continue-on-error: true
+        run: |
+          python wp21_vier_quellenbelege.py \
+            --cache .cache/wp21 \
+            --output .audit/four_source_recipient_hints.json
+      - name: Vier Quellen-Personenprüfhinweise archivieren
+        if: github.event_name != 'pull_request' && steps.fourRecipientEvidence.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-vier-quellen-personenpruefung-${{ github.run_id }}
+          path: .audit/four_source_recipient_hints.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Warnung bei widersprüchlicher Original-XML-Personenquelle
+        if: github.event_name != 'pull_request' && steps.fourRecipientEvidence.outcome == 'failure'
+        run: echo '::warning::Vier ursprüngliche XML-Personenbelege nicht hinreichend verifiziert; keine automatische Zählung.'
+      - name: Anonyme Quellenkontexte für fachliche Prüfung archivieren
+        if: github.event_name != 'pull_request' && steps.anonymousDossier.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-anonyme-originalquellen-${{ github.run_id }}
+          path: .audit/wp21_anonyme_quellen.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Warnung bei veränderten anonymen Originalquellen
+        if: github.event_name != 'pull_request' && steps.anonymousDossier.outcome == 'failure'
+        run: echo '::warning::Vier anonyme Original-XML-Quellen sind nicht mehr vollständig belegt; keine neuen bestätigten Zähler oder automatischen Personenzuordnungen.'
+      - name: Parser-Fundstellen automatisch mit belegten Personen/Sitzungen abgleichen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: autopruefung
+        continue-on-error: true
+        run: |
+          python wp21_autopruefung.py \
+            --cache-dir .cache/wp21 \
+            --source-summary docs/data/scan_21.json \
+            --verified daten/wirksame_ordnungsrufe_21wp.csv \
+            --candidates wp21_autopruefung.csv \
+            --report docs/data/autopruefung_21.json
+      - name: Originale 21/040-Erteilungen und vier Entscheidungen aus 21/042 gegenprüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: fortyDossier
+        continue-on-error: true
+        run: |
+          python wp21_40_mehrfach_akte.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_40_42_source_episodes.json \
+            --brief .audit/wp21_40_42_source_episodes.md
+      - name: Zwei-Plenarprotokoll-Mehrfachakte ausschließlich zur Quellenprüfung archivieren
+        if: github.event_name != 'pull_request' && steps.fortyDossier.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-sitzungen-40-42-mehrfachakte-${{ github.run_id }}
+          path: |
+            .audit/wp21_40_42_source_episodes.json
+            .audit/wp21_40_42_source_episodes.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Fehlende Originalbelege zu Sitzung 40/42 warnen, nie automatisch zählen
+        if: github.event_name != 'pull_request' && steps.fortyDossier.outcome == 'failure'
+        run: echo '::warning::Sitzungen 21/040/042 mit ursprünglichen Mehrfachrufen nicht quellenverifiziert; kein Zählerupdate.'
+      - name: Janichs bedingte Warnung strikt vom ersten nicht wörtlich belegten Ruf unterscheiden
+        if: github.event_name != 'pull_request' && steps.fortyDossier.outcome == 'success'
+        id: janichContext
+        continue-on-error: true
+        run: |
+          python wp21_janich_erste_quellenkritik.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_janich_erste_quellenkritik.json \
+            --brief .audit/wp21_janich_erste_quellenkritik.md
+      - name: Amtlichen Janich-Quellenkontext separat archivieren, nicht zählen
+        if: github.event_name != 'pull_request' && steps.janichContext.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-janich-bedingte-originalwarnung-${{ github.run_id }}
+          path: |
+            .audit/wp21_janich_erste_quellenkritik.json
+            .audit/wp21_janich_erste_quellenkritik.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Wenn Janichs ursprünglicher Text nicht mehr passt, nur warnen
+        if: github.event_name != 'pull_request' && steps.janichContext.outcome == 'failure'
+        run: echo '::warning::Bedingte Janich-Originalwarnung/Einspruchsformulierung verändert; keine automatische Erteilungs-/Zählerzuordnung.'
+      - name: Janichs gesamtes Original-XML 21/040 auf alternative Erteilungswortlaute untersuchen
+        if: github.event_name != 'pull_request' && steps.janichContext.outcome == 'success'
+        id: janichFullOriginal
+        continue-on-error: true
+        run: |
+          python wp21_janich_full_original.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_janich_full_original.json \
+            --brief .audit/wp21_janich_full_original.md
+      - name: Janichs vollständigen Originaltext als nichtzählende Akte archivieren
+        if: github.event_name != 'pull_request' && steps.janichFullOriginal.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-janich-full-original-${{ github.run_id }}
+          path: |
+            .audit/wp21_janich_full_original.json
+            .audit/wp21_janich_full_original.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Fehlende Janich-Ursprungsquelle nur warnen
+        if: github.event_name != 'pull_request' && steps.janichFullOriginal.outcome == 'failure'
+        run: echo '::warning::Janich-Vollsitzung nicht validiert; keine neue Erteilungszuordnung und keine Zähleränderung.'
+      - name: Gottschalk und Mixl mit Redner- und Kommentar-Knoten gesondert prüfen
+        if: github.event_name != 'pull_request' && steps.janichFullOriginal.outcome == 'success'
+        id: gottschalkMixlSourceRoles
+        continue-on-error: true
+        run: |
+          python wp21_40_empfaenger_belege.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_40_empfaenger_belege.json \
+            --brief .audit/wp21_40_empfaenger_belege.md
+      - name: Sprecher- und Zwischenrufbelege nur lesend archivieren
+        if: github.event_name != 'pull_request' && steps.gottschalkMixlSourceRoles.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-gottschalk-mixl-speaker-evidence-${{ github.run_id }}
+          path: |
+            .audit/wp21_40_empfaenger_belege.json
+            .audit/wp21_40_empfaenger_belege.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Unvollständige Stenografie-Markierungen nur warnen
+        if: github.event_name != 'pull_request' && steps.gottschalkMixlSourceRoles.outcome == 'failure'
+        run: echo '::warning::Sprecher-/Zwischenrufbelege nicht validiert; keine Rechtsfolgen- oder Zähleränderung.'
+      - name: Weitere sieben 2025 Original-XML-Erteilungsstellen quellengenau absichern
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: sevenOriginals
+        continue-on-error: true
+        run: |
+          python wp21_2025_sieben_originalzeilen.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_2025_7_original_lines.json \
+            --brief .audit/wp21_2025_7_original_lines.md
+      - name: Amtliche sieben 2025-Erteilungszeilen separat als nichtzählende Quellen archivieren
+        if: github.event_name != 'pull_request' && steps.sevenOriginals.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-2025-seven-original-source-loci-${{ github.run_id }}
+          path: |
+            .audit/wp21_2025_7_original_lines.json
+            .audit/wp21_2025_7_original_lines.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Verschobene oder ungeprüfte sieben Originalfundstellen ohne Zähleränderung warnen
+        if: github.event_name != 'pull_request' && steps.sevenOriginals.outcome == 'failure'
+        run: echo '::warning::Sieben amtliche 2025-Erteilungszeilen nicht vollständig bestätigt; keine Freigabe rechtswirksamer Einzelrufe.'
+      - name: Zwölf individuell belegte Erteilungen aus zehn DIP-Vorgängen mit elf Einspruchsentscheidungen verknüpfen
+        if: github.event_name != 'pull_request' && steps.original2025.outcome == 'success' && steps.fortyDossier.outcome == 'success' && steps.sevenOriginals.outcome == 'success'
+        id: individual2025
+        continue-on-error: true
+        run: |
+          python wp21_2025_massnahmen_lifecycle.py \
+            --dip-report .audit/wp21_2025_dip_origins_and_appeals.json \
+            --plenary-report .audit/wp21_40_42_source_episodes.json \
+            --seven-original-report .audit/wp21_2025_7_original_lines.json \
+            --output .audit/wp21_2025_individual_measure_review.json \
+            --brief .audit/wp21_2025_individual_measure_review.md
+      - name: Personenscharfe Zwölf-Maßnahmen-Prüfmatrix ausschließlich als Artefakt archivieren
+        if: github.event_name != 'pull_request' && steps.individual2025.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-2025-einzelmassnahmen-quelle-${{ github.run_id }}
+          path: |
+            .audit/wp21_2025_individual_measure_review.json
+            .audit/wp21_2025_individual_measure_review.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Unvollständige Einzelmaßnahmen-Belege warnen ohne bestätigte Statistik zu korrigieren
+        if: github.event_name != 'pull_request' && steps.individual2025.outcome == 'failure'
+        run: echo '::warning::Personenscharfer Abgleich 2025-Ursprung/DIP-Einspruch und XML-Quellzeilen unvollständig; keine bestätigten Zähler ändern.'
+      - name: 18 Einzelquellen und späteren Einspruchshinweisen vollständig zuordnen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: eighteenDossiers
+        continue-on-error: true
+        run: |
+          python wp21_hochprioritaet_18.py \
+            --cache .cache/wp21 \
+            --scan-summary docs/data/scan_21.json \
+            --output .audit/wp21_hochprioritaet_18.json \
+            --brief .audit/wp21_hochprioritaet_18_review.md
+      - name: Unbestätigte 18 Originalquellen-/Rechtsfolgen-Prüfakten archivieren
+        if: github.event_name != 'pull_request' && steps.eighteenDossiers.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-einzelakten-18-${{ github.run_id }}
+          path: |
+            .audit/wp21_hochprioritaet_18.json
+            .audit/wp21_hochprioritaet_18_review.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Hinweis bei unvollständiger Hochprioritäts-Rechtsfolgenakte
+        if: github.event_name != 'pull_request' && steps.eighteenDossiers.outcome == 'failure'
+        run: echo '::warning::18 Originalquellen-/Rechtsfolgen-Prüfakten unvollständig; keine automatische Zählung.'
+      - name: Einsprueche und moegliche Ruecknahmen als Pruefhinweise sammeln
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: rechtsfolgen
+        continue-on-error: true
+        run: |
+          python wp21_rechtsfolgen.py \
+            --cache-dir .cache/wp21 \
+            --source-summary docs/data/scan_21.json \
+            --candidates wp21_rechtsfolgen_hinweise.csv \
+            --report docs/data/rechtsfolgen_21.json
+      - name: Ruecknahme- und Einspruchs-Hinweise archivieren
+        if: github.event_name != 'pull_request' && steps.rechtsfolgen.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-rechtsfolgen-${{ github.run_id }}
+          path: wp21_rechtsfolgen_hinweise.csv
+          if-no-files-found: error
+          retention-days: 30
+      - name: Meldung bei fehlgeschlagener Rechtsfolgenpruefung
+        if: github.event_name != 'pull_request' && steps.rechtsfolgen.outcome == 'failure'
+        run: echo '::warning::Rechtsfolgen-Signalprüfung fehlgeschlagen; keine automatische Ruecknahme.'
+      - name: Amtliche DIP-Positivkontrollen mit aktuellen Parser-Hinweisen abgleichen
+        if: github.event_name != 'pull_request' && steps.autopruefung.outcome == 'success'
+        id: dipcontrol
+        continue-on-error: true
+        run: |
+          python wp21_dip_kontrolle.py \
+            --proposals wp21_autopruefung.csv \
+            --candidates wp21_dip_pruefliste.csv \
+            --report docs/data/dip_kontrolle_21.json
+      - name: Vergleichsliste aus amtlicher DIP-Positivstichprobe archivieren
+        if: github.event_name != 'pull_request' && steps.dipcontrol.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-dip-referenzvergleich-${{ github.run_id }}
+          path: wp21_dip_pruefliste.csv
+          if-no-files-found: error
+          retention-days: 30
+      - name: Meldung bei fehlgeschlagener Vorpruefung
+        if: github.event_name != 'pull_request' && steps.autopruefung.outcome == 'failure'
+        run: echo '::warning::Automatischer Personenabgleich fehlgeschlagen; bestätigte Zahlen bleiben unverändert.'
+      - name: Automatischen Personenabgleich zur Prüfung archivieren
+        if: github.event_name != 'pull_request' && steps.autopruefung.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-autopruefung-${{ github.run_id }}
+          path: wp21_autopruefung.csv
+          if-no-files-found: error
+          retention-days: 30
       - name: Hinweis bei fehlgeschlagenem Datenabruf
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'failure'
         run: echo '::warning::21.-WP-Quellenscan derzeit fehlgeschlagen; geprüfte Zähler bleiben unverändert.'
       - name: Pruefhinweise fuer manuelle Auswertung archivieren
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-hinweise-${{ github.run_id }}
           path: wp21_hinweise.csv
           if-no-files-found: error
           retention-days: 30
+      - name: XML-, Personen- und DIP-Positivbelege auf Vollständigkeitslücken prüfen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success' && steps.autopruefung.outcome == 'success'
+        id: completeness
+        continue-on-error: true
+        run: |
+          python wp21_vollstaendigkeit.py \
+            --scan-summary docs/data/scan_21.json \
+            --parser-report docs/data/autopruefung_21.json \
+            --xml-candidates wp21_hinweise.csv \
+            --parser-candidates wp21_autopruefung.csv \
+            --full wp21_vollstaendigkeit_faelle.csv \
+            --report docs/data/vollstaendigkeit_21.json
+      - name: Vollständige Quellen-Lückenliste als Prüfartefakt archivieren
+        if: github.event_name != 'pull_request' && steps.completeness.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-vollstaendigkeit-${{ github.run_id }}
+          path: wp21_vollstaendigkeit_faelle.csv
+          if-no-files-found: error
+          retention-days: 30
+      - name: Fachliche Quellen-Prüfakte für hoch priorisierte Fälle erzeugen
+        if: github.event_name != 'pull_request' && steps.completeness.outcome == 'success'
+        id: highpriority
+        continue-on-error: true
+        run: |
+          python wp21_pruefbericht.py \
+            --cases wp21_vollstaendigkeit_faelle.csv \
+            --report docs/data/vollstaendigkeit_21.json \
+            --output wp21_hochprioritaet_bericht.md
+      - name: Hochpriorisierte Quellen-Prüfakte als Artefakt archivieren
+        if: github.event_name != 'pull_request' && steps.highpriority.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-hochprioritaet-${{ github.run_id }}
+          path: wp21_hochprioritaet_bericht.md
+          if-no-files-found: error
+          retention-days: 30
+      - name: Amtliche XML-Kontexte für nicht erkannte DIP-Positivfälle zusammenstellen
+        if: github.event_name != 'pull_request' && steps.completeness.outcome == 'success'
+        id: context
+        continue-on-error: true
+        run: |
+          python wp21_fallkontext.py \
+            --cache .cache/wp21 \
+            --audit-cases wp21_vollstaendigkeit_faelle.csv \
+            --output wp21_dip_xml_fallkontext.json
+      - name: Vollständige Kontextbelege für die fachliche Nachprüfung archivieren
+        if: github.event_name != 'pull_request' && steps.context.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-dip-xml-kontext-${{ github.run_id }}
+          path: wp21_dip_xml_fallkontext.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Quellenabgleich nicht erfolgreich
+        if: github.event_name != 'pull_request' && steps.completeness.outcome == 'failure'
+        run: echo '::warning::Quellenübergreifendes Vollständigkeits-Audit fehlgeschlagen; bestehende Berichte und bestätigte Zahlen bleiben unverändert.'
+      - name: Taeglichen Betrieb und Quellenalter im Actions-Bericht zusammenfassen
+        if: github.event_name != 'pull_request'
+        env:
+          WP21_SCAN_OUTCOME: ${{ steps.scan.outcome }}
+          WP21_AUTOPRUEFUNG_OUTCOME: ${{ steps.autopruefung.outcome }}
+          WP21_RECHTSFOLGEN_OUTCOME: ${{ steps.rechtsfolgen.outcome }}
+          WP21_DIP_OUTCOME: ${{ steps.diplive.outcome }}
+          WP21_DIPPOSITIONS_OUTCOME: ${{ steps.dippositions.outcome }}
+          WP21_DIPQUEUE_OUTCOME: ${{ steps.dipqueue.outcome }}
+        run: python wp21_betriebsbericht.py --data docs/data --json-output docs/data/quellenstatus_21.json
+      - name: Vor dem Main-Pages-Artefakt bestätigte Zähler und aktuellen Betriebsbericht nochmals validieren
+        if: github.event_name != 'pull_request'
+        run: |
+          python v1_release_gate.py --require-source-health \
+            --output .audit/v1_production_report.json \
+            --brief .audit/v1_production_report.md
+      - uses: actions/setup-node@v5
+        if: github.event_name != 'pull_request'
+        with:
+          node-version: '22'
+      - name: Vor dem produktiven Pages-Artefakt echten Browser-Smoketest vorbereiten
+        if: github.event_name != 'pull_request'
+        run: npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0
+      - name: Produktive Browseransicht und Quellenstatus mit Chrome auf Mobil und Desktop prüfen
+        if: github.event_name != 'pull_request'
+        run: node tests/browser_smoke.cjs
+      - name: Produktive Browserbilder und Prüfergebnisse getrennt archivieren
+        if: ${{ always() && github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: ordnungsruf-v1-production-browser-${{ github.run_id }}
+          path: .audit/browser_smoke/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: "Produktion: Quellenstatus und Datenfreigabe-Akte getrennt archivieren"
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v6
+        with:
+          name: ordnungsruf-v1-production-source-health-${{ github.run_id }}
+          path: |
+            .audit/v1_production_report.json
+            .audit/v1_production_report.md
+            docs/data/quellenstatus_21.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
       - name: Verwendeten Website-Stand archivieren
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-datenstand-${{ github.run_id }}
           path: |
@@ -109,17 +959,125 @@ jobs:
             docs/data/ordnungsrufe_21.json
             docs/data/scan_21.json
             docs/data/hinweise_21.json
+            docs/data/autopruefung_21.json
+            docs/data/rechtsfolgen_21.json
+            docs/data/dip_kontrolle_21.json
+            docs/data/dip_live_21.json
+            docs/data/dip_positionen_21.json
+            docs/data/dip_prueffalle_21.json
+            docs/data/vollstaendigkeit_21.json
           if-no-files-found: error
           retention-days: 30
       - name: Website-Artefakt zur Veroeffentlichung uebertragen
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: docs-fuer-pages
           path: docs/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 2
+
+  quellenwache:
+    name: DIP- und XML-Quellenzustand ueberwachen
+    # Watch failures of the validation job itself instead of skipping alerts.
+    if: ${{ always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    needs: pruefen
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        id: dataartifact
+        if: needs.pruefen.result == 'success'
+        continue-on-error: true
+        with:
+          name: docs-fuer-pages
+          path: docs
+      - name: Quellenstand strukturiert pruefen
+        id: health
+        if: needs.pruefen.result == 'success' && steps.dataartifact.outcome == 'success'
+        continue-on-error: true
+        run: python wp21_betriebsbericht.py --data docs/data --json-output wp21_health.json
+      - name: Bei längerem Quellenausfall einmaligen GitHub-Vorgang öffnen oder schließen
+        if: needs.pruefen.result == 'success' && steps.health.outcome == 'success'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const audit = JSON.parse(fs.readFileSync('wp21_health.json','utf8'));
+            if (audit.schema !== 'wp21-health-v1' || !audit.sources) {
+              throw new Error('Ungültige Quellenüberwachung');
+            }
+            const marker = '<!-- ordnungsruf-wp21-data-sources -->';
+            const bad = Object.entries(audit.sources)
+              .filter(([name,data]) => data.state !== 'fresh')
+              .map(([name,data]) => '- ' + name + ': ' + data.state +
+                   ' (letzter Stand ' + (data.date || 'unbekannt') + ')');
+            const {owner,repo} = context.repo;
+            const existingIssues = await github.paginate(github.rest.issues.listForRepo,{
+              owner,repo,state:'open',per_page:100
+            });
+            const existing = existingIssues.find(x=>!x.pull_request &&
+              (x.body || '').includes(marker));
+            if (bad.length === 0) {
+              if (existing) {
+                await github.rest.issues.update({owner,repo,issue_number:existing.number,
+                  state:'closed', state_reason:'completed'});
+              }
+              core.info('Alle Quellen sind aktuell.');
+              return;
+            }
+            const body = marker + '\nAutomatisch erkannte fehlende oder veraltete Quellenberichte:' +
+              '\n\n' + bad.join('\n') +
+              '\n\nDies ist keine Aussage über Ordnungsrufe. Der letzte erfolgreiche ' +
+              'Datenstand bleibt verfügbar; geprüfte Zähler werden nicht geändert.' +
+              '\n\nDetails: https://github.com/' + owner + '/' + repo + '/actions';
+            if (existing) {
+              if ((existing.body || '') !== body) {
+                await github.rest.issues.update({owner,repo,
+                  issue_number:existing.number,body});
+              }
+            } else {
+              await github.rest.issues.create({owner,repo,
+                title:'Automatischer Quellencheck: Datenstand prüfen',body});
+            }
+      - name: Fehler des Tageslaufs auch ohne Datenbericht melden
+        if: ${{ always() && (needs.pruefen.result != 'success' || steps.dataartifact.outcome == 'failure' || steps.health.outcome == 'failure') }}
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- ordnungsruf-wp21-data-sources -->';
+            const {owner,repo} = context.repo;
+            const link = 'https://github.com/' + owner + '/' + repo +
+              '/actions/runs/' + context.runId;
+            const body = marker +
+              '\nDie automatische Quellen- und Website-Prüfung konnte nicht ' +
+              'vollständig abgeschlossen werden. Ursache kann ein fehlgeschlagener ' +
+              'Prüftest, ein Workflow-Fehler oder ein fehlendes Datenartefakt sein.' +
+              '\n\nBetroffener Lauf: ' + link +
+              '\n\nBestätigte Ordnungsruf-Zähler wurden dadurch nicht verändert. ' +
+              'Bei erfolgreicher Wiederherstellung aller Quellen wird dieses ' +
+              'Störungs-Issue automatisch geschlossen.';
+            const issues = await github.paginate(github.rest.issues.listForRepo,{
+              owner,repo,state:'open',per_page:100
+            });
+            const existing = issues.find(x=>!x.pull_request &&
+              (x.body || '').includes(marker));
+            if (existing) {
+              if ((existing.body || '') !== body) {
+                await github.rest.issues.update({owner,repo,
+                  issue_number:existing.number,body});
+              }
+            } else {
+              await github.rest.issues.create({owner,repo,
+                title:'Automatischer Quellencheck: Datenstand prüfen',body});
+            }
 
   veroeffentlichen:
     name: Statische Website bereitstellen

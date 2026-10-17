@@ -40,3 +40,15 @@
 .activity-empty { color: var(--muted); font-size: 13px; }
 .activity-footer { margin-top: 16px; }
 @media(max-width:680px) { .activity-section {padding: 20px 15px;} .activity-list {grid-template-columns: 1fr;} }
+
+/* DIP procedural review cases: never visually conflated with ranked sanctions. */
+.activity-dip-cases {margin-top:26px;padding-top:22px;border-top:1px solid var(--line)}
+.activity-dip-cases h3 {font-size:clamp(18px,2.6vw,23px);line-height:1.3;margin:0 0 6px}
+.dip-case-list {margin:15px 0 22px;padding:0;list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.dip-case {border:1px solid var(--line);border-left:3px solid #bc843a;background:var(--white);padding:14px 17px;overflow-wrap:anywhere}
+.dip-case-title {font-size:12px;line-height:1.65;margin:10px 0}
+@media(max-width:680px){.dip-case-list {grid-template-columns:1fr}}
+
+/* Public WP21 source-health disclosure, independent of verified rankings. */
+.source-health{margin:14px 0 0;padding:12px 16px;border-inline-start:3px solid #72858c;font-size:.9rem;line-height:1.55;color:#233641;background:#eef2f4}
+.source-health[data-state="degraded"],.source-health[data-state="stale"],.source-health[data-state="missing"]{border-inline-start-color:#b27824;background:#f6f0e4}

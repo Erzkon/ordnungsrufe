@@ -1,0 +1,195 @@
+name: DIP 2025 Originalfälle und Gottschalk Zweitvergabe (isolierte Quellenprobe)
+
+# Source survey completed and independently validated 17 October 2026:
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/39016887477
+# 36 title-filtered official parents, 10 source-bound case identities,
+# 21 positions, twelve initial grants and eleven separate rejected appeals.
+# No future automated expensive historical API re-fetch. The daily read-only
+# review uses the already successful cached DIP parent/position monitors.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-inventory:
+    name: Amtliche Vorgänge 2025 und ihre Einzelpositionen ausschließlich lesen
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Alle vier geschützten Statistikdateien gegen main prüfen
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for file in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$file" | cmp -s - "$file" || { echo "::error file=$file::Vorherige bestätigte Statistik verändert"; exit 1; }
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Geschützte Dateien durch SHA256 absichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Offizielle DIP-Vorgänge und ihre vollständigen Positionen für datierte 2025-Originalfälle abgleichen
+        timeout-minutes: 19
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json,os,re
+          from datetime import date
+          from pathlib import Path
+          from wp21_autopruefung import norm
+          from wp21_dip_monitor import PUBLIC_KEY,request_page
+          from wp21_dip_positionen import fetch_positions,normalize_position
+          from wp21_18_dip_verfahrenspositionen import named
+          from wp21_weitere_einspruchsberichte import EVIDENCE
+          KEY=os.environ.get('DIP_API_KEY') or PUBLIC_KEY
+          TARGETS={(r['original_date'],r['person']) for r in EVIDENCE
+                   if r['original_date'].startswith('2025-')}
+          if len(TARGETS)!=10: raise ValueError('Ten distinct original person/date pairs required')
+          docs=[]
+          cursor=None
+          visited=set()
+          total=None
+          for page in range(16):
+              params={'f.wahlperiode':'21','f.titel':'Ordnungsruf',
+                      'f.datum.start':'2025-06-01','f.datum.end':'2026-01-05'}
+              if cursor: params['cursor']=cursor
+              response=request_page(params,KEY)
+              rows=response.get('documents')
+              count=response.get('numFound')
+              nxt=response.get('cursor')
+              if (not isinstance(rows,list) or type(count)!=int or count>1200
+                  or not isinstance(nxt,(str,type(None))) or len(rows)>100):
+                  raise ValueError('Official DIP title/date search ignored filters or malformed')
+              if total is None: total=count
+              if total!=count: raise ValueError('Source pagination count changed')
+              for row in rows:
+                  if not isinstance(row,dict) or row.get('wahlperiode')!=21:
+                      raise ValueError('Foreign official DIP record')
+                  if not re.fullmatch(r'[1-9]\d{0,11}',str(row.get('id',''))):
+                      raise ValueError('Invalid DIP original id')
+                  if any(str(row['id'])==str(old['id']) for old in docs):
+                      raise ValueError('Repeated DIP original across pages')
+                  docs.append(row)
+              if len(docs)==count: break
+              if not rows or not nxt or nxt==cursor or nxt in visited:
+                  raise ValueError('Official DIP search cursor incomplete')
+              visited.add(nxt)
+              cursor=nxt
+          else: raise ValueError('DIP requested filtered source pages exceeded')
+          if len(docs)!=total: raise ValueError('Incomplete DIP source census')
+          selected=[]
+          for row in docs:
+              title=row.get('titel') or ''
+              if not isinstance(title,str): raise ValueError('Invalid DIP title')
+              if not re.search(r'\bordnungsruf\w*\b',title,re.I): continue
+              matching=sorted({person for _,person in TARGETS if named(title,person)})
+              if not matching: continue
+              parent=str(row['id'])
+              position_raw=fetch_positions(parent,KEY)
+              positions=[]
+              for doc in position_raw:
+                  p=normalize_position(doc)
+                  if p['parent_id']!=parent: raise ValueError('DIP parent mismatch')
+                  positions.append({
+                      'id':p['id'],'date':p['date'],'step':p['step'],
+                      'plenary_session':p['official_plenary_session'],
+                      'plenary_pdf':p['official_plenary_pdf_url'],
+                      'plenary_xml':p['official_plenary_xml_url'],
+                      'decision_tenors':p['official_decision_tenors'],
+                      'abstract_excerpt':p['official_position_abstract_excerpt'],
+                      'signal_fields':p['signal_fields'],
+                  })
+              selected.append({
+                  'id':parent,'title':title,'date':row.get('datum'),
+                  'source':'https://dip.bundestag.de/vorgang/'+parent,
+                  'matching_person_names':matching,
+                  'original_positions':positions,
+              })
+          if len(selected)>120: raise ValueError('Too many person-associated DIP parents')
+          results=[]
+          for initial,person in sorted(TARGETS):
+              matches=[]
+              for parent in selected:
+                  if person not in parent['matching_person_names']:continue
+                  original=[pos for pos in parent['original_positions']
+                            if pos['date']==initial and pos['step']=='Ordnungsruf']
+                  if original: matches.append({**parent,'original_grant_positions':original})
+              results.append({'original_date':initial,'person':person,
+                              'matching_parent_ids':[x['id'] for x in matches],
+                              'sources':matches,
+                              'candidate_parent_count':len(matches)})
+              print(f"2025_ORIGINAL {initial} {person}: "
+                    f"{[(x['id'],x['title'],len(x['original_grant_positions']),len(x['original_positions'])) for x in matches]}",flush=True)
+          if not any(x['original_date']=='2025-11-13'
+                     and x['person']=='Kay Gottschalk'
+                     and x['sources'] for x in results):
+              raise ValueError('Gottschalk original case cannot be sourced via filtered DIP')
+          payload={
+              'schema':'wp21-2025-targeted-official-dip-source-survey-v1',
+              'status':'noncounting_complete_filtered_api_inventory',
+              'complete_filtered_parent_count':len(docs),
+              'selected_named_parent_count':len(selected),
+              'ten_original_person_date_cases':results,
+              'official_2025_originals_targeted':len(results),
+              'automatically_confirmed_effective_sanctions':0,
+              'automatically_rescinded_sanctions':0,
+              'protected_statistics_changed':False,
+              'warning':'Metadata fields/one parent can describe multiple original measures. No position-count or missing-appeal inference.'
+          }
+          dest=Path('.audit/2025-dip-survey')
+          dest.mkdir(parents=True,exist_ok=True)
+          (dest/'official_case_candidates.json').write_text(
+              json.dumps(payload,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
+          print('WP21_2025_OFFICIAL_SURVEY_OK filtered='+str(len(docs))
+                +' selected='+str(len(selected))
+                +' matched='+str(sum(bool(x['sources']) for x in results)))
+          PY
+      - name: Zehn amtliche Originale, zwölf ursprüngliche Rufe und elf Einsprüche unabhängig validieren
+        run: |
+          python -m unittest -v tests.test_wp21_2025_dip_einzelakten
+          python wp21_2025_dip_einzelakten.py \
+            --source .audit/2025-dip-survey/official_case_candidates.json \
+            --output .audit/2025-dip-survey/verified_individual_cases.json \
+            --brief .audit/2025-dip-survey/verified_individual_cases.md
+      - name: Zwei Original-XML-Protokolle zusätzlich direkt amtlich überprüfen
+        timeout-minutes: 8
+        run: |
+          python wp21_40_mehrfach_akte.py \
+            --cache .audit/2025-dip-survey/source_xml \
+            --output .audit/2025-dip-survey/original_40_42.xml_review.json \
+            --brief .audit/2025-dip-survey/original_40_42.xml_review.md
+      - name: Zwölf einzeln identifizierte Erteilungen auf elf getrennte Beschlüsse beziehen
+        run: |
+          python -m unittest -v tests.test_wp21_2025_massnahmen_lifecycle
+          python wp21_2025_massnahmen_lifecycle.py \
+            --dip-report .audit/2025-dip-survey/verified_individual_cases.json \
+            --plenary-report .audit/2025-dip-survey/original_40_42.xml_review.json \
+            --output .audit/2025-dip-survey/measure_lifecycle_review.json \
+            --brief .audit/2025-dip-survey/measure_lifecycle_review.md
+      - name: SHA256-Zählerschutz immer erneut prüfen
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Vollständiges amtl. DIP-Quellinventar ausschließlich als Prüfartefakt archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-2025-dip-original-survey-${{ github.run_id }}
+          path: |
+            .audit/2025-dip-survey/official_case_candidates.json
+            .audit/2025-dip-survey/verified_individual_cases.json
+            .audit/2025-dip-survey/verified_individual_cases.md
+            .audit/2025-dip-survey/original_40_42.xml_review.json
+            .audit/2025-dip-survey/original_40_42.xml_review.md
+            .audit/2025-dip-survey/measure_lifecycle_review.json
+            .audit/2025-dip-survey/measure_lifecycle_review.md
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30

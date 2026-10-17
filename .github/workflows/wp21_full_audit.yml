@@ -1,0 +1,104 @@
+name: Einmaliges isoliertes WP21-XML-Vollständigkeits-Audit
+
+# Official isolated full WP21 XML audit succeeded 16 Oct 2026:
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/38869935652
+# 101 original protocols; 180 unresolved review cases incl. 22 high,
+# 64 person hints, 51 authentic XML regression checks. All four protected
+# statistical files are byte-identical. Full source re-fetch opt-in only.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-xml-coverage:
+    name: Alle verfügbaren WP21-XML-Protokolle + Personen- und DIP-Referenz prüfen
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: Parser-Abhängigkeiten installieren
+        run: python -m pip install -r requirements.txt
+      - name: Geschützte geprüfte Statistiken vor dem Lauf sichern
+        run: |
+          sha256sum \
+            daten/wirksame_ordnungsrufe_20wp.csv \
+            daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json \
+            docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/verified-before.sha256"
+      - name: Sämtliche amtlichen WP21-XML-Dateien isoliert abrufen und prüfen
+        timeout-minutes: 45
+        run: |
+          python wp21_scan.py \
+            --max-session 250 \
+            --cache-dir .audit/xml \
+            --candidates .audit/xml_hinweise.csv \
+            --summary .audit/scan.json \
+            --public-feed .audit/feed.json
+      - name: Vollständigen Parser-Personenabgleich durchführen
+        run: |
+          python wp21_autopruefung.py \
+            --cache-dir .audit/xml \
+            --source-summary .audit/scan.json \
+            --verified daten/wirksame_ordnungsrufe_21wp.csv \
+            --candidates .audit/parser.csv \
+            --report .audit/parser.json
+      - name: Amtliche Original-XML-Regressionsfälle gegen aktuellen Parser prüfen
+        run: python wp21_source_regression.py --folder .audit/xml
+      - name: Unabhängige DIP-Positivstichprobe mit echtem XML-Lauf abgleichen
+        run: |
+          python wp21_dip_kontrolle.py \
+            --proposals .audit/parser.csv \
+            --candidates .audit/dip_vergleich.csv \
+            --report .audit/dip_vergleich.json
+      - name: Quellenübergreifende Lücken- und Mehrfachprüfung erstellen
+        run: |
+          python wp21_vollstaendigkeit.py \
+            --scan-summary .audit/scan.json \
+            --parser-report .audit/parser.json \
+            --xml-candidates .audit/xml_hinweise.csv \
+            --parser-candidates .audit/parser.csv \
+            --full .audit/vollstaendigkeit.csv \
+            --report .audit/vollstaendigkeit.json
+      - name: Keine einzige bestätigte Zahl verändert
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/verified-before.sha256"
+      - name: Isolierte vollständige Prüfdaten 30 Tage bereitstellen
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-pr-xml-vollstaendigkeit-${{ github.run_id }}
+          path: |
+            .audit/scan.json
+            .audit/parser.json
+            .audit/dip_vergleich.json
+            .audit/vollstaendigkeit.json
+            .audit/vollstaendigkeit.csv
+            .audit/dip_vergleich.csv
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Zusammenfassung ohne Änderungen an Zählern
+        if: success()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          r=json.loads(Path('.audit/vollstaendigkeit.json').read_text())
+          lines=['## Isolierter WP21-XML-Vollständigkeits-Audit',
+            f"- Gescannt: {r['sessions_scanned']} offiziell vorhandene Protokolle",
+            f"- XML-Textstellen: {r['xml_text_locations']}",
+            f"- Parser-Personenhinweise: {r['parser_person_hints']}",
+            f"- Quellen-Prüffälle: {r['review_cases_total']}",
+            f"- Hohe Priorität: {r['high_priority_cases']}",
+            f"- Fehlende DIP-Stichproben-Erteilungen im geprüften Teilbestand: {r['dip_sample_grants_not_in_verified_partial_ledger']}",
+            '- Keine automatische Freigabe, keine Rücknahme, keine Änderung geprüfter Dateien.']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as stream:
+            stream.write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY

@@ -1,0 +1,68 @@
+name: Gottschalk spätere amtliche Plenarprotokolle prüfen
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'wp21_gottschalk_plenar_folgen.py'
+      - 'tests/test_wp21_gottschalk_plenar_folgen.py'
+      - 'wp21_gottschalk_amtliche_beschluesse.py'
+      - 'tests/test_wp21_gottschalk_amtliche_beschluesse.py'
+      - '.github/workflows/wp21_gottschalk_plenar_folgen.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review-original-plenary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 32
+    steps:
+      - uses: actions/checkout@v4
+      - name: Die vier geschützten Zähler gegen main schützen
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for file in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$file" | cmp -s - "$file" || { echo "::error file=$file::Bestätigte Zähler verändert"; exit 1; }
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Bytegleichheit bestätigter Zähler sichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Namens-/Einspruchs-Kontexte und Negativbelege prüfen
+        run: python -m unittest -v tests.test_wp21_gottschalk_plenar_folgen tests.test_wp21_gottschalk_amtliche_beschluesse
+      - name: Alle späteren veröffentlichten Original-XMLs personen- und entscheidungskritisch durchsuchen
+        run: |
+          python wp21_gottschalk_plenar_folgen.py \
+            --cache .audit/gottschalk_plenary_xml \
+            --max-session 125 \
+            --output .audit/gottschalk_later_plenary.json \
+            --brief .audit/gottschalk_later_plenary.md
+      - name: Amtliche Beschlussprotokoll-PDFs und vorläufige 21/103 quellenkritisch prüfen
+        run: |
+          python wp21_gottschalk_amtliche_beschluesse.py \
+            --output .audit/gottschalk_minutes.json \
+            --brief .audit/gottschalk_minutes.md
+      - name: Bestätigte Zähler nach Datenabruf bytegleich
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Amtliche Plenar-Quellenakte als reine Prüfdaten archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-gottschalk-later-plenary-${{ github.run_id }}
+          path: |
+            .audit/gottschalk_later_plenary.json
+            .audit/gottschalk_later_plenary.md
+            .audit/gottschalk_minutes.json
+            .audit/gottschalk_minutes.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

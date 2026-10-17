@@ -1,0 +1,59 @@
+name: V1 actual browser desktop mobile smoke
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'tests/browser_smoke.cjs'
+      - '.github/workflows/v1_browser_smoke.yml'
+      - '.github/workflows/pages.yml'
+      - 'V1_READINESS.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-check:
+    name: Render verified WP20 and partial WP21
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install pinned headless test driver only
+        run: npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0
+      - name: Verify headless Chrome is available on standard Ubuntu runner
+        run: |
+          if command -v google-chrome >/dev/null; then
+            google-chrome --version
+          elif command -v chromium >/dev/null; then
+            chromium --version
+          else
+            echo "::error::No Chrome/Chromium available on runner"
+            exit 1
+          fi
+      - name: Render, switch terms, search, test mobile and malicious inputs
+        run: node tests/browser_smoke.cjs
+      - name: Test a production-like generated source-health manifest in a temporary preview copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TMP_DIR"' EXIT
+          cp -a docs "$TMP_DIR/docs"
+          python wp21_betriebsbericht.py --data "$TMP_DIR/docs/data" \
+            --json-output "$TMP_DIR/docs/data/quellenstatus_21.json"
+          V1_BROWSER_DOCROOT="$TMP_DIR/docs" \
+            V1_BROWSER_OUT=".audit/browser_smoke/with_manifest" \
+            node tests/browser_smoke.cjs
+      - name: Preserve exact PR render and machine-readable result for manual review
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: v1-actual-browser-preview-${{ github.run_id }}
+          path: .audit/browser_smoke/
+          if-no-files-found: warn
+          retention-days: 14

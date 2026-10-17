@@ -1,0 +1,122 @@
+name: WP21 Vollständiger Original-XML-Rechtsfolgenabgleich 18 Fälle
+
+# One isolated PR audit completed successfully 16 October 2026:
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/38945916746
+# 101 official XMLs, 18 review cases, 8 correctly linked later source
+# passages and 2 false cross-episode links excluded; no count changes.
+# Future full 101+ transcript reruns are manual only. The normal daily
+# read-only XML followup check remains active in pages.yml on main.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-followup:
+    name: 101+ Original-XMLs und 18 Personen ohne Zähleränderung prüfen
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: PR-Schutz für vier bestätigte Statistikquellen
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for file in daten/wirksame_ordnungsrufe_20wp.csv \
+                      daten/wirksame_ordnungsrufe_21wp.csv \
+                      docs/data/ordnungsrufe.json \
+                      docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$file" | cmp -s - "$file" || {
+              echo "::error file=$file::Bestätigte Statistikquelle gegenüber main geändert"
+              exit 1
+            }
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Benötigte Parser-Abhängigkeiten
+        run: python -m pip install -r requirements.txt
+      - name: Dateien mit bestätigten Zählern vor der vollständigen Recherche hashen
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv \
+            daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json \
+            docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Regressionen der rechtlichen Vorsicht und XML-Belegbindungen
+        run: python -m unittest -v tests.test_wp21_hochprioritaet_18
+      - name: Alle verfügbaren amtlichen Original-XML-Protokolle bis zur aktuellen Sitzung laden
+        timeout-minutes: 25
+        run: |
+          python wp21_scan.py \
+            --max-session 250 \
+            --cache-dir .audit/full_legal_xml \
+            --candidates .audit/full_legal_candidates.csv \
+            --summary .audit/full_legal_scan.json \
+            --public-feed .audit/full_legal_feed.json
+      - name: 18 Fälle und spätere amtliche Einspruchs-/Aufhebungstexte abgleichen
+        timeout-minutes: 12
+        run: |
+          python wp21_hochprioritaet_18.py \
+            --cache .audit/full_legal_xml \
+            --scan-summary .audit/full_legal_scan.json \
+            --output .audit/wp21_18_complete_followups.json \
+            --brief .audit/wp21_18_complete_followups.md
+      - name: Alle amtlichen Originalquellen- und Verfahrenshinweise zählen, aber keine Sanktionen
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          scan=json.loads(Path('.audit/full_legal_scan.json').read_text(encoding='utf-8'))
+          r=json.loads(Path('.audit/wp21_18_complete_followups.json').read_text(encoding='utf-8'))
+          last=scan['letzte_sitzung']
+          # Regression: the Reichardt objection against grant 21/077
+          # appearing in XML 21/078 is NOT his distinct 21/065 case.
+          reichardt=next(c for c in r['cases']
+                         if c['session']==65 and c['person_for_review']=='Martin Reichardt')
+          if any(x['source_session']==78
+                 for x in reichardt['later_sitting_explicit_full_name_legal_keyword_signals_unverified']):
+              raise ValueError('Unrelated 21/077 Reichardt objection wrongly linked to 21/065')
+          if (scan['status']!='bereit' or last<101
+                  or r['later_protocols_searched']!=last
+                  or r['person_session_cases']!=18
+                  or r['individual_original_grant_phrase_locations']!=21
+                  or r['separately_officially_documented_rejected_appeals']!=4
+                  or r['automatically_confirmed_effective_sanctions']!=0
+                  or r['automatically_rescinded_sanctions']!=0
+                  or r['protected_public_counters_changed']
+                  or not r['later_source_search_is_exhaustive_for_scanned_original_xml_only']):
+              raise ValueError('Vollständiger read-only Rechtsfolgenabgleich unvollständig')
+          lines=[
+              '## Original-XML-Rechtsfolgenabgleich – ausschließlich Prüfsignale',
+              f"- Vollständig geladene Plenarprotokolle: {last}",
+              '- Originalfälle: 18 Personen/Sitzungen, 21 originale Erteilungsformulierungen',
+              '- Unabhängig dokumentierte Einspruchszurückweisungen: 4',
+              f"- Fälle mit späteren namentlichen Schlüsselworttreffern: {r['cases_with_named_later_procedural_source_matches']}",
+              f"- Spätere Originaltext-Treffer: {r['named_later_procedural_source_matches']}",
+              f"- Mit ausdrücklicher Nennung der Erteilungssitzung: {r['named_later_matches_with_explicit_original_session_reference']}",
+              '- Keine rechtliche Schlussfolgerung aus fehlenden Treffern.',
+              '- Keine automatische Bestätigung, Rücknahme oder Änderung veröffentlichter Zähler.',
+          ]
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as out:
+              out.write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
+      - name: Vier geschützte Statistikdateien bleiben bytegleich
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Vollständige Rechtsfolgenprüfakte für 30 Tage sicher archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-18-original-rechtsfolgen-vollabgleich
+          path: |
+            .audit/full_legal_scan.json
+            .audit/wp21_18_complete_followups.json
+            .audit/wp21_18_complete_followups.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

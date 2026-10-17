@@ -1,0 +1,125 @@
+name: WP21 DIP original document inventory 18 cases
+
+# One-time read-only survey succeeded 16.10.2026, GitHub Actions
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/38955416096
+# Exactly 18 plenary grant Fundstellen and four explicit rejected objections.
+# The API drucksache list filter was observed returning 11967 unfiltered
+# documents; use only official f.vorgang-filtered Vorgangspositionen sources.
+# Future source re-fetchs are manual-only; daily metadata checks in pages.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-source-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Protect four confirmed statistics against main
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for file in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$file" | cmp -s - "$file" || exit 1
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install parser dependencies for exact original-case validation
+        run: python -m pip install -r requirements.txt
+      - name: Hash immutable public files before requests
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Inspect only the officially parent-bound 18 DIP position source records
+        timeout-minutes: 13
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json,os,re
+          from pathlib import Path
+          from wp21_dip_positionen import fetch_positions
+          from wp21_dip_monitor import PUBLIC_KEY
+          from wp21_hochprioritaet_18 import EXPECTED_KEYS
+          from wp21_autopruefung import norm
+          pairs=[
+              (51,'Markus Frohnmaier',329623),(52,'Martin Hess',330133),
+              (53,'Heidi Reichinnek',330237),(57,'Bernd Baumann',330700),
+              (61,'Ulrich von Zons',332078),(65,'Luigi Pantisano',332778),
+              (65,'Martin Reichardt',332748),(67,'Kathrin Gebel',333090),
+              (67,'Kerstin Przygodda',333088),(68,'Paula Piechotta',333149),
+              (69,'Fabian Fahl',333185),(69,'Timon Dzienus',333192),
+              (71,'Mirze Edis',333814),(71,'Robin Jünger',333809),
+              (86,'Cansin Köktürk',336641),(89,'Kai Whittaker',337087),
+              (93,'Birgit Bessin',339006),(94,'Cansin Köktürk',339024)]
+          if {(s,norm(person)) for s,person,_ in pairs}!=EXPECTED_KEYS:
+              raise ValueError('Pinned source cases mismatched')
+          key=os.environ.get('DIP_API_KEY') or PUBLIC_KEY
+          reports=[]
+          total=0
+          for session,person,parent in pairs:
+              raw=fetch_positions(parent,key)
+              if not raw or len(raw)>12: raise ValueError('Unexpected original parent position count')
+              positions=[]
+              for doc in raw:
+                  if (str(doc.get('vorgang_id'))!=str(parent)
+                      or doc.get('wahlperiode') not in (21,None)
+                      or not re.fullmatch(r'[1-9]\d{0,11}',str(doc.get('id','')))):
+                      raise ValueError('Untrusted official position parent')
+                  # Capture original official metadata fields, including any
+                  # document fundstelle or activities. No legal adjudication.
+                  record={k:v for k,v in doc.items()
+                          if k not in ('text','volltext')}
+                  encoded=json.dumps(record,ensure_ascii=False,default=str)
+                  if len(encoded)>25000: raise ValueError('Position metadata unbounded')
+                  positions.append({
+                      'id':str(doc['id']),'field_names':sorted(doc),
+                      'source_api':'https://search.dip.bundestag.de/api/v1/vorgangsposition/'+str(doc['id']),
+                      'official_raw_metadata':record,
+                      'legal_outcome_not_confirmed_by_position_metadata':True,
+                  })
+              reports.append({'session':session,'person':person,
+                  'vorgang_id':str(parent),
+                  'vorgang_source':f'https://dip.bundestag.de/vorgang/{parent}',
+                  'positions':positions})
+              total+=len(positions)
+              print(f'POSITION_DOC_FIELDS 21/{session:03d} {person}: '
+                    f'{len(positions)} source positions / '
+                    f'{[x["field_names"] for x in positions]}',flush=True)
+          if len(reports)!=18 or total!=22:
+              raise ValueError('Official complete position inventory drifted: '
+                               +str((len(reports),total)))
+          output=Path('.audit/document_probe')
+          output.mkdir(parents=True,exist_ok=True)
+          (output/'source_position_metadata.json').write_text(
+              json.dumps({'status':'official_position_source_reference_inventory',
+                          'original_cases':len(reports),'positions':total,
+                          'no_automated_sanction_decisions':True,
+                          'cases':reports},ensure_ascii=False,indent=2)+'\n',
+              encoding='utf-8')
+          print('OFFICIAL_POSITION_DOCUMENT_INVENTORY_OK: 18 original cases, 22 positions, 0 automatic sanctions')
+          PY
+      - name: Exactly validate 18 source-bound original plenary PDFs and four official rejected-appeal tenors
+        run: |
+          python wp21_18_dip_original_beschluesse.py \
+            --source .audit/document_probe/source_position_metadata.json \
+            --output .audit/document_probe/source_bound_original_and_decisions.json \
+            --brief .audit/document_probe/source_bound_original_and_decisions.md
+      - name: Ensure public statistics remain byte identical
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Store bounded official document links for manual source assessment
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-18-official-document-inventory-${{ github.run_id }}
+          path: |
+            .audit/document_probe/source_position_metadata.json
+            .audit/document_probe/source_bound_original_and_decisions.json
+            .audit/document_probe/source_bound_original_and_decisions.md
+          if-no-files-found: error
+          retention-days: 30

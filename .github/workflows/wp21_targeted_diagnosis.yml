@@ -1,0 +1,101 @@
+name: Gezielte DIP-Positivreferenz XML-Kontextdiagnose
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_targeted_diagnosis.yml'
+      - 'wp21_source_regression.py'
+      - 'wp21_vier_quellenbelege.py'
+      - 'wp21_rueckbezug.py'
+      - 'wp21_episoden.py'
+      - 'wp21_episoden_akte.py'
+      - 'tests/test_wp21_episoden.py'
+      - 'wp21_amtliche_empfaenger.py'
+      - 'wp21_offizielle_empfaenger_akte.py'
+      - 'tests/test_wp21_amtliche_empfaenger.py'
+      - 'wp21_quellen_adressaten.py'
+      - 'tests/test_wp21_quellen_adressaten.py'
+      - 'tests/test_wp21_rueckbezug.py'
+      - 'tests/test_wp21_remaining_identities.py'
+      - 'tests/test_wp21_mehrfach_40.py'
+      - 'wp21_mehrfach_40.py'
+      - 'tests/test_wp21_mehrfach_dossier.py'
+      - 'wp21_fallkontext.py'
+      - 'parser.py'
+      - 'tests/test_wp21_originalformulierungen.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  targeted-wp21-review:
+    name: Amtliche Original-XMLs zu bekannten Parser-Lücken prüfen
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: XML-Abhängigkeiten bereitstellen
+        run: python -m pip install -r requirements.txt
+      - name: SHA256 der bestätigten Daten vor Vergleich
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Kuratierte DIP-Sitzungen mit amtlichem XML und Sprecher-Kontext untersuchen
+        run: |
+          python wp21_fallkontext.py --output .audit/targeted_context.json
+      - name: Zusätzliche offizielle Original-XMLs für Positiv- und Negativproben laden
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from wp21_scan import fetch
+          for number in (8,14,15,22,23,25,26,27,28,37,39,40,43,46,49,50,51,65,69,74,75,82):
+              data=fetch(number,Path('.audit/targeted_xml'))
+              if data is None:
+                  raise RuntimeError(f'Amtliches Original 21/{number:03d} nicht verfügbar')
+          PY
+      - name: Echte XML-Gegenbeispiele gegen Parser-Verwechslungen prüfen
+        run: python wp21_source_regression.py --folder .audit/targeted_xml
+      - name: Drei amtliche Original-Identitätsbelege als Prüfakte archivieren
+        run: python wp21_offizielle_empfaenger_akte.py --cache .audit/targeted_xml --output .audit/wp21_offizielle_empfaenger.json
+      - name: Drei mehrdeutige 49-51-65 Original-XML-Episoden als Prüfakte sichern
+        run: python wp21_episoden_akte.py --cache .audit/targeted_xml --output .audit/wp21_episoden.json
+      - name: Erst-/Zweiterteilungspaare WP21/040 gesondert pruefen
+        run: python wp21_mehrfach_40.py --cache .audit/targeted_xml --output .audit/wp21_040_pairs.json
+      - name: Bytes der bestätigten Zähler unverändert
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Begrenzte Prüfkontexte als Artefakt bereitstellen
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-targeted-context-${{ github.run_id }}
+          path: |
+            .audit/targeted_context.json
+            .audit/wp21_040_pairs.json
+            .audit/wp21_offizielle_empfaenger.json
+            .audit/wp21_episoden.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+      - name: Nicht bestätigte Personen-Kontexte ausgeben
+        if: success()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          doc=json.loads(Path('.audit/targeted_context.json').read_text(encoding='utf-8'))
+          rows=['## Amtlicher XML-Quellenkontext (ohne Auto-Freigabe)',
+            f"- XML-Sitzungen: {doc['sessions_loaded']}",
+            f"- Personen/Sitzung-Zielreferenzen: {doc['person_session_targets']}",
+            '- Belegstellen sind Such- und Prüfhinweise, keine zugeordneten Sanktionen.',
+            '- Bestätigte Statistikdateien blieben bytegleich.']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as stream:
+            stream.write('\n'.join(rows)+'\n')
+          print('\n'.join(rows))
+          PY

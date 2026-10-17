@@ -141,12 +141,16 @@ function activate(period) {
   $('ranking-caption').textContent = period === '20'
     ? 'Alle Angaben basieren auf den einzeln belegten, wirksamen Maßnahmen der 20. Wahlperiode.'
     : 'Ausschließlich die bisher manuell geprüften Beispiele. Diese Ranglisten sind noch nicht repräsentativ.';
+  const snapshot = dateDE(payload.meta.snapshot_date);
+  $('hero-snapshot').textContent = 'DATENSTAND ' + snapshot +
+    (period === '21' ? ' · NUR GEPRÜFTE TEILMENGE' : '');
   $('footer-period').textContent = period === '20'
-    ? '20. WAHLPERIODE · DATENSTAND 14.10.2026'
-    : '21. WAHLPERIODE · UNVOLLSTÄNDIGE ERFASSUNG';
+    ? '20. WAHLPERIODE · DATENSTAND ' + snapshot + ' · PERSONENDIFFERENZ OFFEN'
+    : '21. WAHLPERIODE · DATENSTAND ' + snapshot + ' · UNVOLLSTÄNDIGE ERFASSUNG';
   $('wp20-note').hidden = period !== '20';
   $('wp21-note').hidden = period !== '21';
   $('wp21-scan').hidden = period !== '21';
+  $('wp21-health').hidden = period !== '21';
   $('wp21-activity').hidden = period !== '21';
   $('period-methodology').textContent = period === '20' ? '20. Wahlperiode' : '20. und 21. Wahlperiode';
   const groupNames=[...new Set(state.records.map(row=>row.group))].sort((a,b)=>a.localeCompare(b,'de'));
@@ -158,6 +162,24 @@ function activate(period) {
   url.searchParams.set('wp',period);
   window.history.replaceState(null,'',url.pathname+url.search+url.hash);
 }
+async function showSourceHealth() {
+  const box = $('wp21-health');
+  try {
+    const response = await fetch('./data/quellenstatus_21.json',{cache:'no-store'});
+    if (!response.ok) throw new Error('Quellenstatus nicht veröffentlicht');
+    const data = await response.json();
+    const review = assessSourceHealth(data);
+    box.dataset.state = review.state;
+    box.textContent = review.message;
+  } catch (error) {
+    console.warn('Quellenstatus nicht verfügbar',error);
+    box.dataset.state = 'missing';
+    box.textContent = 'Aktueller Betriebsstatus der automatischen Quellenprüfung nicht verfügbar. ' +
+      'Die angezeigten Suchtreffer können veraltet sein. ' +
+      'Die einzeln geprüften Ordnungsruf-Zähler bleiben unverändert.';
+  }
+}
+
 async function showScan() {
   const box = $('wp21-scan-detail');
   try {
@@ -222,6 +244,219 @@ async function showActivityFeed() {
   }
 }
 
+async function showAutoTriage() {
+  const status = $('wp21-triage-detail');
+  try {
+    const response = await fetch('./data/autopruefung_21.json', {cache:'no-store'});
+    if (!response.ok) throw new Error('Kein Prüfbericht');
+    const audit = await response.json();
+    const fields = ['gescannte_sitzungen','bereits_einzeln_belegte_massnahmen',
+      'davon_referenz_person_sitzung_erkannt','davon_referenz_person_sitzung_nicht_erkannt',
+      'offene_personenhinweise','referenz_person_sitzung_kombinationen',
+      'referenz_mehrfachvergaben_ohne_parser_nachweis','automatisch_freigegebene_ordnungsrufe'];
+    if (audit.wahlperiode !== 21 || audit.status !== 'automatische_vorpruefung_ohne_freigabe' ||
+        fields.some(key => !Number.isInteger(audit[key]) || audit[key] < 0) ||
+        audit.automatisch_freigegebene_ordnungsrufe !== 0 ||
+        audit.davon_referenz_person_sitzung_erkannt + audit.davon_referenz_person_sitzung_nicht_erkannt !== audit.referenz_person_sitzung_kombinationen) {
+      throw new Error('Ungültiger Prüfbericht');
+    }
+    status.textContent = 'Automatischer Qualitätsabgleich: ' +
+      audit.davon_referenz_person_sitzung_erkannt + ' von ' +
+      audit.referenz_person_sitzung_kombinationen + ' eindeutigen Person/Sitzung-Kombinationen wiedererkannt (aus ' +
+      audit.bereits_einzeln_belegte_massnahmen + ' einzeln belegten Maßnahmen); ' +
+      audit.offene_personenhinweise + ' weitere automatische Personenhinweise zur Prüfung. ' +
+      'Dies ist kein Nachweis für richtige Einzelzuordnung. Keine automatische Freigabe für die Ranglisten.';
+  } catch (_) {
+    status.textContent = 'Automatischer Personenabgleich noch nicht verfügbar. Die belegten Zähler bleiben unverändert.';
+  }
+}
+
+async function showLegalSignals() {
+  const box = $('wp21-legal-detail');
+  try {
+    const response = await fetch('./data/rechtsfolgen_21.json', {cache:'no-store'});
+    if (!response.ok) throw new Error('Kein Bericht');
+    const data = await response.json();
+    if (data.wahlperiode !== 21 || data.status !== 'ungepruefte_rechtsfolgen_hinweise' ||
+        !Number.isInteger(data.textstellen_gesamt) || data.textstellen_gesamt < 0 ||
+        data.automatisch_zurueckgenommene_massnahmen !== 0 ||
+        data.automatisch_zurueckgewiesene_einsprueche !== 0) {
+      throw new Error('Ungültige Daten');
+    }
+    const timestamp = new Date(data.letzter_Quellenscan_utc);
+    if (!Number.isFinite(timestamp.getTime())) throw new Error('Ungültiges Datum');
+    box.textContent = 'Einspruchs- und Rücknahmeprüfung: ' +
+      data.textstellen_gesamt + ' mögliche Rechtsfolgen-Textstellen in amtlichen Protokollen, ' +
+      'Stand ' + timestamp.toLocaleDateString('de-DE') +
+      '. Keine automatische Rücknahme oder endgültige Einspruchsentscheidung; Fundstellen müssen geprüft werden.';
+  } catch (_) {
+    box.textContent = 'Einspruchs- und Rücknahmeprüfung noch nicht verfügbar. Bestätigte Einträge bleiben unverändert.';
+  }
+}
+
+async function showDipSample() {
+  const label = $('wp21-dip-detail');
+  try {
+    const response = await fetch('./data/dip_kontrolle_21.json', {cache:'no-store'});
+    if (!response.ok) throw new Error('DIP-Vergleich noch nicht verfügbar');
+    const data = await response.json();
+    const counts = ['dip_protokoll_personen_kombinationen',
+      'dip_dokumentierte_urspruengliche_rufe_in_stichprobe',
+      'davon_in_teilbestand_einzeln_belegt', 'noch_nicht_in_teilbestand_belegt'];
+    if (data.wahlperiode !== 21 ||
+        data.status !== 'ausgewaehlte_dip_positivkontrollen_ohne_gesamtzahl' ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(data.dip_referenzstand) ||
+        counts.some(name => !Number.isInteger(data[name]) || data[name] < 0) ||
+        data.davon_in_teilbestand_einzeln_belegt + data.noch_nicht_in_teilbestand_belegt !==
+          data.dip_dokumentierte_urspruengliche_rufe_in_stichprobe ||
+        data.automatisch_freigegebene_ordnungsrufe !== 0) throw new Error('Ungültiger DIP-Vergleich');
+    let status = 'Amtlicher DIP-Positivvergleich (Auswahl vom ' +
+      dateDE(data.dip_referenzstand) + '): ' +
+      data.davon_in_teilbestand_einzeln_belegt + ' von ' +
+      data.dip_dokumentierte_urspruengliche_rufe_in_stichprobe +
+      ' dort dokumentierten ursprünglichen Erteilungen in unserer einzeln geprüften Auswahl; ' +
+      data.noch_nicht_in_teilbestand_belegt + ' noch nicht aufgenommen. ' +
+      'Keine vollständige amtliche Gesamtzahl und keine Aussage über spätere Rücknahmen.';
+    if (data.parser_geprueft === true &&
+        Number.isInteger(data.dip_person_sitzung_per_parser_gefunden) &&
+        Number.isInteger(data.dip_person_sitzung_vom_parser_verpasst)) {
+      status += ' Parser erkennt ' + data.dip_person_sitzung_per_parser_gefunden +
+        ' von ' + data.dip_protokoll_personen_kombinationen +
+        ' DIP-Person/Sitzung-Kombinationen; das ist kein Nachweis einer einzelnen Maßnahme.';
+    }
+    label.textContent = status;
+  } catch (_) {
+    label.textContent = 'Der unabhängige DIP-Stichprobenvergleich ist derzeit nicht verfügbar. Die bestätigten Zahlen bleiben unverändert.';
+  }
+}
+
+async function showDipLive() {
+  const box = $('wp21-dip-live');
+  try {
+    const response = await fetch('./data/dip_live_21.json',{cache:'no-store'});
+    if (!response.ok) throw new Error('Noch kein DIP-Datenlauf');
+    const meta = await response.json();
+    const counts=['tracked_relevant_vorgaenge','new_vorgaenge','changed_vorgaenge',
+      'no_longer_matching','legal_signals_total','automatically_confirmed_sanctions'];
+    if (meta.wahlperiode !== 21 ||
+        meta.status !== 'dip_vorgangsmonitor_ohne_freigabe' ||
+        counts.some(key=>!Number.isInteger(meta[key]) || meta[key]<0) ||
+        meta.automatically_confirmed_sanctions !== 0 ||
+        !Array.isArray(meta.recent_changes) || meta.recent_changes.length>25) {
+      throw new Error('DIP-Datenformat unerwartet');
+    }
+    const checked = new Date(meta.last_success_utc);
+    if (!Number.isFinite(checked.getTime())) throw new Error('Ungültiger Zeitstempel');
+    const stale = Date.now()-checked.getTime()>48*60*60*1000;
+    box.textContent =
+      'DIP-API-Vorgangsmonitor (letzter erfolgreicher Lauf '+
+      checked.toLocaleDateString('de-DE')+(stale?', veraltet':', aktuell')+'): '+
+      meta.tracked_relevant_vorgaenge+' relevante Vorgangs-Metadatensätze beobachtet; '+
+      meta.new_vorgaenge+' neu und '+meta.changed_vorgaenge+
+      ' verändert seit dem vorherigen Lauf; '+meta.legal_signals_total+
+      ' Metadatensätze mit Stichworten zu Rechtsfolgen. '+
+      'Das sind keine bestätigten Ordnungsrufe und keine vollständige amtliche Gesamtzahl.';
+  } catch (_) {
+    box.textContent='Noch kein erfolgreicher täglicher DIP-API-Lauf verfügbar. Die bestätigte Statistik bleibt unverändert.';
+  }
+}
+
+async function showDipCases() {
+  const parent = $('wp21-dip-cases');
+  const label = $('wp21-dip-cases-meta');
+  try {
+    const response = await fetch('./data/dip_prueffalle_21.json',{cache:'no-store'});
+    if (!response.ok) throw new Error('DIP-Prüffälle fehlen');
+    const audit = await response.json();
+    if (audit.wahlperiode !== 21 ||
+        audit.status !== 'dip_verknuepfte_prueffalle_ohne_autozaehlung' ||
+        audit.automatically_confirmed_sanctions !== 0 ||
+        audit.automatically_rescinded_sanctions !== 0 ||
+        !Number.isInteger(audit.linked_dip_vorgaenge) ||
+        !Array.isArray(audit.items) || audit.items.length > 30) {
+      throw new Error('DIP-Prüfliste ungültig');
+    }
+    const time = new Date(audit.last_success_utc);
+    if (!Number.isFinite(time.getTime())) throw new Error('Ungültiger Zeitstempel');
+    label.textContent = audit.linked_dip_vorgaenge +
+      ' DIP-Vorgänge anhand amtlicher IDs mit Folgeschritten abgeglichen; ' +
+      audit.high_priority_cases + ' mit erhöhter Prüfpriorität. Quellenstand: ' +
+      time.toLocaleDateString('de-DE') +
+      '. Aus dieser Liste wird nichts automatisch als gültige Maßnahme gezählt.';
+    parent.replaceChildren();
+    for (const record of audit.items.slice(0,8)) {
+      if (typeof record.id !== 'string' ||
+          !/^[1-9]\d{0,11}$/.test(record.id) ||
+          record.source !== 'https://dip.bundestag.de/vorgang/' + record.id ||
+          !['hoch','mittel','normal'].includes(record.priority) ||
+          typeof record.title !== 'string' || record.title.length > 240 ||
+          !Number.isInteger(record.position_count) || record.position_count < 0 ||
+          !Number.isInteger(record.legal_wording_positions) ||
+          record.legal_wording_positions < 0) throw new Error('DIP-Fallformat ungültig');
+      const box = el('li','dip-case');
+      const top = el('div','activity-top');
+      top.append(el('span','activity-type',
+                    record.priority === 'hoch' ? 'Rechtsfolgen prüfen' :
+                    record.priority === 'mittel' ? 'Verfahrensstand prüfen' : 'Quellenvorgang'),
+                 el('span','activity-date', record.position_count + ' DIP-Verfahrensschritte'));
+      const heading = el('p','dip-case-title',record.title);
+      const link = el('a','source-link','Amtlichen DIP-Vorgang öffnen ↗');
+      link.href = record.source;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      box.append(top,heading,link);
+      parent.append(box);
+    }
+    if (!audit.items.length) {
+      parent.append(el('li','activity-empty','Noch keine verknüpften DIP-Prüffälle verfügbar.'));
+    }
+  } catch (_) {
+    label.textContent = 'Noch kein vollständiger DIP-Positionsabgleich verfügbar. Die bestätigten Zahlen bleiben unverändert.';
+    parent.replaceChildren();
+  }
+}
+
+async function showCoverageAudit() {
+  const target = $('wp21-coverage-detail');
+  try {
+    const response = await fetch('./data/vollstaendigkeit_21.json',{cache:'no-store'});
+    if (!response.ok) throw new Error('Vollständigkeitsbericht fehlt');
+    const data = await response.json();
+    const counts = ['sessions_scanned','verified_effective_measures_in_partial_ledger',
+      'dip_sample_person_session_keys_within_scan','dip_sample_grants_not_in_verified_partial_ledger',
+      'confirmed_keys_without_parser','dip_sample_keys_without_parser',
+      'multiple_measure_person_session_keys','xml_text_locations_without_person_parser',
+      'review_cases_total','high_priority_cases','shown'];
+    if (data.wahlperiode !== 21 ||
+        data.status !== 'quellenvollstaendigkeit_ohne_automatische_freigabe' ||
+        data.automatically_confirmed_sanctions !== 0 ||
+        data.automatically_rescinded_sanctions !== 0 ||
+        counts.some(key=>!Number.isInteger(data[key]) || data[key]<0) ||
+        data.shown > 30 || data.shown > data.review_cases_total ||
+        !Array.isArray(data.items) || data.items.length !== data.shown ||
+        data.high_priority_cases > data.review_cases_total) {
+      throw new Error('Vollständigkeits-Audit hat unerwartetes Schema');
+    }
+    const time = new Date(data.last_success_utc);
+    if (!Number.isFinite(time.getTime())) throw new Error('Zeitstempel ungültig');
+    const stale = Date.now() - time.getTime() > 48*60*60*1000;
+    target.textContent =
+      'Quellenübergreifende Vollständigkeitsprüfung (' +
+      data.sessions_scanned + ' XML-Sitzungen, letzter erfolgreicher Stand ' +
+      time.toLocaleDateString('de-DE') + (stale?', veraltet':', aktuell') + '): ' +
+      data.review_cases_total + ' quellenbezogene Prüffälle, davon ' +
+      data.high_priority_cases + ' mit hoher Priorität. ' +
+      data.dip_sample_grants_not_in_verified_partial_ledger +
+      ' ursprünglich dokumentierte DIP-Erteilungen sind in der kuratierten Stichprobe ' +
+      'noch nicht einzeln im bestätigten Teilbestand belegt; ' +
+      data.confirmed_keys_without_parser + ' bekannte Person/Sitzung-Kombinationen ' +
+      'wurden vom Parser nicht erkannt. Die DIP-Stichprobe ist keine Vollerhebung; ' +
+      'eine Texterwähnung ist keine bestätigte Maßnahme. Keine automatische Zählung.';
+  } catch (_) {
+    target.textContent = 'Noch kein erfolgreicher quellenübergreifender Vollständigkeits-Audit veröffentlicht. Die bestätigten Ordnungsruf-Zähler bleiben unverändert.';
+  }
+}
+
 function start() {
   for(const id of ['search','group-filter','sort']) {
     $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
@@ -241,14 +476,19 @@ function start() {
     if(responses.some(r=>!r.ok)) throw new Error('Datenabruf fehlgeschlagen');
     const [twenty,twentyOne]=await Promise.all(responses.map(r=>r.json()));
     for(const [period,payload] of [['20',twenty],['21',twentyOne]]) {
-      if(!payload.meta || !Array.isArray(payload.records) || payload.meta.count !== payload.records.length
-          || payload.meta.legislature !== Number(period)) throw new Error(`Datenfehler: ${period}`);
-      state.datasets[period]=payload;
+      state.datasets[period] = validatePublishedDataset(period, payload);
     }
     const initial=new URL(window.location.href).searchParams.get('wp')==='21'?'21':'20';
     activate(initial);
+    showSourceHealth();
     showScan();
     showActivityFeed();
+    showAutoTriage();
+    showLegalSignals();
+    showDipSample();
+    showDipLive();
+    showDipCases();
+    showCoverageAudit();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';

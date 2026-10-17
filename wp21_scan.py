@@ -94,7 +94,17 @@ def fetch(session, cache_dir, refresh=False):
     raise RuntimeError('XML Download gescheitert')
 
 
-def scan(cache, max_session=250, refresh_last=6):
+def scan(cache, max_session=250, refresh_last=6, refresh_older_bucket=None):
+    """Recheck recently published XMLs and a rotating seventh of older sessions.
+
+    In addition to the newest documents, each day re-downloads about 1/7 of
+    archived files, so a silently revised official XML does not remain cached
+    forever. A failed refresh fails closed, retaining the previous web snapshot.
+    """
+    if refresh_older_bucket is None:
+        refresh_older_bucket = datetime.now(timezone.utc).weekday()
+    if type(refresh_older_bucket) is not int or not 0 <= refresh_older_bucket <= 6:
+        raise ValueError('Ungueltiger woechentlicher Refresh-Bucket')
     cache.mkdir(parents=True,exist_ok=True)
     cached=[int(m.group(1)) for p in cache.glob('21*.xml')
             if (m:=re.fullmatch(r'21(\d{3})\.xml',p.name))]
@@ -104,7 +114,9 @@ def scan(cache, max_session=250, refresh_last=6):
     hints=[]
     consecutive_404=0
     for session in range(1,max_session+1):
-        refresh = session >= max_cached - refresh_last and session <= max_cached
+        refresh = (session <= max_cached and (
+            session >= max_cached - refresh_last or
+            session % 7 == refresh_older_bucket))
         data=fetch(session,cache,refresh=refresh)
         if data is None:
             missing.append(session)
@@ -132,6 +144,7 @@ def scan(cache, max_session=250, refresh_last=6):
         'status':'bereit', 'wahlperiode':21, 'letzte_sitzung':last_ok,
         'untersuchte_sitzungen':last_ok, 'textstellen_zur_pruefung':len(hints),
         'automatisch_bestaetigte_ordnungsrufe':0,
+        'woechentlicher_quellenrefresh_bucket':refresh_older_bucket,
         'zuletzt_geprueft_utc':datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'hinweis':'Automatisch erkannte Textstellen sind KEINE bestätigten Ordnungsrufe; Fälle können Erwähnungen, Drohungen, Einsprüche oder Dubletten sein.'
     }

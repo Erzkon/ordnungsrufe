@@ -1,0 +1,110 @@
+{
+  "$schema": "ordnungsruf-source-excerpts-v1",
+  "source_type": "official_bundestag_xml_excerpt",
+  "source": "https://dserver.bundestag.de/btp/20/20214.xml",
+  "wahlperiode": 20,
+  "sitzung": 214,
+  "datum": "18.03.2025",
+  "annotation_basis": "Amtliches Sitzungsprotokoll 20/214 (Originaltext, XML-Zeilenangaben) plus einzeln geprüfte Personenliste daten/wirksame_ordnungsrufe_20wp.csv. Ein direkt erteilter Einzelruf und acht Empfänger der namentlich bestätigten Gruppenmaßnahme. Verfahrenshinweis ist kein weiterer Ruf. Die Proben sind KEINE vollständige Stichprobe.",
+  "people_index": [
+    {
+      "name": "Stephan Brandner",
+      "id": "11004678",
+      "group": "AfD"
+    },
+    {
+      "name": "Ali Al-Dailami",
+      "id": "11005007",
+      "group": "BSW (Gruppe)"
+    },
+    {
+      "name": "Sevim Dağdelen",
+      "id": "11003746",
+      "group": "BSW (Gruppe)"
+    },
+    {
+      "name": "Klaus Ernst",
+      "id": "11003753",
+      "group": "BSW (Gruppe)"
+    },
+    {
+      "name": "Andrej Hunko",
+      "id": "11004060",
+      "group": "BSW (Gruppe)"
+    },
+    {
+      "name": "Christian Leye",
+      "id": "11005127",
+      "group": "BSW (Gruppe)"
+    },
+    {
+      "name": "Amira Mohamed Ali",
+      "id": "11004823",
+      "group": "BSW (Gruppe)"
+    },
+    {
+      "name": "Jessica Tatti",
+      "id": "11004911",
+      "group": "BSW (Gruppe)"
+    },
+    {
+      "name": "Sahra Wagenknecht",
+      "id": "11004183",
+      "group": "BSW (Gruppe)"
+    }
+  ],
+  "people_index_note": "Sprecherindex absichtlich als Testhilfsmittel aus den belegten IDs der historischen Quellenliste aufgebaut; es wird NICHT behauptet, alle Personen hätten in Sitzung 214 selbst gesprochen.",
+  "cases": [
+    {
+      "case_id": "20-214-1040",
+      "original_xml_line": 1040,
+      "pdf": "https://dserver.bundestag.de/btp/20/20214.pdf#page=16",
+      "text": "Entschuldigung. – Herr Brandner, dafür kriegen Sie jetzt einen Ordnungsruf.",
+      "actionable": true,
+      "expected_people": [
+        "Stephan Brandner"
+      ],
+      "label": "Einzelruf",
+      "evidence": "20-214-1040-01"
+    },
+    {
+      "case_id": "20-214-2077",
+      "original_xml_line": 2077,
+      "pdf": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50",
+      "text": "So, ich erteile jetzt allen Abgeordneten, welche diese Transparente hochhalten, einen Ordnungsruf",
+      "actionable": true,
+      "expected_people": [],
+      "label": "Gruppenruf zunächst ohne namentliche Adressaten",
+      "evidence": "20-214-2077-01"
+    },
+    {
+      "case_id": "20-214-2079",
+      "original_xml_line": 2079,
+      "pdf": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50",
+      "text": "und fordere Sie auf, sofort diese Transparente herunterzunehmen. Sie wissen, was ein zweiter Ordnungsruf nach sich zieht.",
+      "actionable": false,
+      "expected_people": [],
+      "label": "Kein neuer Ruf; Konsequenz eines etwaigen zweiten Rufes",
+      "evidence": "Protokollzeile 2079, keine zusätzliche Maßnahme in Quellenliste"
+    },
+    {
+      "case_id": "20-214-2112",
+      "original_xml_line": 2112,
+      "pdf": "https://dserver.bundestag.de/btp/20/20214.pdf#page=50",
+      "text": "Bevor wir in der Debatte fortfahren, halte ich der guten Ordnung halber und weil unsere Geschäftsordnung es so bestimmt, hier fest, dass die Abgeordneten Al-Dailami, Dağdelen, Ernst, Hunko, Leye, Mohamed Ali, Tatti und Wagenknecht einen Ordnungsruf erhalten haben. So ist das jetzt auch im Protokoll festgehalten.",
+      "actionable": true,
+      "expected_people": [
+        "Ali Al-Dailami",
+        "Sevim Dağdelen",
+        "Klaus Ernst",
+        "Andrej Hunko",
+        "Christian Leye",
+        "Amira Mohamed Ali",
+        "Jessica Tatti",
+        "Sahra Wagenknecht"
+      ],
+      "label": "Namentliche Bestätigung des bereits erteilten Gruppenrufes: keine weitere Vergabe",
+      "evidence": "20-214-2077-01"
+    }
+  ]
+}

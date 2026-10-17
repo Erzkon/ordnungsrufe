@@ -1,0 +1,201 @@
+{
+  "$schema": "ordnungsruf-dip-positive-control-v1",
+  "last_manual_snapshot": "2026-10-15",
+  "scope": "Auswahl der sichtbaren DIP-Vorgangsübersicht zur 21. Wahlperiode; ausschließlich ausdrücklich als Erteilung beschriebene Vorgänge; keine Gesamtzählung oder Vollständigkeitsbehauptung.",
+  "official_index": "https://dip.bundestag.de/suche?f.typ=Vorgang&f.wahlperiode=21&rows=25&sort=basisdatum_ab&term=Ordnungsrufe",
+  "rules": "Sicher für Erkennungsbenchmark eines mutmaßlichen ursprünglichen Ordnungsrufvorgangs, NICHT als Nachweis der endgültigen Wirksamkeit; Einspruch/Rücknahme nicht automatisch berücksichtigt. 21/094 enthält zwei ausdrücklich getrennte Rufe, nicht zwei DIP-Vorgänge. Keine automatische Zähleränderung.",
+  "entries": [
+    {
+      "session": 51,
+      "person": "Markus Frohnmaier",
+      "reported_grants": 1,
+      "date": "19.12.2025",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21051.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 52,
+      "person": "Martin Hess",
+      "reported_grants": 1,
+      "date": "14.01.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21052.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 53,
+      "person": "Heidi Reichinnek",
+      "reported_grants": 1,
+      "date": "15.01.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21053.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 57,
+      "person": "Bernd Baumann",
+      "reported_grants": 1,
+      "date": "30.01.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21057.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 57,
+      "person": "Maximilian Kneller",
+      "reported_grants": 1,
+      "date": "30.01.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21057.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 61,
+      "person": "Ulrich von Zons",
+      "reported_grants": 1,
+      "date": "04.03.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21061.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 65,
+      "person": "Luigi Pantisano",
+      "reported_grants": 1,
+      "date": "19.03.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21065.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 65,
+      "person": "Martin Reichardt",
+      "reported_grants": 1,
+      "date": "19.03.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21065.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 67,
+      "person": "Kathrin Gebel",
+      "reported_grants": 1,
+      "date": "25.03.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21067.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 67,
+      "person": "Kerstin Przygodda",
+      "reported_grants": 1,
+      "date": "25.03.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21067.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 68,
+      "person": "Paula Piechotta",
+      "reported_grants": 1,
+      "date": "26.03.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21068.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 69,
+      "person": "Timon Dzienus",
+      "reported_grants": 1,
+      "date": "27.03.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21069.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 69,
+      "person": "Fabian Fahl",
+      "reported_grants": 1,
+      "date": "27.03.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21069.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 71,
+      "person": "Mirze Edis",
+      "reported_grants": 1,
+      "date": "16.04.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21071.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 71,
+      "person": "Robin Jünger",
+      "reported_grants": 1,
+      "date": "16.04.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21071.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 77,
+      "person": "Martin Reichardt",
+      "reported_grants": 1,
+      "date": "07.05.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21077.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 86,
+      "person": "Cansin Köktürk",
+      "reported_grants": 1,
+      "date": "25.06.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21086.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 89,
+      "person": "Kai Whittaker",
+      "reported_grants": 1,
+      "date": "09.07.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21089.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 90,
+      "person": "Martin Sichert",
+      "reported_grants": 1,
+      "date": "10.07.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21090.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 92,
+      "person": "Jürgen Koegel",
+      "reported_grants": 1,
+      "date": "09.09.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21092.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 93,
+      "person": "Birgit Bessin",
+      "reported_grants": 1,
+      "date": "10.09.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21093.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 94,
+      "person": "Cansin Köktürk",
+      "reported_grants": 2,
+      "date": "11.09.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21094.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 97,
+      "person": "Robin Wagener",
+      "reported_grants": 1,
+      "date": "25.09.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21097.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    },
+    {
+      "session": 99,
+      "person": "Roland Theis",
+      "reported_grants": 1,
+      "date": "08.10.2026",
+      "official_transcript": "https://dserver.bundestag.de/btp/21/21099.pdf",
+      "proof_type": "DIP-Grundvorgang Erteilung, Wirksamkeit/Nachtraege nicht abschliessend geprueft"
+    }
+  ]
+}

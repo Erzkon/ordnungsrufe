@@ -1,0 +1,274 @@
+name: WP21 Einzelquellen der 18 Hochprioritätsfälle
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'wp21_hochprioritaet_18.py'
+      - 'wp21_18_dip_verfahrenspositionen.py'
+      - 'wp21_18_dip_original_beschluesse.py'
+      - 'wp21_weitere_einspruchsberichte.py'
+      - 'wp21_2025_dip_einzelakten.py'
+      - 'wp21_2025_massnahmen_lifecycle.py'
+      - 'wp21_2025_sieben_originalzeilen.py'
+      - 'tests/test_wp21_2025_sieben_originalzeilen.py'
+      - '.github/workflows/wp21_2025_original_xml_probe.yml'
+      - 'tests/test_wp21_2025_massnahmen_lifecycle.py'
+      - '.github/workflows/wp21_2025_original_case_probe.yml'
+      - 'tests/test_wp21_2025_dip_einzelakten.py'
+      - 'wp21_40_mehrfach_akte.py'
+      - 'wp21_janich_erste_quellenkritik.py'
+      - 'wp21_janich_original_scope.py'
+      - 'wp21_janich_full_original.py'
+      - 'wp21_40_empfaenger_belege.py'
+      - 'wp21_40_dip_rechtsfolgen_crosswalk.py'
+      - 'tests/test_wp21_40_dip_rechtsfolgen_crosswalk.py'
+      - 'tests/test_wp21_40_empfaenger_belege.py'
+      - 'tests/test_wp21_janich_full_original.py'
+      - 'tests/test_wp21_janich_original_scope.py'
+      - 'tests/test_wp21_janich_erste_quellenkritik.py'
+      - 'wp21_gottschalk_bounded_review.py'
+      - 'wp21_gottschalk_folgebeobachter.py'
+      - 'wp21_gottschalk_unkategorisierte_positionen.py'
+      - 'wp21_gottschalk_historischer_backfill.py'
+      - 'tests/test_wp21_gottschalk_historischer_backfill.py'
+      - 'tests/test_wp21_gottschalk_unkategorisierte_positionen.py'
+      - 'tests/test_wp21_gottschalk_folgebeobachter.py'
+      - '.github/workflows/wp21_gottschalk_folgeverfahren_probe.yml'
+      - 'tests/test_wp21_gottschalk_bounded_review.py'
+      - 'tests/test_wp21_40_mehrfach_akte.py'
+      - 'tests/test_wp21_weitere_einspruchsberichte.py'
+      - 'wp21_dip_positionen.py'
+      - 'tests/test_wp21_dip_fundstellen.py'
+      - 'tests/test_wp21_18_dip_original_beschluesse.py'
+      - 'tests/test_wp21_hochprioritaet_18.py'
+      - 'tests/test_wp21_18_dip_verfahrenspositionen.py'
+      - '.github/workflows/wp21_18_einzelakten.yml'
+      - 'wp21_rechtsfolgen.py'
+  workflow_dispatch:
+    inputs:
+      gottschalk_position_start:
+        description: 'Titelfreies DIP-Positionsfenster Start (maximal 45 Tage)'
+        type: string
+        required: false
+        default: '2025-11-13'
+      gottschalk_position_end:
+        description: 'Titelfreies DIP-Positionsfenster Ende'
+        type: string
+        required: false
+        default: '2025-12-12'
+
+permissions:
+  contents: read
+
+jobs:
+  original-dossiers:
+    name: 18 Einzelakten in 14 Original-XMLs prüfen, keine Bestätigung
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: PR-Schutz gegen Änderungen bestätigter Zähler gegenüber main
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for path in daten/wirksame_ordnungsrufe_20wp.csv \
+                      daten/wirksame_ordnungsrufe_21wp.csv \
+                      docs/data/ordnungsrufe.json \
+                      docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$path" | cmp -s - "$path" || {
+              echo "::error file=$path::Bestätigte Zähler weichen von main ab."
+              exit 1
+            }
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Abhängigkeiten installieren
+        run: python -m pip install -r requirements.txt
+      - name: Bytes bestätigter Statistikdateien sichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv \
+            daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json \
+            docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Negative Originalquellen- und Wirksamkeitstests
+        run: python -m unittest -v tests.test_wp21_hochprioritaet_18 tests.test_wp21_18_dip_verfahrenspositionen tests.test_wp21_dip_fundstellen tests.test_wp21_18_dip_original_beschluesse tests.test_wp21_weitere_einspruchsberichte tests.test_wp21_40_mehrfach_akte tests.test_wp21_2025_dip_einzelakten tests.test_wp21_2025_massnahmen_lifecycle tests.test_wp21_2025_sieben_originalzeilen tests.test_wp21_janich_erste_quellenkritik tests.test_wp21_janich_original_scope tests.test_wp21_janich_full_original tests.test_wp21_40_empfaenger_belege tests.test_wp21_40_dip_rechtsfolgen_crosswalk tests.test_wp21_gottschalk_bounded_review tests.test_wp21_gottschalk_folgebeobachter
+      - name: 18 personenbezogene Akten aus 14 amtlichen XMLs erzeugen
+        run: |
+          python wp21_hochprioritaet_18.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_hochprioritaet_18.json \
+            --brief .audit/wp21_hochprioritaet_18_review.md
+      - name: Dreizehn weitere amtliche Einzel-Einsprüche mit unabhängigem Quellbericht prüfen
+        run: |
+          python wp21_weitere_einspruchsberichte.py \
+            --output .audit/wp21_weitere_einsprueche.json \
+            --brief .audit/wp21_weitere_einsprueche.md
+      - name: 21/040 und 21/042 als quellengebundene Einzelakte aus Original-XML überprüfen
+        run: |
+          python wp21_40_mehrfach_akte.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_40_42_source_episodes.json \
+            --brief .audit/wp21_40_42_source_episodes.md
+      - name: Janichs bedingte Warnung nicht in ersten ursprünglichen Ordnungsruf umdeuten
+        run: |
+          python wp21_janich_erste_quellenkritik.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_janich_erste_quellenkritik.json \
+            --brief .audit/wp21_janich_erste_quellenkritik.md
+      - name: Janichs erste unlokalisierte Erteilung im beschränkten Originalumfeld manuell abgrenzen
+        run: |
+          python wp21_janich_original_scope.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_janich_original_context.json \
+            --brief .audit/wp21_janich_original_context.md
+      - name: Ganze Ursprungssitzung 21/040 auf unzugeordnete Janich-Erteilungswortlaute untersuchen
+        run: |
+          python wp21_janich_full_original.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_janich_full_original.json \
+            --brief .audit/wp21_janich_full_original.md
+      - name: Amtliche Sprecher-/Zwischenrufbelege Gottschalk Mixl aus 21/040 und 21/042 prüfen
+        run: |
+          python wp21_40_empfaenger_belege.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_40_empfaenger_belege.json \
+            --brief .audit/wp21_40_empfaenger_belege.md
+      - name: Gottschalk und Mixl mit DIP-Positionen und Beschlussprotokoll 21/042 abgleichen
+        run: |
+          python wp21_40_dip_rechtsfolgen_crosswalk.py \
+            --source-case .audit/wp21_40_empfaenger_belege.json \
+            --output .audit/wp21_40_dip_rechtsfolgen_crosswalk.json \
+            --brief .audit/wp21_40_dip_rechtsfolgen_crosswalk.md
+      - name: Sieben weitere 2025-Originalerteilungen an amtlichen XML-Zeilen überprüfen
+        run: |
+          python wp21_2025_sieben_originalzeilen.py \
+            --cache .audit/high_priority_xml \
+            --output .audit/wp21_2025_7_original_lines.json \
+            --brief .audit/wp21_2025_7_original_lines.md
+      - name: Bestätigte Statistikdateien müssen bytegleich bleiben
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Quellenprüfakten separat archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-hochprioritaet-18
+          path: |
+            .audit/wp21_hochprioritaet_18.json
+            .audit/wp21_hochprioritaet_18_review.md
+            .audit/wp21_weitere_einsprueche.json
+            .audit/wp21_weitere_einsprueche.md
+            .audit/wp21_40_42_source_episodes.json
+            .audit/wp21_40_42_source_episodes.md
+            .audit/wp21_janich_erste_quellenkritik.json
+            .audit/wp21_janich_erste_quellenkritik.md
+            .audit/wp21_janich_original_context.json
+            .audit/wp21_janich_original_context.md
+            .audit/wp21_janich_full_original.json
+            .audit/wp21_janich_full_original.md
+            .audit/wp21_40_empfaenger_belege.json
+            .audit/wp21_40_empfaenger_belege.md
+            .audit/wp21_40_dip_rechtsfolgen_crosswalk.json
+            .audit/wp21_40_dip_rechtsfolgen_crosswalk.md
+            .audit/wp21_2025_7_original_lines.json
+            .audit/wp21_2025_7_original_lines.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Einzelereignis- und Rechtsfolgenkontrolle zusammenfassen
+        if: success()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_hochprioritaet_18.json').read_text())
+          if (d['person_session_cases']!=18
+                  or d['official_protocols_reviewed']!=14
+                  or d['individual_original_grant_phrase_locations']!=21
+                  or d['separately_officially_documented_rejected_appeals']!=4
+                  or d['automatically_confirmed_effective_sanctions']!=0
+                  or d['automatically_rescinded_sanctions']!=0
+                  or d['protected_public_counters_changed']):
+              raise ValueError('Unvollständige Akten oder unzulässige Bestätigung')
+          lines=[
+              '## 18 hochpriorisierte Personen/Sitzungen: Original-XML-Prüfakten',
+              '- Amtliche Protokolle: 14',
+              '- Personen/Sitzungen: 18',
+              f"- XML-Erteilungsformulierungen: {d['individual_original_grant_phrase_locations']}",
+              '- Spätere Sitzungen: nicht im begrenzten Originalstichprobenlauf geprüft',
+              '- Amtlich dokumentierte Einspruchszurückweisungen: 4',
+              '- Prüftabelle als Markdown im Artefakt verfügbar.',
+              '- Automatisch bestätigte oder aufgehobene Maßnahmen: 0',
+              '- Alle einzelnen Ereignisse und Einspruchsfolgen offen.',
+          ]
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+              f.write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
+
+  gottschalk-position-first:
+    name: Titelfreie offizielle DIP-Positionen als Prüfkandidaten
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Geschützte Statistikdaten mit main abgleichen
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for f in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$f" | cmp -s - "$f" || { echo "::error file=$f::Zähleränderung gesperrt"; exit 1; }
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Titelfreie amtliche Positionssuche und negative Beweisgrenzen testen
+        run: python -m unittest -v tests.test_wp21_gottschalk_unkategorisierte_positionen tests.test_wp21_gottschalk_historischer_backfill
+      - name: Bytegleiche geschützte Statistikdaten sichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Alle amtlichen DIP-Positionsmetadaten im Suchfenster titelunabhängig lesen
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+          WINDOW_START: ${{ inputs.gottschalk_position_start || '2025-11-13' }}
+          WINDOW_END: ${{ inputs.gottschalk_position_end || '2025-12-12' }}
+        run: |
+          python wp21_gottschalk_unkategorisierte_positionen.py \
+            --start "$WINDOW_START" --end "$WINDOW_END" \
+            --output .audit/gottschalk_unfiltered/positions.json \
+            --brief .audit/gottschalk_unfiltered/positions.md
+      - name: Alle späteren Gottschalk-DIP-Positionen in begrenzten historischen Teilfenstern prüfen
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_gottschalk_historischer_backfill.py \
+            --start 2025-11-13 --end 2026-10-17 \
+            --output .audit/gottschalk_unfiltered/history.json \
+            --brief .audit/gottschalk_unfiltered/history.md
+      - name: Bytegleichheit der vier bestätigten Zähler
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Geprüfte titelunabhängige Kandidaten archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-gottschalk-title-independent-positions-${{ github.run_id }}
+          path: |
+            .audit/gottschalk_unfiltered/positions.json
+            .audit/gottschalk_unfiltered/positions.md
+            .audit/gottschalk_unfiltered/history.json
+            .audit/gottschalk_unfiltered/history.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

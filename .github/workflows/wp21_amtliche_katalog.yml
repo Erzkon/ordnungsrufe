@@ -1,0 +1,120 @@
+name: WP21 Amtliche Beschlussprotokolle vollständig katalogisieren
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'wp21_amtliche_protokolle_katalog.py'
+      - 'tests/test_wp21_amtliche_protokolle_katalog.py'
+      - '.github/workflows/wp21_amtliche_katalog.yml'
+      - 'wp21_gottschalk_amtliche_beschluesse.py'
+      - 'wp21_minuten_delta.py'
+      - 'wp21_40_dip_rechtsfolgen_crosswalk.py'
+      - 'tests/test_wp21_40_dip_rechtsfolgen_crosswalk.py'
+      - 'wp21_40_empfaenger_belege.py'
+      - 'tests/test_wp21_minuten_delta.py'
+      - 'daten/wp21_amtliche_protokolle_baseline.json'
+  workflow_dispatch:
+  schedule:
+    - cron: '20 8 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  official-resolution-catalogue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Geschützte Statistikdateien gegen main bytegleich absichern
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for f in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$f" | cmp -s - "$f" || { echo "::error file=$f::Geschützte Zähler sind verändert"; exit 1; }
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Geschützte Dateiprüfsummen vor jedem weiteren Schritt fixieren
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Katalog-Paginierung PDF-Quellenidentität und Nichtzählung regressionsprüfen
+        run: python -m unittest -v tests.test_wp21_amtliche_protokolle_katalog
+      - name: Amtliche Quellenänderungen gegenüber unveränderlicher Referenz testen
+        run: python -m unittest -v tests.test_wp21_minuten_delta
+      - name: Sämtliche seit 21/042 veröffentlichten Amtlichen Beschlussprotokolle lesen
+        run: |
+          python wp21_amtliche_protokolle_katalog.py \
+            --output .audit/amtliche_minuten_vollkatalog.json \
+            --brief .audit/amtliche_minuten_vollkatalog.md
+      - name: Neu veröffentlichte, veränderte oder neue personenscharfe Amtliche Quellen einordnen
+        run: |
+          python wp21_minuten_delta.py \
+            --current .audit/amtliche_minuten_vollkatalog.json \
+            --baseline daten/wp21_amtliche_protokolle_baseline.json \
+            --output .audit/amtliche_minuten_delta.json \
+            --brief .audit/amtliche_minuten_delta.md
+      - name: Gottschalk/Mixl-DIP-Fallakte und juristische Nichtzählung testen
+        run: python -m unittest -v tests.test_wp21_40_dip_rechtsfolgen_crosswalk
+      - name: Original-Sprecher und Zwischenrufer aus amtlichen 21/040 und 21/042 XML erneut prüfen
+        run: |
+          python wp21_40_empfaenger_belege.py \
+            --cache .audit/amtliche_40_42_xml \
+            --output .audit/gottschalk_mixl_original_source.json \
+            --brief .audit/gottschalk_mixl_original_source.md
+      - name: DIP-Personenpositionen von amtlichem Beschluss und Originalerteilung getrennt halten
+        run: |
+          python wp21_40_dip_rechtsfolgen_crosswalk.py \
+            --source-case .audit/gottschalk_mixl_original_source.json \
+            --output .audit/gottschalk_mixl_dip_crosswalk.json \
+            --brief .audit/gottschalk_mixl_dip_crosswalk.md
+      - name: Amtliche Quellenabdeckung im Actions-Protokoll festhalten
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          x=json.loads(Path('.audit/amtliche_minuten_vollkatalog.json').read_text())
+          if x['public_counter_delta'] or x['automatically_confirmed_effective_sanctions']:
+              raise ValueError('Amtliche PDF-Metadaten dürfen keine Zähler freigeben')
+          delta=json.loads(Path('.audit/amtliche_minuten_delta.json').read_text())
+          if delta['protected_public_counter_delta'] or not delta['reference_baseline_not_updated_by_this_scan']:
+              raise ValueError('Unzulässige Änderung an der Referenz')
+          lines=[
+              '## Amtliche Beschlussprotokolle: offizieller vollständiger Publikationskatalog',
+              '- Sitzungen 21/042–21/%03d: %d veröffentlichte PDFs' % (
+                  x['official_catalogue']['latest_published_official_minute'],x['minutes_checked']),
+              '- Amtliche PDF-Seiten: %d' % x['pages_checked'],
+              '- Spätere personenscharfe manuelle Prüffundstellen: %d' %
+                  x['later_review_context_count'],
+              '- Neu veröffentlichte PDFs: %d; nachträglich veränderte PDFs: %d' % (
+                  len(delta['new_official_minutes']),
+                  len(delta['revised_historical_pdf_sources'])),
+              '- Nicht veröffentlichte Protokolle bleiben offen; keine Zähleränderung.',
+          ]
+          print('\n'.join(lines))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('\n'.join(lines)+'\n')
+          PY
+      - name: Vier geschützte Statistikdateien unverändert bestätigen
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Nichtzählende amtliche Quellenakte separat archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-all-published-official-minutes-${{ github.run_id }}
+          path: |
+            .audit/amtliche_minuten_vollkatalog.json
+            .audit/amtliche_minuten_vollkatalog.md
+            .audit/amtliche_minuten_delta.json
+            .audit/amtliche_minuten_delta.md
+            .audit/gottschalk_mixl_dip_crosswalk.json
+            .audit/gottschalk_mixl_dip_crosswalk.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

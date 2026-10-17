@@ -8,6 +8,8 @@
   <title>Ordnungsruf-Counter · Deutscher Bundestag</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
+  <script src="verified_contract.js" defer></script>
+  <script src="source_health.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -34,21 +36,22 @@
         <h1>Wenn im Plenum<br><em>die Ordnung ruft.</em></h1>
         <p>Wer erhielt wann einen Ordnungsruf? Eine nachvollziehbare Auswertung mit Namen, Zugehörigkeiten zum jeweiligen Zeitpunkt und direkten Verweisen auf die Originalprotokolle.</p>
         <div class="period-switch" role="group" aria-label="Wahlperiode auswählen"><button id="period-20" class="period-button is-active" type="button" aria-pressed="true">20. Wahlperiode <small>2021–2025</small></button><button id="period-21" class="period-button" type="button" aria-pressed="false">21. Wahlperiode <small>seit 2025 · im Aufbau</small></button></div><div class="hero-actions"><a class="button button-primary" href="#ranglisten">Ranglisten ansehen <span aria-hidden="true">↗</span></a><a class="button button-outline" href="#eintraege">Alle Maßnahmen durchsuchen <span aria-hidden="true">→</span></a></div>
-        <div class="hero-bottom"><span class="pulse" aria-hidden="true"></span> QUELLENGESTÜTZTE AUSWERTUNG <span class="hero-separator">/</span> STAND: 14.10.2026</div>
+        <div class="hero-bottom"><span class="pulse" aria-hidden="true"></span> QUELLENGESTÜTZTE AUSWERTUNG <span class="hero-separator">/</span> <span id="hero-snapshot">DATENSTAND WIRD GELADEN</span></div>
       </div>
       <div class="hero-lines" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
     </section>
 
     <section class="shell metrics" aria-label="Kennzahlen">
-      <div class="metric metric-featured"><span class="metric-label" id="metric-total-label">WIRKSAME ORDNUNGSRUFE</span><strong id="metric-total">135</strong><span class="metric-foot" id="metric-foot-total">20. Wahlperiode · 2021–2025</span></div>
-      <div class="metric"><span class="metric-label">EINZIGARTIGE VORGÄNGE</span><strong id="metric-events">123</strong><span class="metric-foot">Ereignis-IDs in der Auswertung</span></div>
+      <div class="metric metric-featured"><span class="metric-label" id="metric-total-label">WIRKSAME ORDNUNGSRUFE</span><strong id="metric-total">—</strong><span class="metric-foot" id="metric-foot-total">20. Wahlperiode · 2021–2025</span></div>
+      <div class="metric"><span class="metric-label">EINZIGARTIGE VORGÄNGE</span><strong id="metric-events">—</strong><span class="metric-foot">Ereignis-IDs in der Auswertung</span></div>
       <div class="metric"><span class="metric-label">BETROFFENE PERSONEN</span><strong id="metric-people">—</strong><span class="metric-foot">Mit mindestens einem Ordnungsruf</span></div>
-      <div class="metric"><span class="metric-label">ZURÜCKGENOMMEN</span><strong id="metric-rescinded">2</strong><span class="metric-foot" id="metric-foot-rescinded">Nicht in der Gesamtzahl enthalten</span></div>
+      <div class="metric"><span class="metric-label">ZURÜCKGENOMMEN</span><strong id="metric-rescinded">—</strong><span class="metric-foot" id="metric-foot-rescinded">Nicht in der Gesamtzahl enthalten</span></div>
     </section>
 
     <section class="shell note-section" aria-label="Hinweis zum Datenstand">
       <div id="wp20-note" class="disclosure"><span class="disclosure-icon" aria-hidden="true">i</span><div><strong>Transparenzhinweis: vorläufiger Personenabgleich</strong><p>Die Summe von 135 stimmt mit der veröffentlichten Gesamtzahl des Bundestages überein. Für Beatrix von Storch weist unsere einzeln belegte Liste 18 Maßnahmen aus, die amtliche Veröffentlichung nennt 19. Ein DIP-Sonderfall aus März 2023 ist noch nicht abschließend geklärt. <a href="#methodik">Mehr zur Methodik <span aria-hidden="true">→</span></a></p></div></div>
-      <div id="wp21-note" class="disclosure wp21-disclosure" hidden><span class="disclosure-icon" aria-hidden="true">i</span><div><strong>21. Wahlperiode: dokumentierte Anfangsauswahl – kein vollständiger Counter</strong><p>Wir haben zunächst acht einzelne Maßnahmen aus amtlichen Plenarprotokollen belegt. Weitere Sitzungen, mögliche Rücknahmen und Einsprüche sind noch nicht abschließend ausgewertet. Deshalb sind Gesamtzahl und Ranglisten für diese Wahlperiode <strong>noch nicht repräsentativ</strong>. Automatisch erkannte Textstellen werden niemals ohne Prüfung zur Statistik hinzugefügt. <a href="https://github.com/Erzkon/ordnungsrufe/blob/main/WP21.md" target="_blank" rel="noopener noreferrer">Ablauf und Prüfregeln ↗</a></p></div></div>
+      <div id="wp21-note" class="disclosure wp21-disclosure" hidden><span class="disclosure-icon" aria-hidden="true">i</span><div><strong>21. Wahlperiode: dokumentierte Anfangsauswahl – kein vollständiger Counter</strong><p>Die angezeigten Einträge sind eine begrenzte, einzeln belegte Teilmenge aus amtlichen Plenarprotokollen. Weitere Sitzungen, mögliche Rücknahmen und Einsprüche sind noch nicht abschließend ausgewertet. Deshalb sind Gesamtzahl und Ranglisten für diese Wahlperiode <strong>noch nicht repräsentativ</strong>. Automatisch erkannte Textstellen werden niemals ohne Prüfung zur Statistik hinzugefügt. <a href="https://github.com/Erzkon/ordnungsrufe/blob/main/WP21.md" target="_blank" rel="noopener noreferrer">Ablauf und Prüfregeln ↗</a></p></div></div>
+      <p id="wp21-health" class="source-health" data-state="missing" role="status" aria-live="polite" hidden>Quellenstatus wird geladen …</p>
       <div id="wp21-scan" class="scan-status" hidden><span class="scan-dot" aria-hidden="true"></span><p id="wp21-scan-detail">Automatischer Suchlauf noch nicht veröffentlicht.</p></div>
     </section>
 
@@ -56,6 +59,20 @@
       <div class="activity-head"><div><span class="kicker">AUTOMATISCHER QUELLENCHECK</span><h2>Neue Textstellen zur Prüfung</h2><p id="wp21-activity-meta">Die aktuellen Hinweise werden geladen …</p></div></div>
       <p class="activity-warning"><strong>Keine bestätigten Ordnungsrufe:</strong> Diese Textstellen können tatsächliche Vergaben, Warnungen, Rückblicke, Einsprüche oder Mehrfachnennungen enthalten. Sie fließen nicht in die Ranglisten ein und erhalten keine automatisch angenommene Person oder Fraktion.</p>
       <ol id="wp21-activity-items" class="activity-list"><li class="activity-empty">Quellencheck wird geladen …</li></ol>
+      <div class="activity-dip-cases" aria-labelledby="wp21-dip-cases-title">
+        <div class="activity-head">
+          <h3 id="wp21-dip-cases-title">Amtlich verknüpfte Prüffälle</h3>
+          <p id="wp21-dip-cases-meta">DIP-Vorgänge und Verfahrensschritte werden geprüft …</p>
+        </div>
+        <p class="activity-warning">Ein DIP-Vorgang, eine Verfahrensposition oder ein Einspruch sind noch keine bestätigte oder aufgehobene Ordnungsruf-Maßnahme. Diese Prüfliste ist keine Rangliste.</p>
+        <ol id="wp21-dip-cases" class="dip-case-list" aria-label="Priorisierte amtliche Prüffälle"></ol>
+      </div>
+      <p id="wp21-dip-live" class="activity-footer">Täglicher DIP-Änderungsabgleich wird geladen …</p>
+      <p id="wp21-dip-detail" class="activity-footer">Amtlicher DIP-Referenzabgleich wird geladen …</p>
+      <p class="activity-footer">Nachweise: <a href="https://dip.bundestag.de/suche?f.typ=Vorgang&amp;f.wahlperiode=21&amp;rows=25&amp;sort=basisdatum_ab&amp;term=Ordnungsrufe" target="_blank" rel="noopener noreferrer">Bundestag-DIP, Ordnungsruf-Vorgänge ↗</a>. Der Quellenabgleich enthält nur eine unvollständige Referenzauswahl.</p>
+      <p id="wp21-legal-detail" class="activity-footer">Einspruchs- und Rücknahmehinweise werden geladen …</p>
+      <p id="wp21-triage-detail" class="activity-footer">Automatischer Qualitätsabgleich wird geladen …</p>
+      <p id="wp21-coverage-detail" class="activity-footer">Quellenübergreifender Vollständigkeits-Audit wird geladen …</p>
       <p class="activity-footer">Maximal 40 aktuelle Textstellen werden angezeigt. Die vollständige technische Prüfliste liegt als CSV im zugehörigen <a href="https://github.com/Erzkon/ordnungsrufe/actions" target="_blank" rel="noopener noreferrer">GitHub-Actions-Lauf ↗</a>.</p>
     </section>
 
@@ -95,6 +112,6 @@
       <div class="sources"><span>WEITERFÜHRENDE QUELLEN</span><a href="https://www.bundestag.de/dokumente/textarchiv/1949-09-20-ordnungsruf-1086652" target="_blank" rel="noopener noreferrer">Deutscher Bundestag <span aria-hidden="true">↗</span></a><a href="https://www.bundestag.de/resource/blob/196296/08d0a21670ca40e45ecfdb242d119d58/Kapitel_07_16_Ordnungsma__nahmen-data.pdf" target="_blank" rel="noopener noreferrer">Datenhandbuch <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe/blob/main/QUELLENABGLEICH.md" target="_blank" rel="noopener noreferrer">Quellenabgleich &amp; offene Punkte <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe/blob/main/WP21.md" target="_blank" rel="noopener noreferrer">21. Wahlperiode &amp; täglicher Prüfprozess <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe" target="_blank" rel="noopener noreferrer">Quellcode auf GitHub <span aria-hidden="true">↗</span></a></div>
     </section>
   </main>
-  <footer class="footer"><div class="shell footer-inner"><div><strong>ORDNUNGSRUF<span>COUNTER</span></strong><small>Unabhängiges, nichtamtliches Transparenzprojekt.</small></div><span id="footer-period">20. WAHLPERIODE · DATENSTAND 14.10.2026</span><a href="#start">Nach oben ↑</a></div></footer>
+  <footer class="footer"><div class="shell footer-inner"><div><strong>ORDNUNGSRUF<span>COUNTER</span></strong><small>Unabhängiges, nichtamtliches Transparenzprojekt.</small></div><span id="footer-period">20. WAHLPERIODE · DATENSTAND WIRD GELADEN</span><a href="#start">Nach oben ↑</a></div></footer>
 </body>
 </html>

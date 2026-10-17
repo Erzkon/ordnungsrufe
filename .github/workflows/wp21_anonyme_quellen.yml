@@ -1,0 +1,112 @@
+name: WP21 anonyme Original-XML-Fundstellen fachlich vorbereiten
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'wp21_anonyme_quellen.py'
+      - 'wp21_vier_quellenbelege.py'
+      - 'tests/test_wp21_vier_quellenbelege.py'
+      - 'tests/test_wp21_anonyme_quellen.py'
+      - '.github/workflows/wp21_anonyme_quellen.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-xml-context:
+    name: 4 verbliebene anonyme Hochprioritaetsfundstellen als Original-XML-Pruefakte sammeln
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: PR-Schutz gegen Änderungen bestätigter Zähler gegenüber main
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for path in daten/wirksame_ordnungsrufe_20wp.csv \
+                      daten/wirksame_ordnungsrufe_21wp.csv \
+                      docs/data/ordnungsrufe.json \
+                      docs/data/ordnungsrufe_21.json; do
+            if ! git show "FETCH_HEAD:$path" | cmp -s - "$path"; then
+              echo "::error file=$path::Bestätigte Zähler dürfen im PR nicht von main abweichen."
+              exit 1
+            fi
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Abhaengigkeiten installieren
+        run: python -m pip install -r requirements.txt
+      - name: Bytes der vier bestaetigten Referenzdateien sichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv \
+            daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json \
+            docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Anonyme Quellenanker, Sprecherrollen und Negativfälle prüfen
+        run: python -m unittest -v tests.test_wp21_anonyme_quellen
+      - name: Amtliche XML-Originale zu allen 4 verbliebenen Fundstellen laden und einordnen
+        run: |
+          python wp21_anonyme_quellen.py \
+            --cache .audit/anonymous_xml \
+            --output .audit/anonymous_context.json
+      - name: Vier amtlich verknuepfte Personen-Pruefhinweise separat belegen
+        run: |
+          python -m unittest -v tests.test_wp21_vier_quellenbelege
+          python wp21_vier_quellenbelege.py \
+            --cache .audit/anonymous_xml \
+            --output .audit/four_source_recipient_hints.json
+      - name: Gepruefte Datensaetze muessen bytegleich bleiben
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Quellenpruefakte unveraendert archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-anonyme-quelle-${{ github.run_id }}
+          path: |
+            .audit/anonymous_context.json
+            .audit/four_source_recipient_hints.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Noch nicht bestaetigte Fundstellen zusammenfassen
+        if: success()
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/anonymous_context.json').read_text())
+          if (any(not c['original_wording_anchor_checked'] for c in d['cases'])
+                  or d['anonymous_review_cases']!=4
+                  or d['source_linked_recipient_review_hints']!=4
+                  or d['still_unattributed_original_locations']!=0
+                  or d['protocols_examined']!=4
+                  or d['auto_confirmed_sanctions']!=0
+                  or d['auto_identified_recipients']!=0):
+              raise ValueError('Anonyme Quellenpruefakte unvollstaendig')
+          proof=json.loads(Path('.audit/four_source_recipient_hints.json').read_text())
+          if (proof['unverified_person_source_hints']!=4
+                  or proof['independently_legally_effective_sanctions_confirmed']!=0
+                  or proof['automatically_changed_public_counts']!=0):
+              raise ValueError('Vier Original-XML-Empfängerprüfbelege unvollständig')
+          lines=[
+              '## Vier früher anonyme Original-XML-Erteilungsstellen',
+              '- Amtliche Protokolle: 4',
+              '- Quellengebundene Personen-Prüfhinweise: 4',
+              '- Im Parser weiterhin ohne Personenhinweis: 0',
+              '- Automatisch rechtlich bestätigte Personen: 0',
+              '- Automatisch bestaetigte oder aufgehobene Massnahmen: 0',
+              '- Vier ergänzende, ungeprüfte Empfängerhinweise aus Original-XML archiviert.',
+              '- Individuelle Rechtswirkung und Einspruchsprüfung bleiben offen.',
+              '- Alle Kontextstellen und Rednerwechsel stehen im JSON-Artefakt.',
+          ]
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as out:
+              out.write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY

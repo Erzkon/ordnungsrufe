@@ -1,0 +1,152 @@
+name: Gezielter DIP-Originalvorgang-Nachweis für 18 WP21-Fälle
+
+# One isolated PR confirmation of 18 exact official DIP Vorgang IDs
+# triggered after the 2026-10-16 full source census. Future repetitions
+# are manual-only, never scheduled on unrelated changes or merged by CI.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  targeted-official-dip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bestätigte Statistik nicht von main abweichen lassen
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for file in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$file" | cmp -s - "$file" || exit 1
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Geschützte vier Zähler vor DIP-Quellenprüfung sichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: 18 Quellvorgänge und ihre amtlichen Positionsakten einzeln prüfen
+        timeout-minutes: 14
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json,os,re,time
+          from datetime import datetime,timezone
+          from pathlib import Path
+          from urllib.request import Request,build_opener
+          from urllib.error import HTTPError,URLError
+          from wp21_dip_monitor import PUBLIC_KEY,NoRedirect,relevant_item,iso
+          from wp21_dip_positionen import fetch_positions,normalize_position
+          from wp21_18_dip_verfahrenspositionen import crosswalk,render_markdown
+          from wp21_autopruefung import norm
+          PIN={
+              (51,'Markus Frohnmaier'):329623,
+              (52,'Martin Hess'):330133,
+              (53,'Heidi Reichinnek'):330237,
+              (57,'Bernd Baumann'):330700,
+              (61,'Ulrich von Zons'):332078,
+              (65,'Luigi Pantisano'):332778,
+              (65,'Martin Reichardt'):332748,
+              (67,'Kathrin Gebel'):333090,
+              (67,'Kerstin Przygodda'):333088,
+              (68,'Paula Piechotta'):333149,
+              (69,'Fabian Fahl'):333185,
+              (69,'Timon Dzienus'):333192,
+              (71,'Mirze Edis'):333814,
+              (71,'Robin Jünger'):333809,
+              (86,'Cansin Köktürk'):336641,
+              (89,'Kai Whittaker'):337087,
+              (93,'Birgit Bessin'):339006,
+              (94,'Cansin Köktürk'):339024,
+          }
+          if len(PIN)!=18 or len(set(PIN.values()))!=18:
+              raise ValueError('Nicht genau 18 eindeutige amtliche Vorgangs-IDs')
+          key=os.environ.get('DIP_API_KEY') or PUBLIC_KEY
+          opener=build_opener(NoRedirect())
+          parents={}
+          positions={}
+          for (session,person),identifier in sorted(PIN.items()):
+              target='https://search.dip.bundestag.de/api/v1/vorgang/'+str(identifier)
+              req=Request(target,headers={
+                  'Authorization':'ApiKey '+key,
+                  'Accept':'application/json',
+                  'User-Agent':'OrdnungsrufCounter/0.6 (github.com/Erzkon/ordnungsrufe)'})
+              last_error=None
+              for attempt in range(3):
+                  try:
+                      with opener.open(req,timeout=25) as response:
+                          if response.status!=200: raise ValueError('DIP HTTP != 200')
+                          blob=response.read(250001)
+                      if len(blob)>250000: raise ValueError('DIP JSON zu groß')
+                      raw=json.loads(blob.decode())
+                      last_error=None
+                      break
+                  except (HTTPError,URLError,TimeoutError,OSError) as exc:
+                      last_error=exc
+                      if attempt<2: time.sleep(2**attempt)
+              if last_error is not None: raise last_error
+              if (not isinstance(raw,dict) or str(raw.get('id'))!=str(identifier)
+                      or raw.get('wahlperiode')!=21):
+                  raise ValueError('Falscher amtlicher DIP-Einzelvorgang')
+              value=relevant_item(raw)
+              if value is None:
+                  raise ValueError('Vorgang ohne aktiven Ordnungsruf-Titel: '+str(identifier))
+              parents[str(identifier)]={**value,'active':True}
+              for doc in fetch_positions(identifier,key):
+                  row=normalize_position(doc)
+                  if row['parent_id']!=str(identifier):
+                      raise ValueError('Position gehört zu einem anderen Vorgang')
+                  if row['id'] in positions:
+                      raise ValueError('DIP-Positions-ID mehrfach vergeben')
+                  positions[row['id']]={**row,'active':True}
+              print(f'DIP-Original {session:03d} {person}: {identifier} '
+                    f'{value["date"]} (Positionen bisher {len(positions)})',flush=True)
+          timestamp=iso(datetime.now(timezone.utc))
+          report=crosswalk(
+              {'last_success_utc':timestamp,'items':parents},
+              {'last_success_utc':timestamp,'items':positions})
+          if (report['original_cases']!=18
+                  or report['cases_with_bound_parent_candidates']!=18
+                  or report['bound_vorgang_candidates']!=18
+                  or report['independently_documented_appeal_date_candidates']!=4
+                  or report['automatically_confirmed_sanctions']!=0
+                  or report['automatically_rescinded_sanctions']!=0
+                  or report['protected_statistics_changed']):
+              raise ValueError('Fall-IDs/amtliche Einspruchsdaten nicht eindeutig verifiziert')
+          for row in report['cases']:
+              ident=PIN[(row['session'],row['person'])]
+              if (len(row['candidate_vorgaenge'])!=1
+                      or row['candidate_vorgaenge'][0]['parent_id']!=str(ident)):
+                  raise ValueError('Amtliche Original-ID verwechselt: '+str(ident))
+          folder=Path('.audit/dip18')
+          folder.mkdir(parents=True,exist_ok=True)
+          (folder/'review.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+          (folder/'review.md').write_text(render_markdown(report),encoding='utf-8')
+          print('DIP_18_TARGETED_OK '+json.dumps({
+              'original_cases':report['original_cases'],
+              'bound_vorgaenge':report['bound_vorgang_candidates'],
+              'bound_positions':report['bound_position_hints'],
+              'official_appeal_date_links':report['independently_documented_appeal_date_candidates'],
+              'automated_sanctions':0}))
+          PY
+      - name: Bestätigte Statistikdateien müssen bytegleich bleiben
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: 18 Quellakten als read-only Artefakt bereitstellen
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-18-individual-dip-ids-${{ github.run_id }}
+          path: |
+            .audit/dip18/review.json
+            .audit/dip18/review.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

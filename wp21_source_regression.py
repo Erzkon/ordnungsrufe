@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+"""Conservative regression checks against actual official WP21 XML paragraphs.
+
+Only examines transcript snippets already downloaded by wp21_fallkontext.
+Fails if the sample's source wording changes: never silently accepts a new
+negative/positive ground truth. Proposals remain unverified and never count.
+"""
+import argparse
+from pathlib import Path
+
+from parser import candidates, events, iter_session_text, speaker_index
+from wp21_scan import safe_parse
+
+SOURCE_FRAGMENTS = {
+    # Four original previously anonymous locations; recipient REVIEW only.
+    (8,'ich erteile ihnen dafür einen ordnungsruf'):('linked_hint','Bachmann'),
+    (23,'sie bekommen jetzt von mir einen ordnungsruf dafür, dass sie die sitzungsleitung kritisiert haben'):('linked_hint','Bachmann'),
+    (28,'nein, das haben nicht sie zu entscheiden. dafür erteile ich jetzt auch einen ordnungsruf'):('linked_hint','Bochmann'),
+    (46,'sie bekommen jetzt für dieses „warum nicht?“ von mir einen ordnungsruf'):('linked_hint','Edis'),
+    # Three president-speech episodes with explicitly unresolved number of
+    # independent legal measures; a source paragraph is NOT a count.
+    (49, 'möchte ich dem abgeordneten stephan brandner von der afd einen ordnungsruf erteilen'):
+        ('named_hint','Brandner'),
+    (49, 'lustig ist daran überhaupt nichts'):
+        ('linked_hint','Brandner'),
+    (51, 'ich erteile ihnen dafür einen ordnungsruf. das ist ein persönlicher angriff gegen herrn stegner'):
+        ('linked_hint','Frohnmaier'),
+    (65, 'ich erteile ihnen jetzt einen ordnungsruf'):
+        ('linked_hint','Reichardt'),
+    # 21/026 original unknown "Herr Kollege" has a separate later
+    # official CHAIR clarification naming Janich, NOT Ebenberger.
+    (26, 'herr kollege, dafür erteile ich ihnen einen ordnungsruf'):
+        ('linked_hint','Janich'),
+    (26, 'der ordnungsruf ging an herrn steffen janich'):
+        ('retrospective_only',None),
+    # 21/043 early grant: Keuter named by later chair clarification;
+    # the later distinct 3497 is DIP-indexed to Brucker, not Keuter.
+    (43, 'auch sie kriegen einen ordnungsruf, weil sie anscheinend'):
+        ('linked_hint','Keuter'),
+    (43, 'der zweite ordnungsruf, den ich erteilt habe, ging an den abgeordneten keuter'):
+        ('retrospective_only',None),
+    (43, 'auch ihnen erteile ich einen ordnungsruf; namen rufe ich gleich aus'):
+        ('linked_hint','Brucker'),
+    (26, 'herr kollege, dafür erteile ich ihnen einen ordnungsruf'):
+        ('linked_hint','Janich'),
+    (43, 'auch sie kriegen einen ordnungsruf, weil sie anscheinend'):
+        ('linked_hint','Keuter'),
+    (43, 'auch ihnen erteile ich einen ordnungsruf; namen rufe ich gleich aus'):
+        ('linked_hint','Brucker'),
+    # Source-named 21/014 Reichardt interjection and two directly rebuked
+    # preceding named XML speaker turns in 21/037 and 21/039.
+    (14, 'dann muss ich ihnen leider einen ordnungsruf erteilen dafür'):
+        ('linked_hint','Reichardt'),
+    (37, 'erteile ihnen hiermit einen ordnungsruf für die verwendung'):
+        ('linked_hint','Gürpinar'),
+    (39, 'im übrigen erteile ich ihnen einen ordnungsruf dafür'):
+        ('linked_hint','Rathert'),
+    # 21/040 has TWO distinct first/second pairs involving two MPs,
+    # not one three-grant series: Sichert 8715+8719, Gottschalk 8990+8992.
+    (40, 'ich erteile ihnen jetzt einen ordnungsruf, weil sie mit dem finger'):
+        ('linked_hint','Sichert'),
+    (40, 'ich erteile ihnen auch für den widerspruch gerade einen zweiten ordnungsruf'):
+        ('linked_hint','Janich'),
+    (40, 'herr kollege gottschalk, ich erteile ihnen jetzt einen ordnungsruf'):
+        ('named_hint','Gottschalk'),
+    (40, 'und ich erteile ihnen einen zweiten ordnungsruf dafür'):
+        ('linked_hint','Gottschalk'),
+    (40, 'erteile ich ihnen gleich fürs lachen den nächsten ordnungsruf'):
+        ('conditional_warning',None),
+    # Three remaining independent DIP-positive references, with exact XML
+    # recipients supported by named speech blocks / formal introductions.
+    (52, 'herr kollege, dafür, dass sie der kollegin inkompetenz'):
+        ('linked_hint','Hess'),
+    (65, 'jetzt ist gut. ich mache hier nicht jeden quatsch mit. herr reichardt'):
+        ('full_identity','Martin Reichardt'),
+    (67, 'frau kollegin, dafür, dass sie der kollegin gebel'):
+        ('linked_hint','Przygodda'),
+    (57, 'sie kriegen jetzt von mir einen ordnungsruf dafür'): ('linked_hint','Baumann'),
+    (61, 'für die bezeichnung von frau brosius-gersdorf'): ('linked_hint','Zons'),
+    (71, 'dafür muss ich ihnen einen ordnungsruf erteilen'): ('linked_hint','Edis'),
+    (93, 'dafür erteile ich ihnen einen ordnungsruf'): ('linked_hint','Bessin'),
+    (27, 'nach durchsicht des protokolls muss ich feststellen'): ('named_hint','Koch'),
+    (69, 'werden sie auch dafür einen ordnungsruf bekommen'): ('conditional_warning',None),
+    # Separately validate previously unrecognised direct recipients and
+    # strict negative/hypothetical language in the real official transcripts.
+    (15, 'ich erteile einen ordnungsruf an herrn lamely'): ('named_hint','Lamely'),
+    (22, 'wer dreimal einen ordnungsruf erhält'): ('conditional_warning', None),
+    (23, 'ich erteile hier noch einen nachträglichen ordnungsruf'): ('named_hint','Hilse'),
+    (25, 'dann bekommt man ja einen ordnungsruf'): ('conditional_warning', None),
+    (43, 'herrn frohnmaier erteile ich einen ordnungsruf'): ('named_hint','Frohnmaier'),
+    (43, 'ich müsste ihnen theoretisch einen ordnungsruf erteilen'): ('conditional_warning', None),
+    (50, 'ich erteile dem bundestagsabgeordneten martin reichardt einen ordnungsruf'): ('named_hint','Reichardt'),
+    (74, 'muss ich ihnen dafür jetzt einen ordnungsruf erteilen'): ('conditional_warning', None),
+    (75, 'da ich es nicht zuordnen kann, kann ich keinen ordnungsruf erteilen'): ('conditional_warning', None),
+    (82, 'ob sie dafür auch schon einen ordnungsruf'): ('conditional_warning', None),
+    (52, 'kollegin inkompetenz'): ('false_victim', None),
+    (53, 'möchte ich der abgeordneten reichinnek'): ('named_hint', 'Reichinnek'),
+    (61, 'für das lachen können sie gleich'): ('conditional_warning', None),
+    (65, 'das belege ich jetzt hiermit mit einem ordnungsruf'): ('named_hint', 'Pantisano'),
+    # Deliberate independently surfaced *conflict*: 21/067 names Gebel
+    # as the offended colleague. Only a separate actual issuing clause can
+    # prove a grant to her; this paragraph must never propose her.
+    (67, 'dass sie der kollegin gebel'): ('false_victim', 'Gebel'),
+    (67, 'für die bemerkung, der kanzler würde rassistischen dreck'):
+        ('linked_hint','Gebel'),
+    (68, 'möchte ich der abgeordneten dr. paula piechotta'): ('named_hint','Piechotta'),
+    (71, 'erteile ich ihnen, herr jünger'): ('named_hint','Jünger'),
+    (77, 'und für dieses persönliche bekommen sie jetzt von mir einen ordnungsruf'): ('linked_hint','Reichardt'),
+    (77, 'der ordnungsruf von mir vorhin an herrn reichardt gegangen ist'): ('retrospective_only',None),
+    (90, 'deshalb erteile ich ihnen hierfür einen ordnungsruf'): ('linked_hint','Sichert'),
+    (94, 'so, bitte schön, dann haben sie jetzt ihren ordnungsruf'): ('linked_hint','Köktürk'),
+    (94, 'dafür gibt es den nächsten ordnungsruf'): ('linked_hint','Köktürk'),
+    (94, 'zwei ordnungsrufe an frau köktürk gegangen'): ('retrospective_only',None),
+    (94, 'die abgeordnete köktürk hat heute zwei ordnungsrufe'): ('retrospective_only',None),
+}
+
+
+def run(folder):
+    sessions={n for n,_ in SOURCE_FRAGMENTS}
+    roots={}
+    for n in sorted(sessions):
+        path=Path(folder)/f'21{n:03d}.xml'
+        if not path.is_file() or path.is_symlink():
+            raise ValueError(f'Nicht heruntergeladenes Original-XML: {path}')
+        roots[n]=safe_parse(path.read_bytes(),n)
+    index=speaker_index(roots.values())
+    results={}
+    for session,root in roots.items():
+        path=Path(folder)/f'21{session:03d}.xml'
+        paragraphs=list(iter_session_text(root))
+        hints={int(row['line']):row for row in candidates(path,root=root)}
+        people_by_line={}
+        for row in events(path,index=index,root=root):
+            people_by_line.setdefault(int(row['line']),[]).append(row)
+        for (n,fragment),(expect,person) in SOURCE_FRAGMENTS.items():
+            if n!=session:
+                continue
+            relevant=[(node,text) for node,text in paragraphs
+                      if fragment in text.casefold()]
+            if len(relevant)!=1:
+                raise ValueError(f'Originalformulierung 21/{n:03d} nicht einzigartig: {fragment!r} '
+                                 f'({len(relevant)} Treffer). Keine irreführenden Prüfclaims.')
+            node,original=relevant[0]
+            line=int(node.sourceline)
+            people=people_by_line.get(line,[])
+            cls=hints.get(line,{}).get('classification')
+            names=[who['person'] for who in people]
+            if expect=='false_victim':
+                # 21/052 has noun "Inkompetenz" in the offended-colleague
+                # slot, 21/067 has a real politician there ("Gebel").
+                forbidden=(person or 'Inkompetenz').casefold()
+                if any(forbidden in name.casefold() for name in names):
+                    raise AssertionError(f'Falsche Person statt Empfänger in 21/{session}: {names}')
+                if cls != 'possible_grant':
+                    raise AssertionError(f'Erteilungstext in 21/{session} nicht erkannt')
+            elif expect=='named_hint':
+                if cls != 'possible_grant' or not any(
+                        name.casefold().endswith(person.casefold()) for name in names):
+                    raise AssertionError(f'Explizite Person als Prüfhinweis fehlt 21/{session}: '
+                                         f'{cls=} {names=}')
+            elif expect=='full_identity':
+                if (cls != 'possible_grant' or len(people)!=1
+                        or people[0]['person']!=person
+                        or people[0]['identity_status']!='matched_xml_person'
+                        or not people[0]['zuordnungsmethode'].startswith(
+                            'vollname_vorsitz_einleitung_xmlzeile_')
+                        or people[0]['status']!='review_required'):
+                    raise AssertionError(f'Nicht eindeutig mit formaler '
+                                         f'Original-XML-Einleitung verknüpft '
+                                         f'21/{session}: {cls=} {people=}')
+            elif expect=='unassigned':
+                if cls != 'possible_grant' or people:
+                    raise AssertionError(f'Pronomen ohne Namen nicht sicher; 21/{session}: '
+                                         f'{cls=} {names=}')
+            elif expect=='conditional_warning':
+                if cls != 'warning_or_conditional' or people:
+                    raise AssertionError(f'Konditionale Drohung statt Erteilung 21/{session}: '
+                                         f'{cls=} {names=}')
+            elif expect=='linked_hint':
+                if (cls != 'possible_grant' or len(people)!=1
+                        or not names[0].casefold().endswith(person.casefold())
+                        or people[0]['status']!='review_required'
+                        or not people[0]['zuordnungsmethode'].startswith(
+                          ('namensbestaetigung_xmlzeile_',
+                           'vorherige_direkte_anrede_xmlzeile_',
+                           'vorsitz_direkte_anrede_xmlzeile_',
+                           'vorsitz_redeeinleitung_und_wortlaut_xmlzeile_',
+                           'redeblock_sprecher_xmlzeile_',
+                           'vorherige_rede_und_einleitung_xmlzeile_',
+                           'namenszwischenruf_schwaetzer_xmlzeile_',
+                           'wortgleiche_rede_und_anrede_xmlzeile_',
+                           'namentliche_sitzungsleitungs_klarstellung_xmlzeile_',
+                           'zweitgenannte_erteilung_vorsitz_klaerung_xmlzeile_',
+                           'amtliche_dip_person_fundstelle_',
+                           'fortsetzung_benannter_erteilungsrede_xmlzeile_',
+                           'neuer_benannter_zwischenruf_xmlzeile_',
+                           'gleiche_erteilungsepisode_spaetere_anrede_xmlzeile_',
+                           'namentliche_sitzungsleitungs_klarstellung_xmlzeile_',
+                           'zweitgenannte_erteilung_vorsitz_klaerung_xmlzeile_',
+                           'erstes_erteilungswort_redner_sichert_xmlzeile_',
+                           'zweitvergabe_zu_benanntem_zwischenruf_xmlzeile_',
+                           'zweiter_ordnungsruf_vorheriger_erteilung_xmlzeile_',
+                           'original_karte_rednerid_xmlzeile_',
+                           'original_kommentar_name_xmlzeile_'))):
+                    raise AssertionError(f'Beleggebundener Personen-Prüfhinweis '
+                                         f'21/{session} fehlt oder uneindeutig: '
+                                         f'{cls=} {names=} {people=}')
+            elif expect=='retrospective_only':
+                if people:
+                    raise AssertionError(f'Historische Bestätigung nicht als zusätzliche Erteilung: '
+                                         f'{session=} {names=}')
+            results[f'21/{session:03d}: {fragment}'] = {
+                'classification':cls,'people_as_unverified_parser_hints':names,
+                'status':'checked_against_original_xml_not_effective_sanctions',
+            }
+    # 49, 51, 65 each have TWO source issuance phrases but no
+    # independently verified decision about individual effective measures.
+    for session,expected in {
+        49:{3278:'Stephan Brandner',3280:'Stephan Brandner'},
+        51:{3979:'Markus Frohnmaier',3981:'Markus Frohnmaier'},
+        65:{2044:'Martin Reichardt',2046:'Martin Reichardt'},
+    }.items():
+        if session not in roots:
+            continue
+        parsed=list(events(Path(folder)/f'21{session:03d}.xml',
+                           index=index,root=roots[session]))
+        for line,name in expected.items():
+            people=[row for row in parsed if int(row['line'])==line]
+            if len(people)!=1 or people[0]['person']!=name:
+                raise AssertionError(
+                    f'21/{session:03d} XML-Zeile {line}: erwartet '
+                    f'{name}, gefunden {people}; keine falsche Empfängerzuordnung')
+        if (session==49 and any(
+                row['person']=='Thomas Stephan' and int(row['line']) in (3278,3280)
+                for row in parsed)):
+            raise AssertionError('21/049: der falsche XML-Namensprefix Thomas Stephan')
+    # The conditional laughter threat at line 8717 is not a third
+    # sanction. Similarly, 8990 is already a named first grant; 8992 adds
+    # only a source-linked review identity to the separate second grant.
+    if 40 in roots:
+        path=Path(folder)/'21040.xml'
+        rows=list(events(path,index=index,root=roots[40]))
+        pairs={
+            8715:'Martin Sichert',8719:'Steffen Janich',
+            8990:'Kay Gottschalk',8992:'Kay Gottschalk',
+        }
+        for line,who in pairs.items():
+            seen=[row for row in rows if int(row['line'])==line]
+            if (len(seen)!=1 or seen[0]['person']!=who
+                    or seen[0]['status']!='review_required'):
+                raise AssertionError(
+                    f'Unabhängige 21/040-Erteilungsstellen nicht korrekt '
+                    f'getrennt: Zeile {line}, erwartet {who}, gefunden {seen}')
+        if any(int(row['line'])==8717 for row in rows):
+            raise AssertionError('21/040 bedingte Lachandrohung als Erteilung erfasst')
+        comments=[n for n in roots[40].iter('kommentar') if n.sourceline==8718]
+        if (len(comments)!=1 or
+                'Steffen Janich [AfD]: Also fürs Lachen einen Ordnungsruf!'
+                not in ' '.join(''.join(comments[0].itertext()).split())):
+            raise AssertionError('Namentlicher Janich-Zwischenruf 21/040 fehlt')
+    if len(results)!=len(SOURCE_FRAGMENTS):
+        raise AssertionError('Unvollständige reale XML-Testabdeckung')
+    print(f'{len(results)} Original-XML-Paragraf-Regressionskontrollen OK; '
+          '0 automatisch bestätigte oder aufgehobene Maßnahmen.')
+    return results
+
+
+def main():
+    ap=argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--folder',type=Path,default=Path('.audit/targeted_xml'))
+    a=ap.parse_args()
+    run(a.folder)
+
+
+if __name__=='__main__':
+    main()
