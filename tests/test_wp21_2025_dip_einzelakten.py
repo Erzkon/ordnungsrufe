@@ -12,13 +12,13 @@ from wp21_weitere_einspruchsberichte import EVIDENCE
 
 def example_source_snapshot():
     records=[]
-    for day,name,pid,sit,decision_sit,grants,votes in CASES:
+    for case_ordinal,(day,name,pid,sit,decision_sit,grants,votes) in enumerate(CASES,1):
         source=f'https://dserver.bundestag.de/btp/21/21{sit:03d}'
         result=f'https://dserver.bundestag.de/btp/21/21{decision_sit:03d}'
         decision_date=next(x['decision_date'] for x in EVIDENCE
                            if x['original_date']==day and x['person']==name)
         first={
-            'id':str(700000+int(pid)),'date':day,'step':'Ordnungsruf',
+            'id':str(700000+10*case_ordinal),'date':day,'step':'Ordnungsruf',
             'plenary_session':sit,'plenary_pdf':source+'.pdf#P.120',
             'plenary_xml':source+'.xml','decision_tenors':[],
             'abstract_excerpt':'','signal_fields':[],
@@ -32,7 +32,7 @@ def example_source_snapshot():
                       if name=='Kay Gottschalk'
                       else 'gegen die Ordnungsmaßnahme'))
             positions.append({
-                'id':str(800000+int(pid)+index),'date':decision_date,
+                'id':str(800000+10*case_ordinal+index),'date':decision_date,
                 'step':'Abstimmung','plenary_session':decision_sit,
                 'plenary_pdf':result+'.pdf#P.250','plenary_xml':result+'.xml',
                 'decision_tenors':['Zurückweisung des Einspruchs'],
