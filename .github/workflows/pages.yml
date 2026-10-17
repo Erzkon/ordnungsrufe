@@ -280,6 +280,30 @@ jobs:
       - name: Fehlerhafte zusätzliche Einspruchsquellen ausschließlich warnen
         if: github.event_name != 'pull_request' && steps.additionalAppeals.outcome == 'failure'
         run: echo '::warning::Zusätzliche amtliche Einspruchsquellen unvollständig oder ungültig; keine automatische Zählerkorrektur.'
+      - name: Zehn 2025-Originalvorgänge und differenzierte Einsprüche aus erfolgreichem DIP-Cache prüfen
+        if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
+        id: original2025
+        continue-on-error: true
+        run: |
+          python wp21_2025_dip_einzelakten.py \
+            --vorgang-state .cache/dip21/state.json \
+            --position-state .cache/dip21/positionen.json \
+            --output .audit/wp21_2025_dip_origins_and_appeals.json \
+            --brief .audit/wp21_2025_dip_origins_and_appeals.md
+      - name: 2025-DIP-Originalfallakte als nichtzählende amtliche Belege archivieren
+        if: github.event_name != 'pull_request' && steps.original2025.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-2025-dip-origins-and-appeals-${{ github.run_id }}
+          path: |
+            .audit/wp21_2025_dip_origins_and_appeals.json
+            .audit/wp21_2025_dip_origins_and_appeals.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Bei neuem/fehlendem 2025-DIP-Verfahrensschritt warnen statt statistisch korrigieren
+        if: github.event_name != 'pull_request' && steps.original2025.outcome == 'failure'
+        run: echo '::warning::Historische DIP-2025-Originalfälle oder Einsprüche haben sich geändert: fachliche Quellenprüfung erforderlich, keine Zähleränderung.'
       - name: 18 Einzelakten mit vollständigen amtlichen DIP-Vorgangspositionen abgleichen
         if: github.event_name != 'pull_request' && steps.dipqueue.outcome == 'success'
         id: eighteenDIP

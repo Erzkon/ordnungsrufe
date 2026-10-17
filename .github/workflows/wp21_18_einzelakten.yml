@@ -9,6 +9,7 @@ on:
       - 'wp21_18_dip_original_beschluesse.py'
       - 'wp21_weitere_einspruchsberichte.py'
       - 'wp21_2025_dip_einzelakten.py'
+      - '.github/workflows/wp21_2025_original_case_probe.yml'
       - 'tests/test_wp21_2025_dip_einzelakten.py'
       - 'wp21_40_mehrfach_akte.py'
       - 'tests/test_wp21_40_mehrfach_akte.py'

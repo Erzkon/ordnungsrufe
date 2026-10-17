@@ -49,6 +49,20 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('verified_individual_cases.json',wf)
         self.assertIn('sha256sum --check',wf)
 
+    def test_2025_case_review_uses_completed_dip_cache_and_full_survey_is_manual(self):
+        self.assertIn('id: original2025',self.workflow)
+        self.assertIn("steps.dippositions.outcome == 'success'",self.workflow)
+        self.assertIn('python wp21_2025_dip_einzelakten.py',self.workflow)
+        self.assertIn('--vorgang-state .cache/dip21/state.json',self.workflow)
+        self.assertIn('--position-state .cache/dip21/positionen.json',self.workflow)
+        self.assertIn('wp21-2025-dip-origins-and-appeals-',self.workflow)
+        self.assertIn("steps.original2025.outcome == 'failure'",self.workflow)
+        survey=Path('.github/workflows/wp21_2025_original_case_probe.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('  workflow_dispatch:',survey)
+        self.assertNotIn('  pull_request:',survey)
+        self.assertNotIn('  schedule:',survey)
+
     def test_additional_official_appeal_decisions_remain_readonly_and_not_double_counted(self):
         self.assertIn('id: additionalAppeals', self.workflow)
         self.assertIn('python wp21_weitere_einspruchsberichte.py',self.workflow)

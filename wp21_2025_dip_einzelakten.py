@@ -90,8 +90,11 @@ def official_plenary_url(value,session):
 def inspect(snapshot):
     targets=verified_case_index()
     if (not isinstance(snapshot,dict)
-            or snapshot.get('schema')!='wp21-2025-targeted-official-dip-source-survey-v1'
-            or snapshot.get('status')!='noncounting_complete_filtered_api_inventory'
+            or (snapshot.get('schema'),snapshot.get('status')) not in (
+                ('wp21-2025-targeted-official-dip-source-survey-v1',
+                 'noncounting_complete_filtered_api_inventory'),
+                ('wp21-2025-source-bound-completed-dip-cache-v1',
+                 'read_only_incremental_dip_positions_no_exhaustive_appeal_history'))
             or snapshot.get('official_2025_originals_targeted')!=10
             or snapshot.get('automatically_confirmed_effective_sanctions')!=0
             or snapshot.get('automatically_rescinded_sanctions')!=0
@@ -229,7 +232,10 @@ def inspect(snapshot):
     return {
         'schema':'wp21-2025-ten-cases-original-votes-review-v1',
         'official_source_run':'https://github.com/Erzkon/ordnungsrufe/actions/runs/39016255012',
-        'source_scope':'2025-06-01_to_2026-01-05_dip_filtered_title_survey',
+        'source_scope':(
+            '2025-06-01_to_2026-01-05_dip_filtered_title_survey'
+            if snapshot.get('schema')=='wp21-2025-targeted-official-dip-source-survey-v1'
+            else 'latest_successfully_completed_incremental_dip_parent_and_position_snapshots'),
         'case_count':10,'official_parent_ids':10,
         'source_original_grant_positions':10,
         'original_issuance_events_review_only':12,
@@ -247,6 +253,86 @@ def inspect(snapshot):
                    'bei fehlender unabhängiger Statusprüfung unbekannt.'),
         'cases':results,
     }
+
+
+def survey_from_complete_cache(vorgang,positionen):
+    """Build a 10-parent audit input only from two successful DIP snapshots.
+
+    This does NOT imply the cached records cover every separate procedure.
+    An unexpected later voting position breaks the frozen 2025 expectation
+    and triggers a review warning, never an automatic count revision.
+    """
+    from wp21_dip_monitor import utc
+    verified_case_index()
+    if (not isinstance(vorgang,dict) or not isinstance(positionen,dict)
+            or not vorgang.get('last_success_utc')
+            or not positionen.get('last_success_utc')):
+        raise ValueError('Zwei erfolgreich abgeschlossene DIP-Snapshots notwendig')
+    if utc(positionen['last_success_utc'])<utc(vorgang['last_success_utc']):
+        raise ValueError('DIP-Verfahrenspositionen gegenüber Vorgängen veraltet')
+    parents=vorgang.get('items')
+    positions=positionen.get('items')
+    if not isinstance(parents,dict) or not isinstance(positions,dict):
+        raise ValueError('Amtliche DIP-Cache-Struktur beschädigt')
+    if len(parents)>15000 or len(positions)>5000:
+        raise ValueError('DIP-Cache größer als erlaubter Originalquellenabgleich')
+    records=[]
+    used_position_ids=set()
+    for day,person,ident,session,decision_session,grants,votes in CASES:
+        parent=parents.get(ident)
+        if (not isinstance(parent,dict) or parent.get('active',True) is not True
+                or parent.get('id')!=ident or parent.get('source')!=DIP+ident
+                or not named(parent.get('title',''),person)):
+            raise ValueError('Einer der zehn amtlichen Elternvorgänge fehlt/ist nicht aktiv')
+        source_positions=[]
+        for key,p in positions.items():
+            if p.get('parent_id')!=ident or not p.get('active',True):
+                continue
+            if (key in used_position_ids or p.get('id')!=key
+                    or p.get('source')!=DIP+ident):
+                raise ValueError('Verwechslung/Dublette in amtlichen DIP-Positionen')
+            used_position_ids.add(key)
+            source_positions.append({
+                'id':key,'date':p.get('date'),'step':p.get('step'),
+                'plenary_session':p.get('official_plenary_session'),
+                'plenary_pdf':p.get('official_plenary_pdf_url'),
+                'plenary_xml':p.get('official_plenary_xml_url'),
+                'decision_tenors':p.get('official_decision_tenors'),
+                'abstract_excerpt':p.get('official_position_abstract_excerpt'),
+                'signal_fields':p.get('signal_fields',[]),
+            })
+        source_positions.sort(key=lambda p:int(p['id']))
+        original=[p for p in source_positions
+                  if p['date']==day and p['step']=='Ordnungsruf']
+        source={'id':ident,'source':DIP+ident,'title':parent['title'],
+                'date':parent.get('date'),'matching_person_names':[person],
+                'original_positions':source_positions,
+                'original_grant_positions':original}
+        records.append({
+            'original_date':day,'person':person,
+            'candidate_parent_count':1,'matching_parent_ids':[ident],
+            'sources':[source],
+        })
+    return {
+        'schema':'wp21-2025-source-bound-completed-dip-cache-v1',
+        'status':'read_only_incremental_dip_positions_no_exhaustive_appeal_history',
+        'official_2025_originals_targeted':10,
+        'vorgang_snapshot_utc':vorgang['last_success_utc'],
+        'position_snapshot_utc':positionen['last_success_utc'],
+        'ten_original_person_date_cases':records,
+        'automatically_confirmed_effective_sanctions':0,
+        'automatically_rescinded_sanctions':0,
+        'protected_statistics_changed':False,
+    }
+
+
+def run_from_cache(vorgang_state,position_state,output,brief):
+    """Daily incremental evidence refresh, no API calls or public writes."""
+    from wp21_dip_monitor import load_state
+    from wp21_dip_positionen import read_position_state
+    snapshot=survey_from_complete_cache(load_state(vorgang_state),
+                                        read_position_state(position_state))
+    return run_snapshot(snapshot,output,brief)
 
 
 def render_markdown(report):
@@ -300,6 +386,10 @@ def render_markdown(report):
 
 def run(source,output,brief):
     raw=json.loads(Path(source).read_text(encoding='utf-8'))
+    return run_snapshot(raw,output,brief)
+
+
+def run_snapshot(raw,output,brief):
     report=inspect(raw)
     markdown=render_markdown(report)
     for target,data in ((Path(output),json.dumps(report,indent=2,ensure_ascii=False)+'\n'),
@@ -316,8 +406,17 @@ def run(source,output,brief):
 
 if __name__=='__main__':
     ap=argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--source',type=Path,required=True)
+    ap.add_argument('--source',type=Path)
+    ap.add_argument('--vorgang-state',type=Path)
+    ap.add_argument('--position-state',type=Path)
     ap.add_argument('--output',type=Path,required=True)
     ap.add_argument('--brief',type=Path,required=True)
     a=ap.parse_args()
-    run(a.source,a.output,a.brief)
+    if bool(a.source)==bool(a.vorgang_state or a.position_state):
+        raise SystemExit('Entweder --source oder beide --vorgang-state und --position-state')
+    if a.source:
+        run(a.source,a.output,a.brief)
+    elif a.vorgang_state and a.position_state:
+        run_from_cache(a.vorgang_state,a.position_state,a.output,a.brief)
+    else:
+        raise SystemExit('Beide DIP-Cachepfade erforderlich')

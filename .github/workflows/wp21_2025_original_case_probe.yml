@@ -1,11 +1,12 @@
 name: DIP 2025 Originalfälle und Gottschalk Zweitvergabe (isolierte Quellenprobe)
 
-# Initial PR survey then MANUAL ONLY. All source data are non-counting.
+# Source survey completed and independently validated 17 October 2026:
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/39016887477
+# 36 title-filtered official parents, 10 source-bound case identities,
+# 21 positions, twelve initial grants and eleven separate rejected appeals.
+# No future automated expensive historical API re-fetch. The daily read-only
+# review uses the already successful cached DIP parent/position monitors.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_2025_original_case_probe.yml'
   workflow_dispatch:
 
 permissions:

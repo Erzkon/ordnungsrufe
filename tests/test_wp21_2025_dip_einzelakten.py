@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from wp21_autopruefung import norm
-from wp21_2025_dip_einzelakten import CASES,inspect,render_markdown,run
+from wp21_2025_dip_einzelakten import CASES,inspect,render_markdown,run,survey_from_complete_cache
 from wp21_weitere_einspruchsberichte import EVIDENCE
 
 
@@ -182,6 +182,62 @@ class TenOfficial2025DIPCases(unittest.TestCase):
         janich['sources'][0]['original_positions'][2]['id']=janich['sources'][0]['original_positions'][1]['id']
         with self.assertRaises(ValueError):
             inspect(s)
+
+    def test_successful_parent_position_cache_same_evidence_no_extra_counting(self):
+        source=example_source_snapshot()
+        parents={'last_success_utc':'2026-10-17T08:00:00+00:00','items':{}}
+        positions={'last_success_utc':'2026-10-17T09:00:00+00:00','items':{}}
+        for item in source['ten_original_person_date_cases']:
+            parent=item['sources'][0]
+            ident=parent['id']
+            parents['items'][ident]={
+                'id':ident,'title':parent['title'],'date':parent['date'],
+                'source':parent['source'],'active':True}
+            for p in parent['original_positions']:
+                positions['items'][p['id']]={
+                    'id':p['id'],'parent_id':ident,'active':True,
+                    'source':parent['source'],'date':p['date'],'step':p['step'],
+                    'official_plenary_session':p['plenary_session'],
+                    'official_plenary_pdf_url':p['plenary_pdf'],
+                    'official_plenary_xml_url':p['plenary_xml'],
+                    'official_decision_tenors':p['decision_tenors'],
+                    'official_position_abstract_excerpt':p['abstract_excerpt'],
+                    'signal_fields':p['signal_fields']}
+        cached=survey_from_complete_cache(parents,positions)
+        result=inspect(cached)
+        self.assertEqual(result['official_parent_ids'],10)
+        self.assertEqual(result['official_position_records'],21)
+        self.assertEqual(result['original_issuance_events_review_only'],12)
+        self.assertEqual(result['separate_rejected_objections'],11)
+        self.assertIn('incremental_dip',result['source_scope'])
+        self.assertFalse(result['public_statistics_modified'])
+        return parents,positions
+
+    def test_stale_or_missing_cache_never_silently_approves_2025(self):
+        parents,positions=self.test_successful_parent_position_cache_same_evidence_no_extra_counting()
+        stale=copy.deepcopy(positions)
+        stale['last_success_utc']='2026-10-17T07:59:00+00:00'
+        with self.assertRaisesRegex(ValueError,'veraltet'):
+            survey_from_complete_cache(parents,stale)
+        broken=copy.deepcopy(positions)
+        broken['items'].pop(next(iter(broken['items'])))
+        with self.assertRaises(ValueError):
+            inspect(survey_from_complete_cache(parents,broken))
+        tampered=copy.deepcopy(parents)
+        tampered['items']['328225']['source']='https://fake.example/vorgang/328225'
+        with self.assertRaisesRegex(ValueError,'Elternvorgänge'):
+            survey_from_complete_cache(tampered,positions)
+
+    def test_new_unexpected_vote_is_a_review_alarm_never_a_twelfth_assumed_appeal(self):
+        parents,positions=self.test_successful_parent_position_cache_same_evidence_no_extra_counting()
+        extra=copy.deepcopy(positions)
+        extra['items']['999991']={
+            **next(p for p in extra['items'].values()
+                   if p['parent_id']=='328225' and p['step']=='Abstimmung'),
+            'id':'999991',
+        }
+        with self.assertRaisesRegex(ValueError,'Original.*Einspruchspositionen'):
+            inspect(survey_from_complete_cache(parents,extra))
 
     def test_safe_write_and_fail_closed_on_untrusted_or_partial_snapshot(self):
         with tempfile.TemporaryDirectory() as d:
