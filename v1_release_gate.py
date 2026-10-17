@@ -9,6 +9,8 @@ total. No automatic DIP/XML findings enter either reviewed ledger.
 import argparse
 import hashlib
 from html.parser import HTMLParser
+from datetime import datetime, timezone
+from wp21_betriebsbericht import EXPECTED as HEALTH_SOURCES
 import json
 import re
 from pathlib import Path
@@ -40,7 +42,52 @@ class Markup(HTMLParser):
             self.scripts.append(values['src'])
 
 
-def evaluate(root):
+
+def operational_report(root, now=None):
+    """Require a newly generated, truthful source-status file for MAIN publish.
+
+    Outages are allowed but must be disclosed as missing/stale/invalid to
+    website visitors. A missing/old/contradictory status report blocks a new
+    deployment, not the previously live site.
+    """
+    path=Path(root)/'docs/data/quellenstatus_21.json'
+    if not path.is_file():
+        raise ValueError('Quellen-Betriebsstatus fehlt vor der Veröffentlichung')
+    data=json.loads(path.read_text(encoding='utf-8'))
+    if (data.get('schema')!='wp21-health-v1'
+            or type(data.get('all_sources_fresh')) is not bool
+            or not isinstance(data.get('sources'),dict)
+            or set(data['sources']) != set(HEALTH_SOURCES)):
+        raise ValueError('Quellen-Betriebsstatus unvollständig')
+    now=now or datetime.now(timezone.utc)
+    generated=datetime.fromisoformat(
+        data['generated_at_utc'].replace('Z','+00:00'))
+    if (generated.tzinfo is None or now.tzinfo is None
+            or not -300 <= (now-generated).total_seconds() <= 7200):
+        raise ValueError('Quellen-Betriebsstatus zu alt/aus der Zukunft')
+    failing=[]
+    for key,item in data['sources'].items():
+        if (not isinstance(item,dict)
+                or item.get('state') not in ('fresh','stale','missing','invalid')
+                or not isinstance(item.get('date'),str)
+                or not isinstance(item.get('reason'),str)
+                or (item['date'] and
+                    not re.fullmatch(r'\d{4}-\d{2}-\d{2}',item['date']))):
+            raise ValueError('Einzelner Quellenstatus ungültig')
+        if item['state'] != 'fresh':
+            failing.append(key)
+    if data['all_sources_fresh'] != (len(failing)==0):
+        raise ValueError('Quellenstatus widersprüchlich; keine Freigabe')
+    return {
+        'report_generated_utc':data['generated_at_utc'],
+        'fresh_sources':len(HEALTH_SOURCES)-len(failing),
+        'source_count':len(HEALTH_SOURCES),
+        'missing_stale_or_invalid_sources':failing,
+        'source_outage_does_not_change_verified_counts':True,
+    }
+
+
+def evaluate(root,require_source_health=False):
     root=Path(root)
     from20=build20(root/PROTECTED[0],root/'daten/korrekturbericht_20wp.json')
     from21=build21(root/PROTECTED[1])
@@ -60,15 +107,21 @@ def evaluate(root):
     html=(root/'docs/index.html').read_text(encoding='utf-8')
     js=(root/'docs/app.js').read_text(encoding='utf-8')
     contract=(root/'docs/verified_contract.js').read_text(encoding='utf-8')
+    source_health_js=(root/'docs/source_health.js').read_text(encoding='utf-8')
     markup=Markup()
     markup.feed(html)
     if (len(markup.ids)!=len(set(markup.ids))
             or 'wp20-note' not in markup.ids
             or 'wp21-note' not in markup.ids
             or 'hero-snapshot' not in markup.ids
-            or markup.scripts!=['verified_contract.js','app.js']):
+            or 'wp21-health' not in markup.ids
+            or markup.scripts!=['verified_contract.js','source_health.js','app.js']):
         raise ValueError('Release-JavaScript-Reihenfolge, Datum oder Warnhinweis fehlt')
-    if ('function validatePublishedDataset' not in contract
+    if ('function assessSourceHealth' not in source_health_js
+            or 'showSourceHealth()' not in js
+            or 'docs/data/quellenstatus_21.json' not in source_health_js
+            and 'quellenstatus_21.json' not in js
+            or 'function validatePublishedDataset' not in contract
             or 'validatePublishedDataset(period, payload)' not in js
             or 'DATENSTAND 14.10.2026' in js
             or 'DATENSTAND 14.10.2026' in html
@@ -86,9 +139,11 @@ def evaluate(root):
         if not raw or len(raw)>3_000_000:
             raise ValueError('Geprüfte Zählerdatei fehlt oder ist zu groß')
         files[name]=hashlib.sha256(raw).hexdigest()
+    health=operational_report(root) if require_source_health else None
     return {
         'schema':SCHEMA,
         'status':STATUS,
+        'public_source_health':health,
         'release_scope':{
             'twentieth_term':'historical_reviewed_135_measures_123_events',
             'twentieth_term_person_discrepancy_remains_open':True,
@@ -137,8 +192,8 @@ def markdown(report):
     ])
 
 
-def run(root,output,brief):
-    report=evaluate(root)
+def run(root,output,brief,require_source_health=False):
+    report=evaluate(root,require_source_health=require_source_health)
     text=markdown(report)
     # Only write to audit locations after the entire gate passed.
     for target,body in (
@@ -161,5 +216,6 @@ if __name__=='__main__':
     p.add_argument('--root',type=Path,default=Path('.'))
     p.add_argument('--output',type=Path,default=Path('.audit/v1_release.json'))
     p.add_argument('--brief',type=Path,default=Path('.audit/v1_release.md'))
+    p.add_argument('--require-source-health',action='store_true')
     a=p.parse_args()
-    run(a.root,a.output,a.brief)
+    run(a.root,a.output,a.brief,require_source_health=a.require_source_health)

@@ -158,6 +158,8 @@ jobs:
         run: |
           node --check docs/verified_contract.js
           node --test tests/frontend_contract.test.cjs
+          node --check docs/source_health.js
+          node --test tests/source_health.test.cjs
       - name: Version 1.0 – begrenzten Veröffentlichungskandidaten mit geprüften CSVs absichern
         run: |
           python v1_release_gate.py \
@@ -910,7 +912,25 @@ jobs:
           WP21_DIP_OUTCOME: ${{ steps.diplive.outcome }}
           WP21_DIPPOSITIONS_OUTCOME: ${{ steps.dippositions.outcome }}
           WP21_DIPQUEUE_OUTCOME: ${{ steps.dipqueue.outcome }}
-        run: python wp21_betriebsbericht.py --data docs/data
+        run: python wp21_betriebsbericht.py --data docs/data --json-output docs/data/quellenstatus_21.json
+      - name: Vor dem Main-Pages-Artefakt bestätigte Zähler und aktuellen Betriebsbericht nochmals validieren
+        if: github.event_name != 'pull_request'
+        run: |
+          python v1_release_gate.py --require-source-health \
+            --output .audit/v1_production_report.json \
+            --brief .audit/v1_production_report.md
+      - name: Produktion: Quellenstatus und Datenfreigabe-Akte getrennt archivieren
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordnungsruf-v1-production-source-health-${{ github.run_id }}
+          path: |
+            .audit/v1_production_report.json
+            .audit/v1_production_report.md
+            docs/data/quellenstatus_21.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
       - name: Verwendeten Website-Stand archivieren
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4

@@ -48,3 +48,7 @@
 .dip-case {border:1px solid var(--line);border-left:3px solid #bc843a;background:var(--white);padding:14px 17px;overflow-wrap:anywhere}
 .dip-case-title {font-size:12px;line-height:1.65;margin:10px 0}
 @media(max-width:680px){.dip-case-list {grid-template-columns:1fr}}
+
+/* Public WP21 source-health disclosure, independent of verified rankings. */
+.source-health{margin:14px 0 0;padding:12px 16px;border-inline-start:3px solid #72858c;font-size:.9rem;line-height:1.55;color:#233641;background:#eef2f4}
+.source-health[data-state="degraded"],.source-health[data-state="stale"],.source-health[data-state="missing"]{border-inline-start-color:#b27824;background:#f6f0e4}

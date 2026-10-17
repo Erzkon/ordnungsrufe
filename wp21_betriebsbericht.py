@@ -112,6 +112,7 @@ def main():
         opts.json_output.parent.mkdir(parents=True,exist_ok=True)
         snapshot = {
             'schema':'wp21-health-v1',
+            'generated_at_utc':datetime.now(timezone.utc).isoformat(timespec='seconds'),
             'all_sources_fresh':all(row['state']=='fresh' for row in results.values()),
             'sources':results,
         }

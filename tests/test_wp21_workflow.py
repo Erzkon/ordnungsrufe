@@ -8,6 +8,22 @@ class WorkflowOperationalChecks(unittest.TestCase):
     def setUpClass(cls):
         cls.workflow = Path('.github/workflows/pages.yml').read_text(encoding='utf-8')
 
+    def test_v1_production_gate_after_health_and_before_any_pages_artifact(self):
+        wf=self.workflow
+        source=wf.index('python wp21_betriebsbericht.py --data docs/data --json-output docs/data/quellenstatus_21.json')
+        verify=wf.index('python v1_release_gate.py --require-source-health')
+        package=wf.index('      - name: Website-Artefakt zur Veroeffentlichung uebertragen')
+        self.assertLess(source,verify)
+        self.assertLess(verify,package)
+        self.assertIn('docs/data/quellenstatus_21.json',wf)
+        self.assertIn('ordnungsruf-v1-production-source-health-',wf)
+        self.assertIn('node --test tests/source_health.test.cjs',wf)
+        self.assertIn('python v1_release_gate.py',wf)
+        self.assertIn("github.event_name != 'pull_request'",wf)
+        self.assertIn('needs: pruefen',wf)
+        self.assertIn('actions/upload-pages-artifact@v4',wf)
+        self.assertIn('actions/deploy-pages@v4',wf)
+
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
         self.assertIn("github.ref == 'refs/heads/main'", self.workflow)

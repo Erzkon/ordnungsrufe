@@ -150,6 +150,7 @@ function activate(period) {
   $('wp20-note').hidden = period !== '20';
   $('wp21-note').hidden = period !== '21';
   $('wp21-scan').hidden = period !== '21';
+  $('wp21-health').hidden = period !== '21';
   $('wp21-activity').hidden = period !== '21';
   $('period-methodology').textContent = period === '20' ? '20. Wahlperiode' : '20. und 21. Wahlperiode';
   const groupNames=[...new Set(state.records.map(row=>row.group))].sort((a,b)=>a.localeCompare(b,'de'));
@@ -161,6 +162,24 @@ function activate(period) {
   url.searchParams.set('wp',period);
   window.history.replaceState(null,'',url.pathname+url.search+url.hash);
 }
+async function showSourceHealth() {
+  const box = $('wp21-health');
+  try {
+    const response = await fetch('./data/quellenstatus_21.json',{cache:'no-store'});
+    if (!response.ok) throw new Error('Quellenstatus nicht veröffentlicht');
+    const data = await response.json();
+    const review = assessSourceHealth(data);
+    box.dataset.state = review.state;
+    box.textContent = review.message;
+  } catch (error) {
+    console.warn('Quellenstatus nicht verfügbar',error);
+    box.dataset.state = 'missing';
+    box.textContent = 'Aktueller Betriebsstatus der automatischen Quellenprüfung nicht verfügbar. ' +
+      'Die angezeigten Suchtreffer können veraltet sein. ' +
+      'Die einzeln geprüften Ordnungsruf-Zähler bleiben unverändert.';
+  }
+}
+
 async function showScan() {
   const box = $('wp21-scan-detail');
   try {
@@ -461,6 +480,7 @@ function start() {
     }
     const initial=new URL(window.location.href).searchParams.get('wp')==='21'?'21':'20';
     activate(initial);
+    showSourceHealth();
     showScan();
     showActivityFeed();
     showAutoTriage();
