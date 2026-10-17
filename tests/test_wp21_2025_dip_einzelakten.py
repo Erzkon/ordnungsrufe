@@ -213,6 +213,19 @@ class TenOfficial2025DIPCases(unittest.TestCase):
         self.assertFalse(result['public_statistics_modified'])
         return parents,positions
 
+    def test_disappeared_historical_position_triggers_review_not_silent_omission(self):
+        parents,positions=self.test_successful_parent_position_cache_same_evidence_no_extra_counting()
+        gone=copy.deepcopy(positions)
+        relevant=next(x for x in gone['items'].values()
+                      if x['parent_id']=='328225' and x['step']=='Abstimmung')
+        relevant['active']=False
+        with self.assertRaisesRegex(ValueError,'inaktiv/entfernt'):
+            survey_from_complete_cache(parents,gone)
+        removed_parent=copy.deepcopy(parents)
+        removed_parent['items']['328225']['active']=False
+        with self.assertRaisesRegex(ValueError,'Elternvorgänge'):
+            survey_from_complete_cache(removed_parent,positions)
+
     def test_stale_or_missing_cache_never_silently_approves_2025(self):
         parents,positions=self.test_successful_parent_position_cache_same_evidence_no_extra_counting()
         stale=copy.deepcopy(positions)

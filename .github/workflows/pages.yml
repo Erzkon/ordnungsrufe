@@ -29,6 +29,7 @@ on:
       - 'wp21_einspruchsbelege.py'
       - 'wp21_weitere_einspruchsberichte.py'
       - 'wp21_2025_dip_einzelakten.py'
+      - 'wp21_2025_massnahmen_lifecycle.py'
       - 'wp21_40_mehrfach_akte.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
@@ -66,6 +67,7 @@ on:
       - 'wp21_einspruchsbelege.py'
       - 'wp21_weitere_einspruchsberichte.py'
       - 'wp21_2025_dip_einzelakten.py'
+      - 'wp21_2025_massnahmen_lifecycle.py'
       - 'wp21_40_mehrfach_akte.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
@@ -507,6 +509,30 @@ jobs:
       - name: Fehlende Originalbelege zu Sitzung 40/42 warnen, nie automatisch zählen
         if: github.event_name != 'pull_request' && steps.fortyDossier.outcome == 'failure'
         run: echo '::warning::Sitzungen 21/040/042 mit ursprünglichen Mehrfachrufen nicht quellenverifiziert; kein Zählerupdate.'
+      - name: Zwölf individuell belegte Erteilungen aus zehn DIP-Vorgängen mit elf Einspruchsentscheidungen verknüpfen
+        if: github.event_name != 'pull_request' && steps.original2025.outcome == 'success' && steps.fortyDossier.outcome == 'success'
+        id: individual2025
+        continue-on-error: true
+        run: |
+          python wp21_2025_massnahmen_lifecycle.py \
+            --dip-report .audit/wp21_2025_dip_origins_and_appeals.json \
+            --plenary-report .audit/wp21_40_42_source_episodes.json \
+            --output .audit/wp21_2025_individual_measure_review.json \
+            --brief .audit/wp21_2025_individual_measure_review.md
+      - name: Personenscharfe Zwölf-Maßnahmen-Prüfmatrix ausschließlich als Artefakt archivieren
+        if: github.event_name != 'pull_request' && steps.individual2025.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-2025-einzelmassnahmen-quelle-${{ github.run_id }}
+          path: |
+            .audit/wp21_2025_individual_measure_review.json
+            .audit/wp21_2025_individual_measure_review.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Unvollständige Einzelmaßnahmen-Belege warnen ohne bestätigte Statistik zu korrigieren
+        if: github.event_name != 'pull_request' && steps.individual2025.outcome == 'failure'
+        run: echo '::warning::Personenscharfer Abgleich 2025-Ursprung/DIP-Einspruch und XML-Quellzeilen unvollständig; keine bestätigten Zähler ändern.'
       - name: 18 Einzelquellen und späteren Einspruchshinweisen vollständig zuordnen
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
         id: eighteenDossiers

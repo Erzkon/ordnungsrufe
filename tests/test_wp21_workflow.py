@@ -49,6 +49,15 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('verified_individual_cases.json',wf)
         self.assertIn('sha256sum --check',wf)
 
+    def test_one_person_one_measures_not_objections_dossier_is_independently_queued(self):
+        self.assertIn('id: individual2025',self.workflow)
+        self.assertIn("steps.original2025.outcome == 'success'",self.workflow)
+        self.assertIn("steps.fortyDossier.outcome == 'success'",self.workflow)
+        self.assertIn('python wp21_2025_massnahmen_lifecycle.py',self.workflow)
+        self.assertIn('wp21-2025-einzelmassnahmen-quelle-',self.workflow)
+        self.assertIn("steps.individual2025.outcome == 'failure'",self.workflow)
+        self.assertIn("github.event_name != 'pull_request'",self.workflow)
+
     def test_2025_case_review_uses_completed_dip_cache_and_full_survey_is_manual(self):
         self.assertIn('id: original2025',self.workflow)
         self.assertIn("steps.dippositions.outcome == 'success'",self.workflow)

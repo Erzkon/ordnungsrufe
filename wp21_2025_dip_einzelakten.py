@@ -286,8 +286,13 @@ def survey_from_complete_cache(vorgang,positionen):
             raise ValueError('Einer der zehn amtlichen Elternvorgänge fehlt/ist nicht aktiv')
         source_positions=[]
         for key,p in positions.items():
-            if p.get('parent_id')!=ident or not p.get('active',True):
+            if p.get('parent_id')!=ident:
                 continue
+            # A tracked position disappearing from DIP is a change that
+            # needs individual review; never discard it and present the
+            # remaining source steps as an unchanged complete dossier.
+            if p.get('active',True) is not True:
+                raise ValueError('Eine DIP-Position des Originals wurde inaktiv/entfernt')
             if (key in used_position_ids or p.get('id')!=key
                     or p.get('source')!=DIP+ident):
                 raise ValueError('Verwechslung/Dublette in amtlichen DIP-Positionen')
