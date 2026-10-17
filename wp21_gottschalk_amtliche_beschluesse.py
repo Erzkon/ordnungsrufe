@@ -110,7 +110,7 @@ def hints_for_pages(pages, session, url):
             context = text[left:match.end()+280]
             own_following = text[match.end():match.end()+180]
             own_following = re.split(
-                r'\\b(?:Zusatzpunkt|Tagesordnungspunkt|Der Einspruch)\\b',
+                r'\b(?:Zusatzpunkt|Tagesordnungspunkt|Der Einspruch)\b',
                 own_following, maxsplit=1)[0]
             if not (APPEAL.search(context) and ORDER.search(context)):
                 continue

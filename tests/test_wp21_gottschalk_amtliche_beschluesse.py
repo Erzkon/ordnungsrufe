@@ -13,6 +13,8 @@ def pages(session):
     first = f'21. Wahlperiode\nAmtliches Protokoll\n{session}. Sitzung des Deutschen Bundestages\n'
     if session == 42:
         return [first+'Einzelplan 01 und weitere amtliche Sitzungsgegenstände',
+                'Zusatzpunkt 3\nDer Einspruch des Abgeordneten Steffen Janich ' +
+                'gegen den zweiten Ordnungsruf wird zurückgewiesen.\n' +
                 'Zusatzpunkt 4\nDer Einspruch gemäß § 39 der Geschäftsordnung '
                 'des Abgeordneten Kay Gottschalk gegen den am 13. November 2025 '
                 'erteilten Ord-\nnungsruf wird zurückgewiesen.\n', 'Die nächste Sitzung wird vom Bundestag turnusmäßig einberufen.']
@@ -41,6 +43,7 @@ class OfficialResolutions(unittest.TestCase):
         self.assertEqual(hits[0]['pdf_page'],2)
         self.assertTrue(hits[0]['known_first_objection_only'])
         self.assertFalse(hits[0]['second_measure_explicitly_named'])
+        self.assertNotIn('Steffen Janich',hits[0]['context_excerpt'])
         self.assertFalse(hits[0]['automatic_legal_conclusion'])
         self.assertEqual(hits[0]['public_count_delta'],0)
 
