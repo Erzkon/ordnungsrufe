@@ -1,0 +1,84 @@
+name: WP21 DIP Fundstellen-Schema Diagnose
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/wp21_dip_fundstelle_diagnose.yml'
+      - 'wp21_dip_positionen.py'
+      - 'tests/test_wp21_dip_positionen.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-dip-diagnostic:
+    name: Official DIP document-number formats (read only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Check official WP21 parent positions without touching verified ledgers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .audit
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from wp21_dip_monitor import paginate, START, PUBLIC_KEY, relevant_item
+          from wp21_dip_positionen import (
+              fetch_positions, position_document_evidence, MAX_PARENTS, MAX_POSITIONS,
+          )
+
+          parents, pages = paginate(START, PUBLIC_KEY)
+          ids = sorted((str(row["id"]) for row in parents if relevant_item(row)), key=int)
+          if not ids or len(ids) > MAX_PARENTS:
+              raise RuntimeError("Unplausible number of matching DIP parent records")
+          checked = 0
+          examples = []
+          different = {}
+          for parent in ids:
+              for p in fetch_positions(parent, PUBLIC_KEY):
+                  checked += 1
+                  if checked > MAX_POSITIONS:
+                      raise RuntimeError("Position safety bound reached")
+                  fund = p.get("fundstelle")
+                  try:
+                      position_document_evidence(p)
+                  except (ValueError, TypeError, KeyError) as exc:
+                      kind = str(exc)
+                      different[kind] = different.get(kind, 0) + 1
+                      if len(examples) < 35:
+                          examples.append({
+                              "parent_id":parent, "position_id":str(p.get("id")),
+                              "error":kind,
+                              "document_kind":fund.get("dokumentart") if isinstance(fund,dict) else None,
+                              "document_number":fund.get("dokumentnummer") if isinstance(fund,dict) else None,
+                              "fundstelle_keys":sorted(fund) if isinstance(fund,dict) else [],
+                              "date":fund.get("datum") if isinstance(fund,dict) else None,
+                              "pdf_url":fund.get("pdf_url") if isinstance(fund,dict) else None,
+                              "xml_url":fund.get("xml_url") if isinstance(fund,dict) else None,
+                          })
+          report = {
+              "schema":"wp21-dip-fundstelle-diagnostic-v1",
+              "review_only":True, "published_statistics_changed":False,
+              "pages":pages, "monitored_parents":len(ids),
+              "positions_examined":checked, "error_categories":different,
+              "sample_errors":examples,
+          }
+          Path(".audit/dip_fundstelle_diagnostic.json").write_text(
+              json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          print("DIP_FUNDSTELLE_DIAGNOSTIC",json.dumps(report,ensure_ascii=False))
+          PY
+      - name: Archive non-counting diagnostic metadata
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-dip-fundstelle-schema-${{ github.run_id }}
+          path: .audit/dip_fundstelle_diagnostic.json
+          if-no-files-found: warn
+          retention-days: 7
