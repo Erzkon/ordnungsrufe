@@ -1,0 +1,173 @@
+'use strict';
+
+// Real browser smoke of the PR-only static site. Never deploys or edits ledgers.
+const fs=require('node:fs');
+const path=require('node:path');
+const http=require('node:http');
+const os=require('node:os');
+const {execFileSync}=require('node:child_process');
+const assert=require('node:assert/strict');
+const puppeteer=require('puppeteer-core');
+
+const ROOT=path.resolve(__dirname,'..','docs');
+const OUT=path.resolve(process.env.V1_BROWSER_OUT || '.audit/browser_smoke');
+const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8',
+  '.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8',
+  '.svg':'image/svg+xml'};
+function chromePath() {
+  const options=[process.env.CHROME_BIN,
+    '/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium',
+    '/opt/google/chrome/chrome'];
+  for (const p of options) if(p && fs.existsSync(p)) return p;
+  for(const name of ['google-chrome','chromium']){
+    try{return execFileSync('which',[name],{encoding:'utf8'}).trim();}catch(_){}
+  }
+  throw new Error('Chromium/Chrome on GitHub runner is unavailable');
+}
+function startServer() {
+  return new Promise(resolve=>{
+    const server=http.createServer((request,response)=>{
+      try {
+        const url=new URL(request.url,'http://127.0.0.1');
+        const relative=decodeURIComponent(url.pathname).replace(/^\/+/,'')||'index.html';
+        const full=path.resolve(ROOT,relative);
+        if (!full.startsWith(ROOT+path.sep) || !fs.existsSync(full) ||
+            !fs.statSync(full).isFile()) {
+          response.writeHead(404,{'Content-Type':'text/plain'});response.end('Missing source feed');return;
+        }
+        response.writeHead(200,{'Content-Type':TYPES[path.extname(full)]||'application/octet-stream',
+          'Cache-Control':'no-store'});
+        fs.createReadStream(full).pipe(response);
+      } catch (_) {response.writeHead(400);response.end('Bad request');}
+    });
+    server.listen(0,'127.0.0.1',()=>resolve({server,url:'http://127.0.0.1:'+server.address().port+'/'}));
+  });
+}
+async function textOf(page,selector) {
+  return page.$eval(selector,el=>el.textContent.trim());
+}
+async function visible(page,selector) {
+  return page.$eval(selector,el=>!el.hidden && getComputedStyle(el).display!=='none');
+}
+async function readyCount(page,count) {
+  await page.waitForFunction(
+    number=>document.querySelector('#metric-total')?.textContent.trim()===number,
+    {timeout:12000},String(count));
+}
+async function main() {
+  fs.mkdirSync(OUT,{recursive:true});
+  const {server,url}=await startServer();
+  let browser;
+  const steps=[];
+  const fail=(name,reason)=>{steps.push({name,status:'FAIL',reason:String(reason)});throw new Error(name+': '+reason);};
+  const pass=name=>steps.push({name,status:'PASS'});
+  try {
+    browser=await puppeteer.launch({headless:true,executablePath:chromePath(),
+      args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
+    const page=await browser.newPage();
+    const browserErrors=[];
+    page.on('pageerror',error=>browserErrors.push(error.message));
+    await page.setViewport({width:1366,height:900,deviceScaleFactor:1});
+    await page.goto(url,{waitUntil:'load'});
+    await readyCount(page,135);
+    assert.equal(await textOf(page,'#metric-events'),'123');
+    assert.match(await textOf(page,'#hero-snapshot'),/14\.10\.2026/);
+    assert.equal(await visible(page,'#wp20-note'),true);
+    assert.equal(await visible(page,'#wp21-note'),false);
+    pass('Desktop historical baseline 135/123 and dated discrepancy');
+    await page.screenshot({path:path.join(OUT,'desktop_wp20.png'),fullPage:true});
+
+    await page.click('#period-21');
+    await readyCount(page,8);
+    assert.match(await textOf(page,'#metric-total-label'),/BISHER EINZELN GEPRÜFT/);
+    assert.equal(await visible(page,'#wp21-note'),true);
+    assert.equal(await visible(page,'#wp20-note'),false);
+    assert.match(await textOf(page,'#ranking-caption'),/nicht repräsentativ/);
+    assert.match(await textOf(page,'#footer-period'),/UNVOLLSTÄNDIGE ERFASSUNG/);
+    assert.equal(new URL(page.url()).searchParams.get('wp'),'21');
+    pass('Switch to partial WP21 never claims overall count');
+
+    await page.waitForFunction(
+      ()=>document.querySelector('#wp21-health')?.dataset.state==='missing',{timeout:8000});
+    assert.match(await textOf(page,'#wp21-health'),/nicht verfügbar/);
+    pass('PR preview visibly discloses unavailable source monitor without misleading success');
+
+    await page.type('#search','Diese Person gibt es hier garantiert nicht');
+    assert.equal(await textOf(page,'#result-count'),'0');
+    assert.equal(await visible(page,'#empty-state'),true);
+    await page.click('#reset');
+    assert.equal(await textOf(page,'#result-count'),'8');
+    pass('Search, empty state and reset work');
+    await page.click('#period-20');
+    await readyCount(page,135);
+    await page.type('#search','Beatrix von Storch');
+    assert.equal(await textOf(page,'#result-count'),'18');
+    pass('Named-person historical filter respects individually reviewed count');
+
+    await page.setViewport({width:390,height:844,deviceScaleFactor:2,isMobile:true,
+      hasTouch:true});
+    await page.goto(url+'?wp=21',{waitUntil:'load'});
+    await readyCount(page,8);
+    await page.waitForFunction(
+      ()=>document.querySelector('#wp21-health')?.dataset.state==='missing',{timeout:8000});
+    const geometry=await page.evaluate(()=>({
+      viewport:document.documentElement.clientWidth,
+      width:document.documentElement.scrollWidth,
+      metaVisible:!document.querySelector('#wp21-note').hidden,
+    }));
+    if(geometry.width>geometry.viewport+3)
+      fail('Mobile width','Horizontal page overflow: '+JSON.stringify(geometry));
+    assert.equal(geometry.metaVisible,true);
+    await page.screenshot({path:path.join(OUT,'mobile_wp21.png'),fullPage:true});
+    pass('Mobile 390px partial WP21 fits viewport');
+
+    const srcs=await page.$$eval('#records-body a.source-link',links=>
+      links.map(link=>({href:link.href,target:link.target,rel:link.rel})));
+    assert.ok(srcs.length>0);
+    assert.ok(srcs.every(link=>link.href.startsWith('https://dserver.bundestag.de/') &&
+      link.target==='_blank' && link.rel.includes('noopener') &&
+      link.rel.includes('noreferrer')));
+    pass('Displayed official source links open safely');
+
+    // Deliberately tamper the partial-term JSON in network transit to verify
+    // fail-closed UI behavior: no historical or current number may be shown.
+    const broken=await browser.newPage();
+    const partial=JSON.parse(fs.readFileSync(path.join(ROOT,'data','ordnungsrufe_21.json'),'utf8'));
+    partial.meta.incomplete=false;
+    await broken.setRequestInterception(true);
+    broken.on('request',req=>{
+      if(req.url().endsWith('/data/ordnungsrufe_21.json')){
+        req.respond({status:200,contentType:'application/json',body:JSON.stringify(partial)});
+      }else req.continue();
+    });
+    await broken.goto(url+'?wp=21',{waitUntil:'load'});
+    await broken.waitForFunction(
+      ()=>document.querySelector('#people-ranking')?.textContent.includes('Daten konnten nicht geladen werden'),
+      {timeout:12000});
+    assert.equal(await textOf(broken,'#metric-total'),'—');
+    pass('Tampered unlabelled WP21 input blocks both rankings');
+    await broken.close();
+    assert.deepEqual(browserErrors,[],'Uncaught browser JavaScript exceptions');
+    pass('No uncaught JavaScript errors in valid views');
+    const report={schema:'ordnungsrufe-v1-browser-smoke-v1',
+      result:'pass',checks:steps,
+      viewports:['1366x900 desktop WP20','390x844 mobile WP21'],
+      legal_effect_inferred:false,counter_files_changed:false,
+      screenshots:['desktop_wp20.png','mobile_wp21.png'],
+      source_feed_on_pr:'unavailable_visible_not_falsely_current',
+      publication:'none_PR_only'};
+    fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify(report,null,2)+'\n');
+    console.log('V1_BROWSER_SMOKE_PASS',steps.length,'checks',
+      'no publication, 135/123 historical, 8 partial 21st');
+  }catch(error){
+    fs.writeFileSync(path.join(OUT,'report.json'),
+      JSON.stringify({schema:'ordnungsrufe-v1-browser-smoke-v1',result:'fail',steps,
+        error:String(error)},null,2)+'\n');
+    console.error('V1_BROWSER_SMOKE_FAILURE',error);
+    process.exitCode=1;
+  }finally{
+    if(browser)await browser.close();
+    await new Promise(resolve=>server.close(resolve));
+  }
+}
+main().catch(error=>{console.error(error);process.exitCode=1;});
