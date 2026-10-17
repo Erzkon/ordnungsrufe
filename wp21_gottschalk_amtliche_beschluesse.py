@@ -101,14 +101,25 @@ def hints_for_pages(pages, session, url):
         if len(text) < 40:
             raise ValueError('PDF-Seite ohne maschinell prüfbaren Text')
         for match in NAME.finditer(text):
-            context = text[max(0, match.start()-280):match.end()+280]
+            # The first official vote follows Janich's SECOND objection
+            # on the same PDF page. Do not borrow its ordinal for Gottschalk.
+            left = max(0, match.start()-280)
+            heading = text.rfind('Zusatzpunkt', left, match.start())
+            if heading >= 0:
+                left = heading
+            context = text[left:match.end()+280]
+            own_following = text[match.end():match.end()+180]
+            own_following = re.split(
+                r'\\b(?:Zusatzpunkt|Tagesordnungspunkt|Der Einspruch)\\b',
+                own_following, maxsplit=1)[0]
             if not (APPEAL.search(context) and ORDER.search(context)):
                 continue
             hits.append({
                 'session': session, 'pdf_page': page_num, 'source': url,
                 'context_excerpt': context[:550],
                 'source_page_sha256': hashlib.sha256(raw.encode()).hexdigest(),
-                'second_measure_explicitly_named': bool(SECOND.search(context)),
+                'second_measure_explicitly_named': (
+                    session != KNOWN and bool(SECOND.search(own_following))),
                 'known_first_objection_only': session == KNOWN,
                 'requires_person_and_outcome_source_review': True,
                 'automatic_legal_conclusion': False,
