@@ -29,6 +29,24 @@ KNOWN = {
     8715: 'known_other_person_sichert_issuance',
     8717: 'known_janich_conditional_warning_not_issuance',
     8719: 'known_janich_explicit_second_issuance',
+    8812: 'known_janich_second_retrospective_confirmation_only',
+    8990: 'explicit_gottschalk_original_utterance_not_janich',
+    8992: 'unattributed_followon_second_utterance',
+    9005: 'anonymous_afD_interjection_recipient_unidentified',
+}
+# All four additions have been independently observed in the real official
+# 21/040 original by the preceding whole-sitting forensic read. Guard their
+# exact line and complete original paragraph bytes (not approximate keywords).
+OTHER_ANCHORS = {
+    8812: 'd0655635ab6216c5f1badabc01ba4481d72a7cdbbc444d404a30baf9b2d4a62f',
+    8990: 'e36672d5ab7bce3cb950e0dcc2b392b3da6489d0d846ead8e0873f48eb4ec3cc',
+    8992: 'f4c6d5ed55bf8d9b34f40566fca5944dd4f88f45c7de3626a18a5c3d6310ea80',
+    9005: '9ce489e4baaf2781bbd03b194887f3d278d8a937f0f22b74bb8771e7c208962c',
+}
+MANUAL_RECIPIENT_LABELS = {
+    'unattributed_original_sitting_context',
+    'unattributed_followon_second_utterance',
+    'anonymous_afD_interjection_recipient_unidentified',
 }
 SOURCE_KEYS = {
     8715: 'sichert_first_grant',
@@ -69,6 +87,20 @@ def inspect_all_rows(rows, official):
                 or hashlib.sha256(value.encode('utf-8')).hexdigest() !=
                    info.get('paragraph_sha256')):
             raise ValueError('Geschützte amtliche Janich/Sichert-Originalzeile verändert')
+    for lineno, digest in OTHER_ANCHORS.items():
+        text = by_line.get(lineno)
+        if text is None or hashlib.sha256(text.encode('utf-8')).hexdigest() != digest:
+            raise ValueError('Weitere amtliche Janich/Gottschalk/Anonym-Originalquelle verändert')
+    # Do not treat a clearly anonymous interjection as a Gottschalk or Janich
+    # measure simply because Gottschalk was being addressed nearby.
+    if (not re.search(r'zweite[rn]?\s+Ordnungsruf\s+an\s+Steffen\s+Janich',
+                      by_line[8812], re.I)
+            or not re.search(r'Herr\s+Kollege\s+Gottschalk.*?erteile\s+Ihnen',
+                             by_line[8990], re.I)
+            or not re.search(r'zweiten\s+Ordnungsruf', by_line[8992], re.I)
+            or not re.search(r'Ich\s+weiß\s+nicht,\s+wer\s+es\s+war',
+                             by_line[9005], re.I)):
+        raise ValueError('Genaue amtliche Wortlautidentität für Nicht-Janich-Fälle fehlt')
     findings = []
     for i, (lineno, content) in enumerate(all_rows):
         if not (ORDER_WORDS.search(content) or TERM_RE.search(content)):
@@ -91,17 +123,17 @@ def inspect_all_rows(rows, official):
             'janich_name_in_same_paragraph': bool(JANICH.search(content)),
             'source_class': label,
             'requires_independent_recipient_and_speaker_review':
-                label == 'unattributed_original_sitting_context',
+                label in MANUAL_RECIPIENT_LABELS,
             'automatic_janich_first_grant_attribution': False,
             'automatic_legal_effect_confirmation': False,
             'public_count_delta': 0,
         })
-    if (len(findings) < 3
+    if (len(findings) < 7
             or {x['xml_line']:x['source_class'] for x in findings
                 if x['xml_line'] in KNOWN} != KNOWN):
         raise ValueError('Bekannte drei amtliche Originalformulierungen fehlen')
     unknown = [x for x in findings
-               if x['source_class'] == 'unattributed_original_sitting_context']
+               if x['requires_independent_recipient_and_speaker_review']]
     return {
         'schema': 'wp21-janich-complete-original-sitting-audit-v1',
         'original_session': 40,
@@ -111,6 +143,9 @@ def inspect_all_rows(rows, official):
         'known_other_person_sichert_line': 8715,
         'known_janich_conditional_warning_line': 8717,
         'known_janich_explicit_second_grant_line': 8719,
+        'janich_second_retrospective_confirmation_line': 8812,
+        'explicit_non_janich_gottschalk_utterance_line': 8990,
+        'other_recipient_unresolved_lines': [8992, 9005],
         'independently_rejected_first_and_second_appeals_in_21_042': 2,
         'original_janich_first_issuance_literal_line': None,
         'source_scope_is_all_spoken_paragraphs_not_appendices': True,
@@ -134,6 +169,9 @@ def markdown(report):
             or report.get('known_other_person_sichert_line') != 8715
             or report.get('known_janich_conditional_warning_line') != 8717
             or report.get('known_janich_explicit_second_grant_line') != 8719
+            or report.get('janich_second_retrospective_confirmation_line') != 8812
+            or report.get('explicit_non_janich_gottschalk_utterance_line') != 8990
+            or report.get('other_recipient_unresolved_lines') != [8992, 9005]
             or report.get('independently_rejected_first_and_second_appeals_in_21_042') != 2
             or report.get('source_scope_is_all_spoken_paragraphs_not_appendices') is not True
             or report.get('missing_first_literal_wording_is_not_proof_of_missing_measure') is not True
@@ -153,6 +191,10 @@ def markdown(report):
         f"{len(report['unattributed_explicit_issuance_wordings_for_manual_review'])}.",
         '', 'XML 8715: Sichert; XML 8717: bedingte Janich-Warnung; '
         'XML 8719: ausdrücklich Janichs zweiter Ruf.',
+        'XML 8812: zusätzliche wörtliche Bestätigung des zweiten Janich-Rufs.',
+        'XML 8990: ausdrücklich an Gottschalk gerichteter weiterer Ruf.',
+        'XML 8992: anschließender zweiter Ruf ohne namentliche Empfängerangabe.',
+        'XML 9005: Ruf gegen einen ausdrücklich unbekannten Zwischenrufer.',
         'Sitzung 21/042 belegt zwei getrennt zurückgewiesene Janich-Einsprüche.',
         '', '## Weitere Wortlaute zur manuellen Zuordnung', '',
     ]

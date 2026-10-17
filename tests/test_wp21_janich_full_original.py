@@ -18,8 +18,20 @@ def sample():
     anchors[8650] = (
         'Ein Ordnungsruf wurde heute erwähnt, '
         'nicht als zusätzliche Maßnahme beschlossen.')
-    return [(n, anchors.get(n, 'Weitere Plenardebatte ohne Ordnungsruf.'))
-            for n in range(8580, 8771)]
+    anchors[8812] = ('Für das Protokoll darf ich noch erwähnen, '
+                     'dass der zweite Ordnungsruf an Steffen Janich gegangen ist.')
+    anchors[8990] = ('Herr Kollege Gottschalk, ich erteile Ihnen jetzt einen '
+                     'Ordnungsruf für die Verwendung des Wortes „pfui“.')
+    anchors[8992] = ('Denn das ist unparlamentarisches Verhalten. Und ich '
+                     'erteile Ihnen einen zweiten Ordnungsruf dafür, dass Sie '
+                     'vorhin eine Gleichsetzung mit dem Nationalsozialismus '
+                     'vorgenommen haben.')
+    anchors[9005] = ('Herr Kollege Gottschalk, würden Sie bitte Ihre Rede '
+                     'unterbrechen. Ich habe das Wort „pfui“ gerade auch '
+                     'aus den Reihen der AfD gehört. Ich weiß nicht, wer es '
+                     'war; aber ich erteile auch dafür einen Ordnungsruf.')
+    return [(n, anchors.get(n, 'Fortsetzung einer parlamentarischen Aussprache.'))
+            for n in range(8580, 9020)]
 
 
 class FullOriginal(unittest.TestCase):
@@ -30,14 +42,16 @@ class FullOriginal(unittest.TestCase):
         self.assertEqual(result['known_janich_explicit_second_grant_line'], 8719)
         self.assertIsNone(result['original_janich_first_issuance_literal_line'])
         self.assertEqual(result['independently_rejected_first_and_second_appeals_in_21_042'], 2)
-        self.assertEqual(result['verified_spoken_paragraphs_in_original'], 191)
+        self.assertEqual(result['verified_spoken_paragraphs_in_original'], 440)
+        self.assertEqual(result['janich_second_retrospective_confirmation_line'],8812)
+        self.assertEqual(result['other_recipient_unresolved_lines'],[8992,9005])
         self.assertEqual(result['public_counter_delta'], 0)
         self.assertIn('kein automatischer Empfängerbeleg', markdown(result))
 
     def test_unattributed_other_person_grant_does_not_map_to_janich(self):
         result = inspect_all_rows(sample(), inspect_rows(examples()))
         hits = result['unattributed_explicit_issuance_wordings_for_manual_review']
-        self.assertEqual([x['xml_line'] for x in hits], [8607])
+        self.assertEqual([x['xml_line'] for x in hits], [8607,8992,9005])
         self.assertTrue(all(x['automatic_janich_first_grant_attribution'] is False
                             for x in hits))
         self.assertEqual(result['original_janich_first_issuance_literal_line'], None)
@@ -53,13 +67,44 @@ class FullOriginal(unittest.TestCase):
     def test_8717_and_8719_not_manually_reassigned(self):
         r = inspect_all_rows(sample(),inspect_rows(examples()))
         unknown = {x['xml_line'] for x in r['unattributed_contexts_for_manual_review']}
-        self.assertFalse({8715,8717,8719} & unknown)
+        self.assertFalse({8715,8717,8719,8812,8990} & unknown)
+        self.assertTrue({8992,9005} <= unknown)
         all_rows = {x['xml_line']:x for x in r['source_text_locations']}
         self.assertTrue(all_rows[8717]['conditional_wording_detected'])
         self.assertEqual(all_rows[8715]['source_class'],
                          'known_other_person_sichert_issuance')
         self.assertEqual(all_rows[8719]['source_class'],
                          'known_janich_explicit_second_issuance')
+
+    def test_retrospective_second_is_not_a_first_grant(self):
+        r=inspect_all_rows(sample(), inspect_rows(examples()))
+        confirmations={x['xml_line']:x for x in r['source_text_locations']}
+        self.assertEqual(confirmations[8812]['source_class'],
+                         'known_janich_second_retrospective_confirmation_only')
+        self.assertFalse(confirmations[8812]['literal_issuance_verb_detected'])
+        self.assertTrue(confirmations[8812]['janich_name_in_same_paragraph'])
+        self.assertFalse(confirmations[8812]['automatic_janich_first_grant_attribution'])
+
+    def test_explicit_gottschalk_vs_two_unnamed_recipients(self):
+        r=inspect_all_rows(sample(), inspect_rows(examples()))
+        got={x['xml_line']:x for x in r['source_text_locations']}
+        self.assertEqual(got[8990]['source_class'],
+                         'explicit_gottschalk_original_utterance_not_janich')
+        self.assertEqual(got[8992]['source_class'],
+                         'unattributed_followon_second_utterance')
+        self.assertEqual(got[9005]['source_class'],
+                         'anonymous_afD_interjection_recipient_unidentified')
+        self.assertFalse(got[9005]['automatic_janich_first_grant_attribution'])
+        self.assertTrue(got[9005]['requires_independent_recipient_and_speaker_review'])
+
+    def test_four_new_source_anchors_cannot_be_changed_or_removed(self):
+        for changed in (8812,8990,8992,9005):
+            with self.subTest(line=changed):
+                tampered=[(l, ('Ein ganz anderer Originaltext.'
+                              if l==changed else value))
+                          for l,value in sample()]
+                with self.assertRaisesRegex(ValueError,'Originalquelle'):
+                    inspect_all_rows(tampered,inspect_rows(examples()))
 
     def test_missing_early_part_of_sitting_is_rejected(self):
         with self.assertRaisesRegex(ValueError, 'Unvollständige'):
@@ -95,7 +140,9 @@ class FullOriginal(unittest.TestCase):
                        {'public_counter_delta':1},
                        {'no_person_attribution_by_keyword_proximity':False},
                        {'explicit_other_sources_not_attributed_to_janich':False},
-                       {'source_scope_is_all_spoken_paragraphs_not_appendices':False}):
+                       {'source_scope_is_all_spoken_paragraphs_not_appendices':False},
+                       {'janich_second_retrospective_confirmation_line':None},
+                       {'other_recipient_unresolved_lines':[]}):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 markdown({**report,**change})
 
