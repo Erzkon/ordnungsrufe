@@ -63,6 +63,12 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertNotIn('  pull_request:',probe)
         self.assertNotIn('  schedule:',probe)
 
+    def test_all_eleven_identified_original_sources_are_required_before_lifecycle_daily_review(self):
+        self.assertIn("steps.sevenOriginals.outcome == 'success'",self.workflow)
+        self.assertIn('--seven-original-report .audit/wp21_2025_7_original_lines.json',
+                      self.workflow)
+        self.assertIn('wp21_2025_sieben_originalzeilen.py',self.workflow)
+
     def test_one_person_one_measures_not_objections_dossier_is_independently_queued(self):
         self.assertIn('id: individual2025',self.workflow)
         self.assertIn("steps.original2025.outcome == 'success'",self.workflow)

@@ -10,6 +10,7 @@ from wp21_2025_dip_einzelakten import inspect
 from wp21_2025_massnahmen_lifecycle import (
     ORIGINAL_40,VOTES_42,review,markdown,run)
 from wp21_2025_sieben_originalzeilen import LOCATIONS,DAYS
+from wp21_2025_dip_einzelakten import CASES
 
 
 def plenary_example():
@@ -44,9 +45,7 @@ def seven_official_originals_example():
     rows=[]
     for (session,person),(line,pattern) in LOCATIONS.items():
         name=next(person_name for d,person_name,pid,ss,v,g,o
-                  in __import__('wp21_2025_dip_einzelakten',
-                                fromlist=['CASES']).CASES
-                  if ss==session)
+                  in CASES if ss==session)
         rows.append({
             'session':session,'person':name,'original_date':DAYS[session],
             'original_xml_line':line,

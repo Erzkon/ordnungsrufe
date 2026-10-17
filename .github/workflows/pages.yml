@@ -536,13 +536,14 @@ jobs:
         if: github.event_name != 'pull_request' && steps.sevenOriginals.outcome == 'failure'
         run: echo '::warning::Sieben amtliche 2025-Erteilungszeilen nicht vollständig bestätigt; keine Freigabe rechtswirksamer Einzelrufe.'
       - name: Zwölf individuell belegte Erteilungen aus zehn DIP-Vorgängen mit elf Einspruchsentscheidungen verknüpfen
-        if: github.event_name != 'pull_request' && steps.original2025.outcome == 'success' && steps.fortyDossier.outcome == 'success'
+        if: github.event_name != 'pull_request' && steps.original2025.outcome == 'success' && steps.fortyDossier.outcome == 'success' && steps.sevenOriginals.outcome == 'success'
         id: individual2025
         continue-on-error: true
         run: |
           python wp21_2025_massnahmen_lifecycle.py \
             --dip-report .audit/wp21_2025_dip_origins_and_appeals.json \
             --plenary-report .audit/wp21_40_42_source_episodes.json \
+            --seven-original-report .audit/wp21_2025_7_original_lines.json \
             --output .audit/wp21_2025_individual_measure_review.json \
             --brief .audit/wp21_2025_individual_measure_review.md
       - name: Personenscharfe Zwölf-Maßnahmen-Prüfmatrix ausschließlich als Artefakt archivieren
