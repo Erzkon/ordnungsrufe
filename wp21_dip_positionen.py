@@ -111,14 +111,14 @@ def position_document_evidence(raw):
                 raise ValueError('DIP-Position und Protokolltag widersprechen sich')
             if not isinstance(number,str):
                 raise ValueError('Unerwartete Fundstellen-Sitzungsnummer')
-            if re.fullmatch(r'21/[1-9]\\d{0,2}',number):
+            if re.fullmatch(r'21/[1-9]\d{0,2}',number):
                 chamber='Bundestag'
                 session=int(number.split('/')[1])
                 expected=f'https://dserver.bundestag.de/btp/21/21{session:03d}'
                 if (xml!=expected+'.xml' or type(pdf)!=str
-                        or not re.fullmatch(re.escape(expected)+r'\\.pdf#P\\.[1-9]\\d{0,5}',pdf)):
+                        or not re.fullmatch(re.escape(expected)+r'\.pdf#P\.[1-9]\d{0,5}',pdf)):
                     raise ValueError('DIP-Fundstelle hat nichtamtliche oder fremde Links')
-            elif re.fullmatch(r'[1-9]\\d{2,3}',number):
+            elif re.fullmatch(r'[1-9]\d{2,3}',number):
                 # Actual official DIP records 670644, 678924 and 678887
                 # reference Bundesrat plenary documents 1054 and 1058.
                 # Keep that evidence separate from WP21 Bundestag sittings.
@@ -126,7 +126,7 @@ def position_document_evidence(raw):
                 bundesrat_session=int(number)
                 expected=f'https://dserver.bundestag.de/brp/{number}'
                 if (xml is not None or type(pdf)!=str
-                        or not re.fullmatch(re.escape(expected)+r'\\.pdf#P\\.[1-9]\\d{0,5}',pdf)):
+                        or not re.fullmatch(re.escape(expected)+r'\.pdf#P\.[1-9]\d{0,5}',pdf)):
                     raise ValueError('DIP-Bundesratsfundstelle hat nichtamtliche oder fremde Links')
             else:
                 raise ValueError('Unerwartete Fundstellen-Sitzungsnummer')
