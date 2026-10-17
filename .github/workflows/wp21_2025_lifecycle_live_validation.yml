@@ -1,0 +1,173 @@
+name: Isolierte 2025-DIP-plus-Original-XML-Einzelmaßnahmen-Vollprüfung
+
+# One-time live end-to-end source check introduced via PR; manual-only
+# after the first successful confirmation. No automatic legal counts.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_2025_lifecycle_live_validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eleven-sourced-out-of-twelve:
+    name: Amtliches DIP und 8 Originalprotokolle zusammenführen
+    runs-on: ubuntu-latest
+    timeout-minutes: 26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vier amtlich bestätigte Zählerdateien von main gegenprüfen
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for f in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$f" | cmp -s - "$f" || { echo "::error file=$f::Geschützter Bestand verändert"; exit 1; }
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Bestätigte Zähler-Dateibytes sichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Alle zusätzlichen Original-XML- und Lifecycle-Negativtests ausführen
+        run: |
+          python -m unittest -v \
+            tests.test_wp21_2025_dip_einzelakten \
+            tests.test_wp21_2025_sieben_originalzeilen \
+            tests.test_wp21_40_mehrfach_akte \
+            tests.test_wp21_2025_massnahmen_lifecycle
+      - name: Zehn genaue DIP-Eltern-IDs und 21 Positionen amtlich live abrufen
+        timeout-minutes: 13
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json,os,time
+          from datetime import datetime,timezone
+          from pathlib import Path
+          from urllib.request import Request,build_opener
+          from urllib.error import HTTPError,URLError
+          from wp21_dip_monitor import PUBLIC_KEY,NoRedirect,relevant_item,iso
+          from wp21_dip_positionen import fetch_positions,normalize_position
+          from wp21_2025_dip_einzelakten import CASES,survey_from_complete_cache,run_snapshot
+          KEY=os.environ.get('DIP_API_KEY') or PUBLIC_KEY
+          opener=build_opener(NoRedirect())
+          now=iso(datetime.now(timezone.utc))
+          parent={'last_success_utc':now,'items':{}}
+          position={'last_success_utc':now,'items':{}}
+          for date,person,ident,session,decision,grants,votes in CASES:
+              url='https://search.dip.bundestag.de/api/v1/vorgang/'+ident
+              request=Request(url,headers={
+                  'Authorization':'ApiKey '+KEY,'Accept':'application/json',
+                  'User-Agent':'OrdnungsrufCounter/0.9 (original metadata verification)'})
+              last=None
+              for attempt in range(3):
+                  try:
+                      with opener.open(request,timeout=30) as resp:
+                          if resp.status!=200: raise ValueError('DIP parent non-200')
+                          blob=resp.read(500001)
+                      if len(blob)>500000: raise ValueError('DIP parent payload too large')
+                      raw=json.loads(blob.decode('utf-8'))
+                      last=None
+                      break
+                  except (HTTPError,URLError,TimeoutError,OSError) as err:
+                      last=err
+                      if attempt<2:time.sleep(2**attempt)
+              if last is not None:raise last
+              if (not isinstance(raw,dict) or str(raw.get('id'))!=ident
+                      or raw.get('wahlperiode')!=21):
+                  raise ValueError('Incorrect original DIP parent id or term')
+              doc=relevant_item(raw)
+              if doc is None or ident in parent['items']:
+                  raise ValueError('Missing unique relevant DIP parent metadata')
+              parent['items'][ident]={**doc,'active':True}
+              originals=fetch_positions(ident,KEY)
+              for raw_position in originals:
+                  pos=normalize_position(raw_position)
+                  pid=pos['id']
+                  if pos['parent_id']!=ident or pid in position['items']:
+                      raise ValueError('Foreign or duplicated official position id')
+                  position['items'][pid]={**pos,'active':True}
+              print('LIVE2025',session,person,ident,'positions',len(originals),flush=True)
+          snapshot=survey_from_complete_cache(parent,position)
+          folder=Path('.audit/2025_end_to_end')
+          folder.mkdir(parents=True,exist_ok=True)
+          report=run_snapshot(snapshot,folder/'dip_ten_cases.json',folder/'dip_ten_cases.md')
+          if (report['official_parent_ids']!=10
+                  or report['original_issuance_events_review_only']!=12
+                  or report['separate_rejected_objections']!=11
+                  or report['official_position_records']!=21
+                  or report['automatically_confirmed_effective_measures']!=0
+                  or report['public_statistics_modified']):
+              raise ValueError('Original ten DIP person/source cases changed')
+          print('TEN_OFFICIAL_DIP_CASES_READY',flush=True)
+          PY
+      - name: Acht originale amtliche XML-Sitzungen und elf Erteilungsabsätze nachprüfen
+        timeout-minutes: 8
+        run: |
+          python wp21_40_mehrfach_akte.py \
+            --cache .audit/2025_end_to_end/xml \
+            --output .audit/2025_end_to_end/plenary_40_42.json \
+            --brief .audit/2025_end_to_end/plenary_40_42.md
+          python wp21_2025_sieben_originalzeilen.py \
+            --cache .audit/2025_end_to_end/xml \
+            --output .audit/2025_end_to_end/seven_more_original_lines.json \
+            --brief .audit/2025_end_to_end/seven_more_original_lines.md
+      - name: Zwölf einzelne Originalmaßnahmen und elf Entscheidungen quellengebunden verknüpfen
+        run: |
+          python wp21_2025_massnahmen_lifecycle.py \
+            --dip-report .audit/2025_end_to_end/dip_ten_cases.json \
+            --plenary-report .audit/2025_end_to_end/plenary_40_42.json \
+            --seven-original-report .audit/2025_end_to_end/seven_more_original_lines.json \
+            --output .audit/2025_end_to_end/lifecycle_12.json \
+            --brief .audit/2025_end_to_end/lifecycle_12.md
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          path=Path('.audit/2025_end_to_end/lifecycle_12.json')
+          r=json.loads(path.read_text(encoding='utf-8'))
+          if (r['official_dip_original_parents']!=10
+              or r['initially_issued_individual_grants_review_only']!=12
+              or r['separately_rejected_objections']!=11
+              or r['identified_original_xml_issuance_lines']!=11
+              or r['still_unlocated_original_xml_issuance_lines']!=1
+              or r['no_vote_in_examined_parent']!=1
+              or r['automatically_confirmed_legally_effective_measures']!=0
+              or r['automatically_rescinded_measures']!=0
+              or r['public_counter_delta']!=0):
+              raise ValueError('Original-source/decision crosswalk not validated as 11+1')
+          if sum(m['first_janich_xml_original_line_still_unlocated']
+                 for m in r['measures'])!=1:
+              raise ValueError('Only Janich first original-source gap must remain')
+          lines=['## Amtlicher 2025 Einzelmaßnahmen-Vollabgleich: keine Zähleränderung',
+              '- Zehn vollständig live von DIP geprüfte ursprüngliche Vorgänge',
+              '- Zwölf individuell unterschiedliche ursprünglich erteilte Rufe',
+              '- Elf gesondert zurückgewiesene Einsprüche',
+              '- Elf Original-Erteilungszeilen aus acht XML-Sitzungen',
+              '- Eine ursprüngliche Erteilungszeile weiter ungeklärt: Janich erster Ruf',
+              '- Gottschalk zweiter Ruf: kein zweiter Einspruchsentscheid in diesem Vorgang',
+              '- Null automatisch bestätigte oder aufgehobene Einzelmaßnahmen']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as summary:
+              summary.write('\n'.join(lines)+'\n')
+          print('\n'.join(lines))
+          PY
+      - name: Unveränderte vier bestätigte Statistikdateien abschließend beweisen
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Vollständige zehn DIP- und acht XML-Quellenakten archivieren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-2025-independent-11-of-12-originals-${{ github.run_id }}
+          path: |
+            .audit/2025_end_to_end/*.json
+            .audit/2025_end_to_end/*.md
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 30
