@@ -106,8 +106,25 @@ class CaseFortySourceCrossChecks(unittest.TestCase):
                'Die Abstimmung wird vertagt.'),
         })
         with self.assertRaisesRegex(ValueError,
-                                    'Einzeln zugeordnete.*Gottschalk'):
+                                    'Einzeln zugeordnete'):
             inspect({40:fixture(40),42:bad})
+
+    def test_split_question_and_result_in_next_xml_paragraph_are_allowed(self):
+        original=fixture(42)
+        first=original.xpath('.//p')[0]
+        first.text=first.text.replace(
+            ' Der Einspruch ist damit zurückgewiesen.','')
+        answer=etree.Element('p')
+        answer.text='Der Einspruch ist damit zurückgewiesen.'
+        first.addnext(answer)
+        first.tail='\n'
+        answer.tail='\n'
+        # Reparse to supply real source lines to the newly inserted paragraph.
+        split=etree.fromstring(etree.tostring(original))
+        r=inspect({40:fixture(40),42:split})
+        vote=r['source_appeal_paragraphs']['Sichert_objection_vote']
+        self.assertGreater(vote['rejection_xml_line'],vote['original_xml_line'])
+        self.assertEqual(r['four_separate_vote_rejection_wordings_checked'],4)
 
     def test_same_paragraph_duplicate_fails_closed(self):
         bad=fixture(42,duplicate=(

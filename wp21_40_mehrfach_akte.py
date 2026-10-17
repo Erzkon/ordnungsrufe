@@ -87,15 +87,38 @@ def inspect(roots):
         raise ValueError('Bedingte Janich-Androhung nicht vor zweiter Erteilung')
     votes={key:matching_paragraph(rows[42],pattern,key)
            for key,pattern in PHRASES_42.items()}
-    # Each appealed measure needs its OWN rejection phrase in the matched
-    # paragraph. Four unrelated rejection phrases elsewhere in 21/042
-    # cannot substitute for one individual's missing decision.
+    # Official XML can split the question and answer into consecutive <p>s.
+    # Associate ONE rejection with the interval that starts at this vote's
+    # named question and ends BEFORE the next person's question. Limit the
+    # final interval to nearby paragraphs; unrelated later outcomes do not
+    # become this appeal's result.
     rejected=re.compile(
         r'\bDer\s+Einspruch\s+ist\s+damit\s+zurückgewiesen\b',re.I)
-    for key,record in votes.items():
-        if not rejected.search(record['original_text_excerpt']):
+    positions={}
+    for key,pattern in PHRASES_42.items():
+        hits=[idx for idx,(_,text) in enumerate(rows[42])
+              if re.search(pattern,text,re.I|re.S)]
+        if len(hits)!=1:
+            raise ValueError(f'Abstimmungsfrage nicht eindeutig: {key}')
+        positions[key]=hits[0]
+    ordered=sorted(positions,key=positions.get)
+    if ordered!=list(PHRASES_42):
+        raise ValueError('Einzelne Einspruchsfragen in falscher Reihenfolge')
+    for idx,key in enumerate(ordered):
+        start=positions[key]
+        finish=(positions[ordered[idx+1]]
+                if idx+1<len(ordered) else len(rows[42]))
+        # Eight nearby paragraphs suffice for one question, intervening
+        # speaker remarks, and its result, without spanning other debates.
+        section=rows[42][start:min(finish,start+8)]
+        outcomes=[(line,text) for line,text in section if rejected.search(text)]
+        if len(outcomes)!=1:
             raise ValueError(
                 f'Einzeln zugeordnete Einspruchszurückweisung fehlt: {key}')
+        line,text=outcomes[0]
+        votes[key]['rejection_xml_line']=line
+        votes[key]['rejection_paragraph_sha256']=hashlib.sha256(
+            text.encode()).hexdigest()
     # Vote outcomes are reported as "Der Einspruch ist damit zurückgewiesen."
     # Separate official report further confirms four independent rejections.
     spoken=' '.join(t for _,t in rows[42])
@@ -189,9 +212,11 @@ def render_markdown(report):
     lines+=['','## Einspruchsformulierungen 21/042','']
     for name,record in report['source_appeal_paragraphs'].items():
         lines.append(
-            f"- {name}: [XML 21/042 L{record['original_xml_line']}]"
+            f"- {name}: [Abstimmungsfrage XML 21/042 L{record['original_xml_line']}]"
             f"({report['appeal_protocol']}), "
-            f"SHA256 {record['paragraph_sha256'][:16]}…")
+            f"SHA256 {record['paragraph_sha256'][:16]}…; "
+            f"[zugehörige Zurückweisung L{record['rejection_xml_line']}]"
+            f"({report['appeal_protocol']})")
     lines += [
         '',f"Explizite, einzeln nachgewiesene Zurückweisungsformulierungen: "
         f"{report['four_separate_vote_rejection_wordings_checked']}.",
