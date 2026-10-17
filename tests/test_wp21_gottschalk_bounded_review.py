@@ -96,7 +96,7 @@ class GottschalkBoundedSourceScope(unittest.TestCase):
         p=source()
         p['gottschalk_named_source_parents'][0]['complete_parent_positions'].pop()
         p['gottschalk_named_source_parents'][0]['official_position_count']=1
-        with self.assertRaisesRegex(ValueError,'Position'):
+        with self.assertRaisesRegex(ValueError,'Verfahrensposition'):
             inspect(p)
         p=source()
         p['gottschalk_named_source_parents'][0]['complete_parent_positions'][1]['id']='681046'
