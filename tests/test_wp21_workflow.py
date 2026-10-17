@@ -92,6 +92,18 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('gottschalk_minutes.json',source)
         self.assertIn('sha256sum --check',source)
 
+    def test_complete_minutes_index_is_weekly_source_only_without_merging(self):
+        source = Path('.github/workflows/wp21_amtliche_katalog.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('schedule:', source)
+        self.assertIn("20 8 * * 1", source)
+        self.assertIn('wp21_amtliche_protokolle_katalog.py', source)
+        self.assertIn('tests.test_wp21_amtliche_protokolle_katalog', source)
+        self.assertIn('sha256sum --check', source)
+        self.assertIn('fetch', source)
+        self.assertNotIn('git push', source)
+        self.assertNotIn('git merge', source)
+
     def test_janich_conditional_original_wording_is_review_only(self):
         self.assertIn('id: janichContext',self.workflow)
         self.assertIn('wp21_janich_erste_quellenkritik.py',self.workflow)

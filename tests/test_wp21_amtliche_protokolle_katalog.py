@@ -161,6 +161,10 @@ class CatalogueTests(unittest.TestCase):
     def test_if_42_is_not_reached_it_cannot_claim_full_coverage(self):
         with self.assertRaises(ValueError):
             catalogue(SourceLoader(latest=175))
+        from unittest.mock import patch
+        with patch('wp21_amtliche_protokolle_katalog.PAGES_LIMIT', 2):
+            with self.assertRaisesRegex(ValueError, 'nicht lückenlos'):
+                catalogue(SourceLoader())
         with self.assertRaises(ValueError):
             parse_page(page(0),0,expected_total=795)
         with self.assertRaises(ValueError):
