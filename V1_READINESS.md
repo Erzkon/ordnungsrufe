@@ -21,6 +21,33 @@
 
 Das Browser-Artefakt ist eine Vorschau des **PR-Builds**, nicht der Beweis einer bereits live veröffentlichten oder nach Merge getesteten Seite. Der produktive Main-only-Pfad kann technisch erst mit einer dafür freigegebenen Veröffentlichung ausgeführt werden.
 
+## Finaler CI-Abgleich (17.10.2026)
+
+Die vollständige erneute Abfrage der GitHub-Actions-Ergebnisse für den
+Basiscommit `1db9a359d40918219b4a8d54076e16c6700af109` ergab **acht erfolgreiche Workflow-Läufe**:
+[Python-Parser](https://github.com/Erzkon/ordnungsrufe/actions/runs/39067138892),
+[Website-Release-Gate](https://github.com/Erzkon/ordnungsrufe/actions/runs/39067141823),
+[echter Chrome-Desktop-/Mobilbrowser](https://github.com/Erzkon/ordnungsrufe/actions/runs/39067141780)
+sowie fünf weitere amtliche XML-/DIP-Einzelprüfungen. Die tatsächlich
+beobachteten Zahlen waren **695 bestandene Python-Tests und 145 Subtests**
+sowie **zweimal neun Browserchecks**. Die produktiven Deploy- und
+Quellenwache-Jobs waren im PR erwartungsgemäß **übersprungen**; ihre
+Funktionsfähigkeit auf `main` ist damit noch **nicht** nachgewiesen.
+
+Die Logprüfung identifizierte kleinere, im folgenden Wartungsschritt
+adressierte Python-Probleme (ungültige Escape-Sequenzen in einem
+Prüfbericht und ein `unittest`-Test, der Hilfsdaten zurückgab).
+**Die erneute CI-Prüfung des Wartungscommits ist vor der Merge-Entscheidung
+verpflichtend.** GitHub meldete außerdem Node.js-20-Abkündigungen für
+ältere Actions-Versionen, die derzeit durch Node.js 24 auf dem Runner
+weiterlaufen. Das ist momentan kein fehlgeschlagener Check, aber eine
+separate **P2-Wartungsaufgabe**, damit spätere Runner-/Actions-Updates
+die Automatisierung nicht unbemerkt beeinträchtigen.
+
+Im gesamten PR wurden **132 geänderte Dateien** gefunden, jedoch **keine**
+der vier geschützten CSV-/JSON-Statistikdateien. Die große PR-Differenz
+erfordert weiterhin einen bewussten abschließenden Merge-Review.
+
 ## Risiken nach Priorität
 
 | Priorität | Risiko | Behandlung vor oder bei Freigabe |

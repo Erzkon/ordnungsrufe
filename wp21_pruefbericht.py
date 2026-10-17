@@ -106,7 +106,7 @@ def create_brief(rows,report):
                 f"### {label}",
                 '',
                 f"**Belege:** [Amtliches Sitzungsprotokoll]({row['protokoll']}) "
-                f"· Fall \`{html.escape(row['fall_id'])}\`",
+                f"· Fall `{html.escape(row['fall_id'])}`",
                 '',
                 f"**Teilbestand einzeln bestätigt:** {verified} "
                 f"· **DIP ursprünglich erwähnt:** {dip} "
@@ -139,7 +139,7 @@ def create_brief(rows,report):
                       'Rücknahmen unabhängig prüfen.','']
     lines += ['---','','Automatisch erzeugter **Arbeitsbericht**, keine Änderung '
               'der geprüften Zähler. Vollständige Fälle inklusive mittlerer '
-              'Priorität stehen in \`wp21_vollstaendigkeit_faelle.csv\`.','']
+              'Priorität stehen in `wp21_vollstaendigkeit_faelle.csv`.','']
     return '\n'.join(lines)
 
 

@@ -183,7 +183,7 @@ class TenOfficial2025DIPCases(unittest.TestCase):
         with self.assertRaises(ValueError):
             inspect(s)
 
-    def test_successful_parent_position_cache_same_evidence_no_extra_counting(self):
+    def _checked_parent_position_cache(self):
         source=example_source_snapshot()
         parents={'last_success_utc':'2026-10-17T08:00:00+00:00','items':{}}
         positions={'last_success_utc':'2026-10-17T09:00:00+00:00','items':{}}
@@ -213,8 +213,11 @@ class TenOfficial2025DIPCases(unittest.TestCase):
         self.assertFalse(result['public_statistics_modified'])
         return parents,positions
 
+    def test_successful_parent_position_cache_same_evidence_no_extra_counting(self):
+        self._checked_parent_position_cache()
+
     def test_disappeared_historical_position_triggers_review_not_silent_omission(self):
-        parents,positions=self.test_successful_parent_position_cache_same_evidence_no_extra_counting()
+        parents,positions=self._checked_parent_position_cache()
         gone=copy.deepcopy(positions)
         relevant=next(x for x in gone['items'].values()
                       if x['parent_id']=='328225' and x['step']=='Abstimmung')
@@ -227,7 +230,7 @@ class TenOfficial2025DIPCases(unittest.TestCase):
             survey_from_complete_cache(removed_parent,positions)
 
     def test_stale_or_missing_cache_never_silently_approves_2025(self):
-        parents,positions=self.test_successful_parent_position_cache_same_evidence_no_extra_counting()
+        parents,positions=self._checked_parent_position_cache()
         stale=copy.deepcopy(positions)
         stale['last_success_utc']='2026-10-17T07:59:00+00:00'
         with self.assertRaisesRegex(ValueError,'veraltet'):
@@ -242,7 +245,7 @@ class TenOfficial2025DIPCases(unittest.TestCase):
             survey_from_complete_cache(tampered,positions)
 
     def test_new_unexpected_vote_is_a_review_alarm_never_a_twelfth_assumed_appeal(self):
-        parents,positions=self.test_successful_parent_position_cache_same_evidence_no_extra_counting()
+        parents,positions=self._checked_parent_position_cache()
         extra=copy.deepcopy(positions)
         extra['items']['999991']={
             **next(p for p in extra['items'].values()
