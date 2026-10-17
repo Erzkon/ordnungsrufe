@@ -11,6 +11,8 @@ const puppeteer=require('puppeteer-core');
 
 const ROOT=path.resolve(__dirname,'..','docs');
 const OUT=path.resolve(process.env.V1_BROWSER_OUT || '.audit/browser_smoke');
+const HAS_PUBLISHED_HEALTH=fs.existsSync(path.join(ROOT,'data','quellenstatus_21.json'));
+const HEALTH_STATES=HAS_PUBLISHED_HEALTH?['fresh','degraded','stale']:['missing'];
 const TYPES={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8',
   '.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8',
   '.svg':'image/svg+xml'};
@@ -87,10 +89,18 @@ async function main() {
     assert.equal(new URL(page.url()).searchParams.get('wp'),'21');
     pass('Switch to partial WP21 never claims overall count');
 
-    await page.waitForFunction(
-      ()=>document.querySelector('#wp21-health')?.dataset.state==='missing',{timeout:8000});
-    assert.match(await textOf(page,'#wp21-health'),/nicht verfügbar/);
-    pass('PR preview visibly discloses unavailable source monitor without misleading success');
+    await page.waitForFunction(states=>{
+      const box=document.querySelector('#wp21-health');
+      return box && states.includes(box.dataset.state) &&
+        !box.textContent.includes('wird geladen');
+    },{timeout:8000},HEALTH_STATES);
+    if(!HAS_PUBLISHED_HEALTH) {
+      assert.match(await textOf(page,'#wp21-health'),/nicht verfügbar/);
+      pass('PR preview visibly discloses unavailable source monitor');
+    } else {
+      assert.match(await textOf(page,'#wp21-health'),/Quellencheck|Quellenüberwachung/);
+      pass('Production source-health state is truthfully displayed in the browser');
+    }
 
     await page.type('#search','Diese Person gibt es hier garantiert nicht');
     assert.equal(await textOf(page,'#result-count'),'0');
@@ -108,8 +118,11 @@ async function main() {
       hasTouch:true});
     await page.goto(url+'?wp=21',{waitUntil:'load'});
     await readyCount(page,8);
-    await page.waitForFunction(
-      ()=>document.querySelector('#wp21-health')?.dataset.state==='missing',{timeout:8000});
+    await page.waitForFunction(states=>{
+      const box=document.querySelector('#wp21-health');
+      return box && states.includes(box.dataset.state) &&
+        !box.textContent.includes('wird geladen');
+    },{timeout:8000},HEALTH_STATES);
     const geometry=await page.evaluate(()=>({
       viewport:document.documentElement.clientWidth,
       width:document.documentElement.scrollWidth,
@@ -154,7 +167,8 @@ async function main() {
       viewports:['1366x900 desktop WP20','390x844 mobile WP21'],
       legal_effect_inferred:false,counter_files_changed:false,
       screenshots:['desktop_wp20.png','mobile_wp21.png'],
-      source_feed_on_pr:'unavailable_visible_not_falsely_current',
+      source_health_on_render:HAS_PUBLISHED_HEALTH
+        ? 'generated_manifest_displayed' : 'missing_manifest_disclosed_in_PR_preview',
       publication:'none_PR_only'};
     fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify(report,null,2)+'\n');
     console.log('V1_BROWSER_SMOKE_PASS',steps.length,'checks',
