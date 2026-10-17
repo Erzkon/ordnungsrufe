@@ -151,6 +151,13 @@ jobs:
                 +' selected='+str(len(selected))
                 +' matched='+str(sum(bool(x['sources']) for x in results)))
           PY
+      - name: Zehn amtliche Originale, zwölf ursprüngliche Rufe und elf Einsprüche unabhängig validieren
+        run: |
+          python -m unittest -v tests.test_wp21_2025_dip_einzelakten
+          python wp21_2025_dip_einzelakten.py \
+            --source .audit/2025-dip-survey/official_case_candidates.json \
+            --output .audit/2025-dip-survey/verified_individual_cases.json \
+            --brief .audit/2025-dip-survey/verified_individual_cases.md
       - name: SHA256-Zählerschutz immer erneut prüfen
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
@@ -159,7 +166,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wp21-2025-dip-original-survey-${{ github.run_id }}
-          path: .audit/2025-dip-survey/official_case_candidates.json
+          path: |
+            .audit/2025-dip-survey/official_case_candidates.json
+            .audit/2025-dip-survey/verified_individual_cases.json
+            .audit/2025-dip-survey/verified_individual_cases.md
           if-no-files-found: error
           include-hidden-files: true
           retention-days: 30

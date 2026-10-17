@@ -41,6 +41,14 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.fortyDossier.outcome == 'failure'",self.workflow)
         self.assertIn("github.event_name != 'pull_request'",self.workflow)
 
+    def test_ten_2025_dip_sources_have_isolated_failclosed_original_crosswalk(self):
+        wf=Path('.github/workflows/wp21_2025_original_case_probe.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('wp21_2025_dip_einzelakten.py',wf)
+        self.assertIn('tests.test_wp21_2025_dip_einzelakten',wf)
+        self.assertIn('verified_individual_cases.json',wf)
+        self.assertIn('sha256sum --check',wf)
+
     def test_additional_official_appeal_decisions_remain_readonly_and_not_double_counted(self):
         self.assertIn('id: additionalAppeals', self.workflow)
         self.assertIn('python wp21_weitere_einspruchsberichte.py',self.workflow)
