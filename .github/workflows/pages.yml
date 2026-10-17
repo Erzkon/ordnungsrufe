@@ -643,6 +643,29 @@ jobs:
       - name: Wenn Janichs ursprünglicher Text nicht mehr passt, nur warnen
         if: github.event_name != 'pull_request' && steps.janichContext.outcome == 'failure'
         run: echo '::warning::Bedingte Janich-Originalwarnung/Einspruchsformulierung verändert; keine automatische Erteilungs-/Zählerzuordnung.'
+      - name: Janichs gesamtes Original-XML 21/040 auf alternative Erteilungswortlaute untersuchen
+        if: github.event_name != 'pull_request' && steps.janichContext.outcome == 'success'
+        id: janichFullOriginal
+        continue-on-error: true
+        run: |
+          python wp21_janich_full_original.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_janich_full_original.json \
+            --brief .audit/wp21_janich_full_original.md
+      - name: Janichs vollständigen Originaltext als nichtzählende Akte archivieren
+        if: github.event_name != 'pull_request' && steps.janichFullOriginal.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-janich-full-original-${{ github.run_id }}
+          path: |
+            .audit/wp21_janich_full_original.json
+            .audit/wp21_janich_full_original.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Fehlende Janich-Ursprungsquelle nur warnen
+        if: github.event_name != 'pull_request' && steps.janichFullOriginal.outcome == 'failure'
+        run: echo '::warning::Janich-Vollsitzung nicht validiert; keine neue Erteilungszuordnung und keine Zähleränderung.'
       - name: Weitere sieben 2025 Original-XML-Erteilungsstellen quellengenau absichern
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
         id: sevenOriginals

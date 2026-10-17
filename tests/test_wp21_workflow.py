@@ -116,6 +116,18 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertNotIn('git push',workflow)
         self.assertNotIn('git merge',workflow)
 
+    def test_janich_complete_original_sitting_is_read_only_dossier(self):
+        wf = Path('.github/workflows/wp21_18_einzelakten.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('tests.test_wp21_janich_full_original',wf)
+        self.assertIn('python wp21_janich_full_original.py',wf)
+        self.assertIn('wp21_janich_full_original.json',wf)
+        self.assertIn('sha256sum --check',wf)
+        self.assertIn('id: janichFullOriginal',self.workflow)
+        self.assertIn("steps.janichContext.outcome == 'success'",self.workflow)
+        self.assertIn("steps.janichFullOriginal.outcome == 'failure'",self.workflow)
+        self.assertIn('wp21-janich-full-original-',self.workflow)
+
     def test_janich_conditional_original_wording_is_review_only(self):
         self.assertIn('id: janichContext',self.workflow)
         self.assertIn('wp21_janich_erste_quellenkritik.py',self.workflow)
