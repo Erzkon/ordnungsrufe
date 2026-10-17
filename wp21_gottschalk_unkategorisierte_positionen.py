@@ -23,10 +23,13 @@ ORIGIN_DATE = date(2025, 11, 13)
 EARLIEST = date(2025, 11, 13)
 MAX_DAYS = 45
 MAX_PAGES = 160
+# Generic legislative "Aufhebung" or "Ablehnung" is NOT a disciplinary
+# proceeding. With Gottschalk named as a motion sponsor it created false
+# positives in unrelated tax and climate-policy laws. Require an explicit
+# order/appeal signal in the position text instead.
 KEYWORDS = re.compile(
     r'\b(?:ordnungsruf\w*|ordnungsma[ßs]nahm\w*|einspruch\w*|'
-    r'widerspruch\w*|zurückweis\w*|zurückgewiesen\w*|'
-    r'aufheb\w*|anfecht\w*|beschwerde\w*)\b', re.I)
+    r'widerspruch\w*|anfecht\w*|beschwerde\w*)\b', re.I)
 SECOND = re.compile(r'\b(?:zweite\w*|2\.)\s+ordnungs(?:maßnahme|massnahme|ruf)\w*\b',
                     re.I)
 

@@ -67,6 +67,25 @@ class UnfilteredPositions(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'ursprüngliche'):
             inspect([first(), altered], START, END, 1)
 
+    def test_unrelated_legislative_repeal_with_name_as_sponsor_is_not_an_appeal(self):
+        unrelated=[
+            position('683293','327786',
+                     'Aufhebung der sogenannten Wegzugsbesteuerung',
+                     day='2025-12-17',step='Beschlussempfehlung und Bericht',
+                     abstract='Empfehlung: Ablehnung der Vorlage',
+                     activities=[{'titel':'Kay Gottschalk (AfD)'}]),
+            position('694258','335824',
+                     'Gesetz zur Aufhebung des Treibhausgas-Emissionshandelsgesetzes',
+                     day='2026-06-09',step='Gesetzentwurf',
+                     activities=[{'titel':'Kay Gottschalk (AfD)'}]),
+        ]
+        report=inspect([unrelated[0]],'2025-12-17','2025-12-27',1)
+        self.assertEqual(report['other_candidate_positions'],0)
+        self.assertFalse(report['manual_review_required'])
+        later=inspect([unrelated[1]],'2026-06-01','2026-06-30',1)
+        self.assertEqual(later['candidates'],[])
+        self.assertEqual(later['public_counter_delta'],0)
+
     def test_related_parent_without_name_is_safely_discovered(self):
         other = position('699999', title='Weitere Position')
         r = inspect([first(), other], START, END, 1)
