@@ -1,0 +1,157 @@
+name: Kay Gottschalk – gesonderte amtliche DIP-Rechtsfolgenquelle prüfen
+
+# One-time bounded official source survey, then restore manual-only.
+# A missing appeal inside the finite filtered source set is NEVER
+# proof of no other remedy / decision / ultimate legal effectiveness.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_gottschalk_folgeverfahren_probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  targeted-source-inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    steps:
+      - uses: actions/checkout@v4
+      - name: Öffentliche Zähler gegen main unverändert schützen
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for f in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$f" | cmp -s - "$f" || { echo "::error file=$f::Geschützter Zähler verändert"; exit 1; }
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Vier bestätigte Dateien gegen jede Mutation absichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/confirmed.sha256"
+      - name: Offizielle DIP-Vorgänge mit Ordnungsruf-Titel von November 2025 bis Oktober 2026 vollständig durchsehen
+        timeout-minutes: 14
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json,os,re
+          from datetime import datetime,timezone
+          from pathlib import Path
+          from wp21_dip_monitor import PUBLIC_KEY,request_page
+          from wp21_dip_positionen import fetch_positions,normalize_position
+          from wp21_18_dip_verfahrenspositionen import named
+          key=os.environ.get('DIP_API_KEY') or PUBLIC_KEY
+          params={'f.wahlperiode':'21','f.titel':'Ordnungsruf',
+                  'f.datum.start':'2025-11-13','f.datum.end':'2026-10-17'}
+          visited=set();cursor=None;total=None;docs={};pages=0
+          for page in range(12):
+              query={**params}
+              if cursor:query['cursor']=cursor
+              answer=request_page(query,key)
+              raw=answer.get('documents')
+              n=answer.get('numFound')
+              nxt=answer.get('cursor')
+              if (not isinstance(raw,list) or type(n)!=int or n<1 or n>750
+                      or len(raw)>100
+                      or not isinstance(nxt,(str,type(None)))):
+                  raise ValueError('Official title/date source filters untrusted')
+              if total is None:total=n
+              if n!=total:raise ValueError('Filtered DIP corpus changed in pagination')
+              for item in raw:
+                  if (not isinstance(item,dict) or item.get('wahlperiode')!=21
+                      or not re.fullmatch(r'[1-9]\d{0,11}',str(item.get('id','')))
+                      or not isinstance(item.get('titel'),str)):
+                      raise ValueError('Untrusted DIP source parent')
+                  ident=str(item['id'])
+                  if ident in docs:raise ValueError('Repeated DIP official parent')
+                  docs[ident]=item
+              pages+=1
+              if len(docs)==total:break
+              if not nxt or nxt==cursor or nxt in visited or not raw:
+                  raise ValueError('Incomplete official filtered DIP pagination')
+              visited.add(nxt);cursor=nxt
+          else:raise ValueError('Exceeded bounded official title filter pages')
+          if len(docs)!=total:raise ValueError('Incomplete official title/date inventory')
+          source_rows=[]
+          for ident,item in sorted(docs.items(),key=lambda x:int(x[0])):
+              title=item.get('titel') or ''
+              if not re.search(r'\bordnungsruf\w*\b',title,re.I):continue
+              if not (named(title,'Kay Gottschalk')
+                      or named(str(item.get('abstract') or ''),'Kay Gottschalk')):
+                  continue
+              complete=fetch_positions(ident,key)
+              positions=[]
+              for raw in complete:
+                  p=normalize_position(raw)
+                  if p['parent_id']!=ident:
+                      raise ValueError('Alien position parent')
+                  positions.append({
+                      'id':p['id'],'date':p['date'],'title':p['title'],
+                      'step':p['step'],'abstract_excerpt':p['official_position_abstract_excerpt'],
+                      'plenary_session':p['official_plenary_session'],
+                      'plenary_pdf':p['official_plenary_pdf_url'],
+                      'decision_tenors':p['official_decision_tenors'],
+                      'signal_fields':p['signal_fields'],
+                  })
+              source_rows.append({
+                  'id':ident,'title':title,'date':item.get('datum'),
+                  'source':'https://dip.bundestag.de/vorgang/'+ident,
+                  'abstract_excerpt':str(item.get('abstract') or '')[:550],
+                  'complete_parent_positions':positions,
+                  'official_position_count':len(positions),
+              })
+              print('GOTTSCHALK_SOURCE',ident,title,'positions',len(positions),flush=True)
+          original=[x for x in source_rows if x['id']=='328225']
+          if len(original)!=1 or not re.search(r'\bvon\s+zwei\s+Ordnungsrufen\b',
+                                               original[0]['title'],re.I):
+              raise ValueError('Known two-original Gottschalk parent absent')
+          if (len(original[0]['complete_parent_positions'])!=2
+                  or sorted(x['step'] for x in original[0]['complete_parent_positions'])
+                      !=['Abstimmung','Ordnungsruf']):
+              raise ValueError('Known original Gottschalk parent procedural records changed')
+          outcomes=[p for item in source_rows for p in item['complete_parent_positions']
+                    if p['step']=='Abstimmung'
+                    and re.search(r'\b(?:zweiten|zweite|2\.)\s+Ordnungsmaßnahme\b',
+                                  p['abstract_excerpt'],re.I)]
+          payload={
+             'schema':'wp21-gottschalk-later-procedure-bounded-review-v1',
+             'search_start':'2025-11-13','search_end':'2026-10-17',
+             'search_query':'official_21wp_title_ordnungsruf_and_vorgang_datum',
+             'fully_traversed_filtered_dip_parent_count':len(docs),
+             'official_dip_api_pages_checked':pages,
+             'named_gottschalk_parent_count':len(source_rows),
+             'gottschalk_named_source_parents':source_rows,
+             'known_original_dip_id':'328225',
+             'second_appeal_explicitly_worded_candidates':outcomes,
+             'other_parliamentary_procedures_outside_this_title_date_filter_not_excluded':True,
+             'missing_second_vote_is_not_proof_of_final_effectiveness':True,
+             'automatically_confirmed_effective_sanctions':0,
+             'automatically_rescinded_sanctions':0,
+             'public_counters_changed':False,
+          }
+          target=Path('.audit/gottschalk2025_bounded')
+          target.mkdir(parents=True,exist_ok=True)
+          (target/'gottschalk_dip_source_scope.json').write_text(
+              json.dumps(payload,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print('GOTTSCHALK_BOUNDED_SOURCE_SEARCH_OK',len(docs),
+                'parents',len(source_rows),'named','explicit_second_vote',len(outcomes))
+          PY
+      - name: Bytegleichheit bestätigter Zähler nach amtlichen API-Aufrufen
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
+      - name: Begrenzt abgefragten amtlichen Gottschalk-Verfahrensbestand zur Einzelprüfung aufbewahren
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-gottschalk-bounded-official-dip-sources-${{ github.run_id }}
+          path: .audit/gottschalk2025_bounded/gottschalk_dip_source_scope.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
