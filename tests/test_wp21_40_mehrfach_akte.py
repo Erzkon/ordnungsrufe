@@ -93,7 +93,7 @@ class CaseFortySourceCrossChecks(unittest.TestCase):
 
     def test_not_four_rejections_fails(self):
         bad=fixture(42,{3:'Wer stimmt für den Einspruch des Abgeordneten Kay Gottschalk? Der Antrag wird vertagt.'})
-        with self.assertRaisesRegex(ValueError,'Vier getrennte'):
+        with self.assertRaisesRegex(ValueError,'Einzeln zugeordnete.*Gottschalk'):
             inspect({40:fixture(40),42:bad})
 
     def test_four_generic_outcomes_do_not_substitute_for_gottschalk_rejection(self):
