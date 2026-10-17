@@ -1,5 +1,7 @@
 # Version 1.0 – begrenzter Veröffentlichungskandidat
 
+**Aktuelle Go-/No-Go-Einschätzung:** [V1_READINESS.md](V1_READINESS.md) – bedingtes technisches GO nur für den begrenzten Umfang, **keine Merge-Freigabe**.
+
 **Status:** Diese Checkliste bereitet die technische Freigabe in PR #4 vor. Auch ein grüner CI-Lauf autorisiert keinen Merge. Der PR bleibt bis zu einer ausdrücklichen menschlichen Entscheidung offen.
 
 ## Veröffentlichung und Beweisgrenzen

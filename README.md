@@ -9,6 +9,7 @@ Unabhängiges, nichtamtliches Transparenzprojekt zu personenbezogenen Ordnungsru
 Der nächste Meilenstein ist eine **historische Auswertung der 20. Wahlperiode**
 mit einer ausdrücklich **unvollständigen Vorschau für die 21. Wahlperiode**.
 Eine neue Gesamtzahl der aktuellen Wahlperiode wird dabei nicht behauptet.
+Die [Release-Readiness](V1_READINESS.md) bewertet den aktuellen Go-/No-Go-Stand, den echten Chrome-Desktop-/Mobiltest und die verbleibenden Freigabe-Risiken.
 Der [Release-Vertrag](V1_RELEASE.md) legt Quellenstand,
 ungeklärte Personendifferenz, Datenintegrität, Browser-Negativtests und
 die manuell erforderliche Merge-Freigabe fest. Ein grüner PR-Test ist
