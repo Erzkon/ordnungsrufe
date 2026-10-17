@@ -96,6 +96,19 @@ class CaseFortySourceCrossChecks(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Vier getrennte'):
             inspect({40:fixture(40),42:bad})
 
+    def test_four_generic_outcomes_do_not_substitute_for_gottschalk_rejection(self):
+        # Keep total = 4 but reassign one extra rejection to Sichert.
+        bad=fixture(42,{
+            0:('Wer stimmt für den Einspruch des Abgeordneten Martin Sichert? '
+               'Der Einspruch ist damit zurückgewiesen. '
+               'Der Einspruch ist damit zurückgewiesen.'),
+            3:('Wer stimmt für den Einspruch des Abgeordneten Kay Gottschalk? '
+               'Die Abstimmung wird vertagt.'),
+        })
+        with self.assertRaisesRegex(ValueError,
+                                    'Einzeln zugeordnete.*Gottschalk'):
+            inspect({40:fixture(40),42:bad})
+
     def test_same_paragraph_duplicate_fails_closed(self):
         bad=fixture(42,duplicate=(
             'Wer stimmt für den Einspruch des Abgeordneten Martin Sichert?'))

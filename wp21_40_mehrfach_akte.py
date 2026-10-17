@@ -87,6 +87,15 @@ def inspect(roots):
         raise ValueError('Bedingte Janich-Androhung nicht vor zweiter Erteilung')
     votes={key:matching_paragraph(rows[42],pattern,key)
            for key,pattern in PHRASES_42.items()}
+    # Each appealed measure needs its OWN rejection phrase in the matched
+    # paragraph. Four unrelated rejection phrases elsewhere in 21/042
+    # cannot substitute for one individual's missing decision.
+    rejected=re.compile(
+        r'\bDer\s+Einspruch\s+ist\s+damit\s+zurückgewiesen\b',re.I)
+    for key,record in votes.items():
+        if not rejected.search(record['original_text_excerpt']):
+            raise ValueError(
+                f'Einzeln zugeordnete Einspruchszurückweisung fehlt: {key}')
     # Vote outcomes are reported as "Der Einspruch ist damit zurückgewiesen."
     # Separate official report further confirms four independent rejections.
     spoken=' '.join(t for _,t in rows[42])
@@ -208,8 +217,10 @@ def run(cache,output,brief):
         tmp=path.with_suffix(path.suffix+'.tmp')
         tmp.write_text(contents,encoding='utf-8')
         tmp.replace(path)
-    print('WP21_40_42_SOURCE_EPISODES_OK: 5 original grants, 4 votes, '
-          '4+4 original XML phrases, 0 approved effective measures.')
+    print('WP21_40_42_SOURCE_EPISODES_OK: 5 measures across official sources, '
+          '4 literal original issuance passages, 1 Janich decision-only '
+          'original measure, 4 individually rejected objections, '
+          '0 approved effective measures.')
     return report
 
 
