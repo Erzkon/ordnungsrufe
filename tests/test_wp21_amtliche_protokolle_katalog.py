@@ -160,7 +160,7 @@ class CatalogueTests(unittest.TestCase):
 
     def test_if_42_is_not_reached_it_cannot_claim_full_coverage(self):
         with self.assertRaises(ValueError):
-            catalogue(SourceLoader(latest=150))
+            catalogue(SourceLoader(latest=175))
         with self.assertRaises(ValueError):
             parse_page(page(0),0,expected_total=795)
         with self.assertRaises(ValueError):
