@@ -1,13 +1,14 @@
 name: Kay Gottschalk – gesonderte amtliche DIP-Rechtsfolgenquelle prüfen
 
-# One-time bounded official source survey, then restore manual-only.
-# A missing appeal inside the finite filtered source set is NEVER
-# proof of no other remedy / decision / ultimate legal effectiveness.
+# Bounded official source survey completed 17 October 2026:
+# https://github.com/Erzkon/ordnungsrufe/actions/runs/39032251531
+# 36 fully paginated title/date-filtered DIP parents; exactly one
+# Kay Gottschalk parent, two original calls, only first measure's
+# objection explicitly decided in parent 328225.
+# This scope cannot exclude proceedings under other official titles.
+# Future source surveys: manual only. Incremental cache-based Gottschalk
+# candidate watcher is separately installed on daily main monitoring.
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - '.github/workflows/wp21_gottschalk_folgeverfahren_probe.yml'
   workflow_dispatch:
 
 permissions:

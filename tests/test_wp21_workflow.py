@@ -32,6 +32,21 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.fourRecipientEvidence.outcome == 'failure'", self.workflow)
         self.assertIn('wp21-vier-quellen-personenpruefung-', self.workflow)
 
+    def test_gottschalk_new_parent_watch_is_read_only_after_successful_dip_cache(self):
+        self.assertIn('id: gottschalkWatch',self.workflow)
+        self.assertIn('wp21_gottschalk_folgebeobachter.py',self.workflow)
+        self.assertIn("steps.dippositions.outcome == 'success'",self.workflow)
+        self.assertIn("steps.gottschalkWatch.outcome == 'success'",self.workflow)
+        self.assertIn("steps.gottschalkWatch.outcome == 'failure'",self.workflow)
+        self.assertIn('wp21-gottschalk-folgebeobachter-',self.workflow)
+        source=Path('.github/workflows/wp21_gottschalk_folgeverfahren_probe.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('  workflow_dispatch:',source)
+        self.assertNotIn('  pull_request:',source)
+        self.assertNotIn('  schedule:',source)
+        self.assertIn('wp21_gottschalk_bounded_review.py',source)
+        self.assertIn('sha256sum --check',source)
+
     def test_janich_conditional_original_wording_is_review_only(self):
         self.assertIn('id: janichContext',self.workflow)
         self.assertIn('wp21_janich_erste_quellenkritik.py',self.workflow)

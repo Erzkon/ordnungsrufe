@@ -33,6 +33,7 @@ on:
       - 'wp21_2025_sieben_originalzeilen.py'
       - 'wp21_40_mehrfach_akte.py'
       - 'wp21_janich_erste_quellenkritik.py'
+      - 'wp21_gottschalk_folgebeobachter.py'
       - 'wp21_gottschalk_bounded_review.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
@@ -74,6 +75,7 @@ on:
       - 'wp21_2025_sieben_originalzeilen.py'
       - 'wp21_40_mehrfach_akte.py'
       - 'wp21_janich_erste_quellenkritik.py'
+      - 'wp21_gottschalk_folgebeobachter.py'
       - 'wp21_gottschalk_bounded_review.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
@@ -290,6 +292,30 @@ jobs:
       - name: Fehlerhafte zusätzliche Einspruchsquellen ausschließlich warnen
         if: github.event_name != 'pull_request' && steps.additionalAppeals.outcome == 'failure'
         run: echo '::warning::Zusätzliche amtliche Einspruchsquellen unvollständig oder ungültig; keine automatische Zählerkorrektur.'
+      - name: Mögliche neue Gottschalk-Verfahren nach ursprünglicher Zweiterteilung separat überwachen
+        if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
+        id: gottschalkWatch
+        continue-on-error: true
+        run: |
+          python wp21_gottschalk_folgebeobachter.py \
+            --vorgang-state .cache/dip21/state.json \
+            --position-state .cache/dip21/positionen.json \
+            --output .audit/wp21_gottschalk_weitere_verfahren.json \
+            --brief .audit/wp21_gottschalk_weitere_verfahren.md
+      - name: Nur lesenden Gottschalk-Folgebeobachter als separate Prüfakte archivieren
+        if: github.event_name != 'pull_request' && steps.gottschalkWatch.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-gottschalk-folgebeobachter-${{ github.run_id }}
+          path: |
+            .audit/wp21_gottschalk_weitere_verfahren.json
+            .audit/wp21_gottschalk_weitere_verfahren.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Wenn Gottschalks amtlicher Verfahrensabgleich fehlschlägt, warnen
+        if: github.event_name != 'pull_request' && steps.gottschalkWatch.outcome == 'failure'
+        run: echo '::warning::Gottschalk-Originalvorgang oder spätere amtliche Position unvollständig; rechtliche Quellenprüfung erforderlich, kein Zählerupdate.'
       - name: Zehn 2025-Originalvorgänge und differenzierte Einsprüche aus erfolgreichem DIP-Cache prüfen
         if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
         id: original2025
