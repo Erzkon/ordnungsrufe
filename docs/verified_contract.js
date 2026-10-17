@@ -18,7 +18,7 @@ function validatePublishedDataset(period, payload) {
       !/^\d{4}-\d{2}-\d{2}$/.test(meta.snapshot_date) ||
       !Number.isFinite(Date.parse(meta.snapshot_date))) invalid('Metadaten');
   if (period === '21' && (meta.incomplete !== true ||
-      !/unvollständig/i.test(meta.note || ''))) invalid('Teilmenge nicht gekennzeichnet');
+      !/(unvollständig|keine vollständige statistik)/i.test(meta.note || ''))) invalid('Teilmenge nicht gekennzeichnet');
   if (period === '20' && (meta.official_total !== meta.count ||
       !Number.isInteger(meta.official_beatrix_von_storch) ||
       !Number.isInteger(meta.verified_beatrix_von_storch) ||
