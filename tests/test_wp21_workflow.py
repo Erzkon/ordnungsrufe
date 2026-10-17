@@ -68,6 +68,18 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("date -u -d '13 days ago'", self.workflow)
         self.assertIn('wp21-gottschalk-positions-current-', self.workflow)
 
+    def test_gottschalk_plenary_sources_are_unverified_and_do_not_publish(self):
+        self.assertIn('id: gottschalkPlenary', self.workflow)
+        self.assertIn('wp21_gottschalk_plenar_folgen.py', self.workflow)
+        self.assertIn('--cache .cache/wp21 --cache-only', self.workflow)
+        self.assertIn("steps.scan.outcome == 'success'", self.workflow)
+        self.assertIn("steps.gottschalkPlenary.outcome == 'failure'", self.workflow)
+        standalone=Path('.github/workflows/wp21_gottschalk_plenar_folgen.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('tests.test_wp21_gottschalk_plenar_folgen',standalone)
+        self.assertIn('sha256sum --check',standalone)
+        self.assertIn("github.event_name == 'pull_request'",standalone)
+
     def test_janich_conditional_original_wording_is_review_only(self):
         self.assertIn('id: janichContext',self.workflow)
         self.assertIn('wp21_janich_erste_quellenkritik.py',self.workflow)
