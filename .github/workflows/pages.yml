@@ -128,7 +128,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: PR-Schutz gegen Änderungen bestätigter Zähler gegenüber main
         if: github.event_name == 'pull_request'
         shell: bash
@@ -144,7 +144,7 @@ jobs:
               exit 1
             fi
           done
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -166,7 +166,7 @@ jobs:
             --output .audit/v1_release.json \
             --brief .audit/v1_release.md
       - name: Version-1.0-Freigabeakte archivieren (keine Merge-Freigabe)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ordnungsruf-v1-readiness-${{ github.run_id }}
           path: |
@@ -195,7 +195,7 @@ jobs:
         run: python wp21_premerge_dryrun.py --output wp21_premerge_dryrun.json
       - name: Ersten kompletten DIP-API-Durchlauf als Prüfprotokoll archivieren
         if: github.event_name == 'workflow_dispatch' && steps.dipdryrun.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-vollstaendiger-dip-trockenlauf-${{ github.run_id }}
           path: wp21_premerge_dryrun.json
@@ -207,7 +207,7 @@ jobs:
       - name: Quellenbasierte Positiv- und Negativkontrollen gegen historische Referenz pruefen
         run: python wp21_benchmark.py --output wp21_regression_audit.json
       - name: Quellenbenchmark mit konkreten Gegenbeispielen archivieren
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-quellenbenchmark-${{ github.run_id }}
           path: wp21_regression_audit.json
@@ -292,7 +292,7 @@ jobs:
             --full wp21_dip_verknuepfte_faelle.json
       - name: Vollständige verknüpfte DIP-Prüffälle archivieren
         if: github.event_name != 'pull_request' && steps.dipqueue.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-dip-verknuepfte-prueffalle-${{ github.run_id }}
           path: wp21_dip_verknuepfte_faelle.json
@@ -309,7 +309,7 @@ jobs:
             --brief .audit/wp21_weitere_einsprueche.md
       - name: Weitere Einspruchsentscheidungen ausschließlich als Prüfdaten archivieren
         if: github.event_name != 'pull_request' && steps.additionalAppeals.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-weitere-einspruchsberichte-${{ github.run_id }}
           path: |
@@ -333,7 +333,7 @@ jobs:
             --brief .audit/wp21_gottschalk_weitere_verfahren.md
       - name: Nur lesenden Gottschalk-Folgebeobachter als separate Prüfakte archivieren
         if: github.event_name != 'pull_request' && steps.gottschalkWatch.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-gottschalk-folgebeobachter-${{ github.run_id }}
           path: |
@@ -360,7 +360,7 @@ jobs:
             --brief .audit/gottschalk_current_positions.md
       - name: Titelunabhängige aktuelle Gottschalk-DIP-Hinweise archivieren
         if: github.event_name != 'pull_request' && steps.gottschalkPositionWide.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-gottschalk-positions-current-${{ github.run_id }}
           path: |
@@ -385,7 +385,7 @@ jobs:
             --brief .audit/wp21_gottschalk_plenary.md
       - name: Nur lesende Gottschalk-Plenarakte archivieren
         if: github.event_name != 'pull_request' && steps.gottschalkPlenary.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-gottschalk-plenar-followup-${{ github.run_id }}
           path: |
@@ -407,7 +407,7 @@ jobs:
             --brief .audit/gottschalk_amtliche_protokolle.md
       - name: Amtliche unabhängige PDF-Stichprobe separat archivieren
         if: github.event_name != 'pull_request' && steps.gottschalkOfficialMinutes.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-gottschalk-amtliche-protokolle-${{ github.run_id }}
           path: |
@@ -431,7 +431,7 @@ jobs:
             --brief .audit/wp21_2025_dip_origins_and_appeals.md
       - name: 2025-DIP-Originalfallakte als nichtzählende amtliche Belege archivieren
         if: github.event_name != 'pull_request' && steps.original2025.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-2025-dip-origins-and-appeals-${{ github.run_id }}
           path: |
@@ -456,7 +456,7 @@ jobs:
             --brief .audit/wp21_18_dip_verfahrenspositionen.md
       - name: Quellenscharfe DIP-Verfahrenspositionen als reine Prüfdaten archivieren
         if: github.event_name != 'pull_request' && steps.eighteenDIP.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-18-dip-quellenverbund-${{ github.run_id }}
           path: |
@@ -497,7 +497,7 @@ jobs:
         run: echo '::warning::DIP-18-Quellenverbund unvollständig, keine rechtliche Entscheidung und keine Änderung bestätigter Zähler.'
       - name: DIP-Vorgangspositionen-Änderungen archivieren
         if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-dip-positionen-${{ github.run_id }}
           path: wp21_dip_positionen_aenderungen.json
@@ -508,7 +508,7 @@ jobs:
         run: echo '::warning::Positionen-Abgleich fehlgeschlagen; vorheriger erfolgreicher Status bleibt unverändert.'
       - name: Amtliche DIP-Aenderungen archivieren
         if: github.event_name != 'pull_request' && steps.diplive.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-dip-aenderungen-${{ github.run_id }}
           path: wp21_dip_aenderungen.json
@@ -536,7 +536,7 @@ jobs:
         run: python wp21_mehrfach_40.py --cache .cache/wp21 --output .audit/wp21_040_pairs.json
       - name: WP21/040 Quellenakten archivieren
         if: github.event_name != 'pull_request' && steps.multiple40.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-040-getrennte-erteilungen-${{ github.run_id }}
           path: .audit/wp21_040_pairs.json
@@ -550,7 +550,7 @@ jobs:
         run: python wp21_offizielle_empfaenger_akte.py --cache .cache/wp21 --output .audit/wp21_offizielle_empfaenger.json
       - name: Amtliche Empfängerprüfakte archivieren
         if: github.event_name != 'pull_request' && steps.officialRecipients.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-offizielle-empfaenger-${{ github.run_id }}
           path: .audit/wp21_offizielle_empfaenger.json
@@ -564,7 +564,7 @@ jobs:
         run: python wp21_episoden_akte.py --cache .cache/wp21 --output .audit/wp21_episoden.json
       - name: Original-XML-Episodenbelege 49-51-65 archivieren
         if: github.event_name != 'pull_request' && steps.episodeDossier.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-episoden-49-51-65-${{ github.run_id }}
           path: .audit/wp21_episoden.json
@@ -589,7 +589,7 @@ jobs:
             --output .audit/four_source_recipient_hints.json
       - name: Vier Quellen-Personenprüfhinweise archivieren
         if: github.event_name != 'pull_request' && steps.fourRecipientEvidence.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-vier-quellen-personenpruefung-${{ github.run_id }}
           path: .audit/four_source_recipient_hints.json
@@ -601,7 +601,7 @@ jobs:
         run: echo '::warning::Vier ursprüngliche XML-Personenbelege nicht hinreichend verifiziert; keine automatische Zählung.'
       - name: Anonyme Quellenkontexte für fachliche Prüfung archivieren
         if: github.event_name != 'pull_request' && steps.anonymousDossier.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-anonyme-originalquellen-${{ github.run_id }}
           path: .audit/wp21_anonyme_quellen.json
@@ -633,7 +633,7 @@ jobs:
             --brief .audit/wp21_40_42_source_episodes.md
       - name: Zwei-Plenarprotokoll-Mehrfachakte ausschließlich zur Quellenprüfung archivieren
         if: github.event_name != 'pull_request' && steps.fortyDossier.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-sitzungen-40-42-mehrfachakte-${{ github.run_id }}
           path: |
@@ -656,7 +656,7 @@ jobs:
             --brief .audit/wp21_janich_erste_quellenkritik.md
       - name: Amtlichen Janich-Quellenkontext separat archivieren, nicht zählen
         if: github.event_name != 'pull_request' && steps.janichContext.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-janich-bedingte-originalwarnung-${{ github.run_id }}
           path: |
@@ -679,7 +679,7 @@ jobs:
             --brief .audit/wp21_janich_full_original.md
       - name: Janichs vollständigen Originaltext als nichtzählende Akte archivieren
         if: github.event_name != 'pull_request' && steps.janichFullOriginal.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-janich-full-original-${{ github.run_id }}
           path: |
@@ -702,7 +702,7 @@ jobs:
             --brief .audit/wp21_40_empfaenger_belege.md
       - name: Sprecher- und Zwischenrufbelege nur lesend archivieren
         if: github.event_name != 'pull_request' && steps.gottschalkMixlSourceRoles.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-gottschalk-mixl-speaker-evidence-${{ github.run_id }}
           path: |
@@ -725,7 +725,7 @@ jobs:
             --brief .audit/wp21_2025_7_original_lines.md
       - name: Amtliche sieben 2025-Erteilungszeilen separat als nichtzählende Quellen archivieren
         if: github.event_name != 'pull_request' && steps.sevenOriginals.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-2025-seven-original-source-loci-${{ github.run_id }}
           path: |
@@ -750,7 +750,7 @@ jobs:
             --brief .audit/wp21_2025_individual_measure_review.md
       - name: Personenscharfe Zwölf-Maßnahmen-Prüfmatrix ausschließlich als Artefakt archivieren
         if: github.event_name != 'pull_request' && steps.individual2025.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-2025-einzelmassnahmen-quelle-${{ github.run_id }}
           path: |
@@ -774,7 +774,7 @@ jobs:
             --brief .audit/wp21_hochprioritaet_18_review.md
       - name: Unbestätigte 18 Originalquellen-/Rechtsfolgen-Prüfakten archivieren
         if: github.event_name != 'pull_request' && steps.eighteenDossiers.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-einzelakten-18-${{ github.run_id }}
           path: |
@@ -798,7 +798,7 @@ jobs:
             --report docs/data/rechtsfolgen_21.json
       - name: Ruecknahme- und Einspruchs-Hinweise archivieren
         if: github.event_name != 'pull_request' && steps.rechtsfolgen.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-rechtsfolgen-${{ github.run_id }}
           path: wp21_rechtsfolgen_hinweise.csv
@@ -818,7 +818,7 @@ jobs:
             --report docs/data/dip_kontrolle_21.json
       - name: Vergleichsliste aus amtlicher DIP-Positivstichprobe archivieren
         if: github.event_name != 'pull_request' && steps.dipcontrol.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-dip-referenzvergleich-${{ github.run_id }}
           path: wp21_dip_pruefliste.csv
@@ -829,7 +829,7 @@ jobs:
         run: echo '::warning::Automatischer Personenabgleich fehlgeschlagen; bestätigte Zahlen bleiben unverändert.'
       - name: Automatischen Personenabgleich zur Prüfung archivieren
         if: github.event_name != 'pull_request' && steps.autopruefung.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-autopruefung-${{ github.run_id }}
           path: wp21_autopruefung.csv
@@ -840,7 +840,7 @@ jobs:
         run: echo '::warning::21.-WP-Quellenscan derzeit fehlgeschlagen; geprüfte Zähler bleiben unverändert.'
       - name: Pruefhinweise fuer manuelle Auswertung archivieren
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-hinweise-${{ github.run_id }}
           path: wp21_hinweise.csv
@@ -860,7 +860,7 @@ jobs:
             --report docs/data/vollstaendigkeit_21.json
       - name: Vollständige Quellen-Lückenliste als Prüfartefakt archivieren
         if: github.event_name != 'pull_request' && steps.completeness.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-vollstaendigkeit-${{ github.run_id }}
           path: wp21_vollstaendigkeit_faelle.csv
@@ -877,7 +877,7 @@ jobs:
             --output wp21_hochprioritaet_bericht.md
       - name: Hochpriorisierte Quellen-Prüfakte als Artefakt archivieren
         if: github.event_name != 'pull_request' && steps.highpriority.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-hochprioritaet-${{ github.run_id }}
           path: wp21_hochprioritaet_bericht.md
@@ -894,7 +894,7 @@ jobs:
             --output wp21_dip_xml_fallkontext.json
       - name: Vollständige Kontextbelege für die fachliche Nachprüfung archivieren
         if: github.event_name != 'pull_request' && steps.context.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-dip-xml-kontext-${{ github.run_id }}
           path: wp21_dip_xml_fallkontext.json
@@ -919,7 +919,7 @@ jobs:
           python v1_release_gate.py --require-source-health \
             --output .audit/v1_production_report.json \
             --brief .audit/v1_production_report.md
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: github.event_name != 'pull_request'
         with:
           node-version: '22'
@@ -931,7 +931,7 @@ jobs:
         run: node tests/browser_smoke.cjs
       - name: Produktive Browserbilder und Prüfergebnisse getrennt archivieren
         if: ${{ always() && github.event_name != 'pull_request' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ordnungsruf-v1-production-browser-${{ github.run_id }}
           path: .audit/browser_smoke/
@@ -939,7 +939,7 @@ jobs:
           retention-days: 14
       - name: "Produktion: Quellenstatus und Datenfreigabe-Akte getrennt archivieren"
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ordnungsruf-v1-production-source-health-${{ github.run_id }}
           path: |
@@ -951,7 +951,7 @@ jobs:
           retention-days: 30
       - name: Verwendeten Website-Stand archivieren
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: wp21-datenstand-${{ github.run_id }}
           path: |
@@ -970,7 +970,7 @@ jobs:
           retention-days: 30
       - name: Website-Artefakt zur Veroeffentlichung uebertragen
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: docs-fuer-pages
           path: docs/
@@ -989,7 +989,7 @@ jobs:
       actions: read
       issues: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
         id: dataartifact
         if: needs.pruefen.result == 'success'

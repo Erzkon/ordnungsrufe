@@ -39,10 +39,14 @@ adressierte Python-Probleme (ungültige Escape-Sequenzen in einem
 Prüfbericht und ein `unittest`-Test, der Hilfsdaten zurückgab).
 **Die erneute CI-Prüfung des Wartungscommits ist vor der Merge-Entscheidung
 verpflichtend.** GitHub meldete außerdem Node.js-20-Abkündigungen für
-ältere Actions-Versionen, die derzeit durch Node.js 24 auf dem Runner
-weiterlaufen. Das ist momentan kein fehlgeschlagener Check, aber eine
-separate **P2-Wartungsaufgabe**, damit spätere Runner-/Actions-Updates
-die Automatisierung nicht unbemerkt beeinträchtigen.
+ältere Actions-Versionen. Im nachfolgenden Wartungscommit wurden deshalb
+die zentrale Parser-CI, der Chrome-Smoke und das Pages-Release-Gate
+gezielt auf die offiziellen Node.js-24-kompatiblen Versionen von
+`checkout`, `setup-python`, `setup-node` und `upload-artifact`
+umgestellt. **Eine erneute erfolgreiche CI-Prüfung dieses Commits bleibt
+vor einer Merge-Entscheidung zwingend**. Andere, vor allem ausschließlich
+auf `main` genutzte Actions sind nicht Gegenstand dieser Umstellung und
+bleiben als **P2-Wartungsaufgabe** zu beobachten.
 
 Im gesamten PR wurden **132 geänderte Dateien** gefunden, jedoch **keine**
 der vier geschützten CSV-/JSON-Statistikdateien. Die große PR-Differenz

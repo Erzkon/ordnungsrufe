@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
       - name: Install pinned headless test driver only
@@ -51,7 +51,7 @@ jobs:
             node tests/browser_smoke.cjs
       - name: Preserve exact PR render and machine-readable result for manual review
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: v1-actual-browser-preview-${{ github.run_id }}
           path: .audit/browser_smoke/
