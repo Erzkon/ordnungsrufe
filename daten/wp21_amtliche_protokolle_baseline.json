@@ -1,0 +1,247 @@
+{
+  "schema": "wp21-official-minutes-verified-baseline-v1",
+  "source_run": "https://github.com/Erzkon/ordnungsrufe/actions/runs/39055803206",
+  "source_artifact": "wp21-all-published-official-minutes-39055803206",
+  "source_report_sha256": "ceb870a52658b46993f468433abcb722be3d4a78cb5d672e0301064a14fa207d",
+  "recorded_date": "2026-10-17",
+  "scope": "first_21_042_last_21_100",
+  "public_counter_delta": 0,
+  "records": {
+    "42": {
+      "url": "https://www.bundestag.de/resource/blob/1127824/amtpr21042.pdf",
+      "sha256": "b6e2a8e951b75a5bd172fe6fa10badbc2ae5d8af834323f2cd1037af362a7ae0"
+    },
+    "43": {
+      "url": "https://www.bundestag.de/resource/blob/1127826/amtpr21043.pdf",
+      "sha256": "09b5e9d45d755b2cd9ebea74fd16637378cbc1aea8a14c2cbb8f88b656f5887e"
+    },
+    "44": {
+      "url": "https://www.bundestag.de/resource/blob/1127822/amtpr21044.pdf",
+      "sha256": "f38f2ac4cf89d8e96913a062374e1f67b2cdbc979f47b7aec50fe6da0f8b9b12"
+    },
+    "45": {
+      "url": "https://www.bundestag.de/resource/blob/1127818/amtpr21045.pdf",
+      "sha256": "5a1855b859258dbcd9acfbb97ddbef6b589c2745d8fe13e4bc10a62b93db75e6"
+    },
+    "46": {
+      "url": "https://www.bundestag.de/resource/blob/1128776/amtpr21046.pdf",
+      "sha256": "766eb217e1dd4bcba5a5acf00ceda83c91cb0f835fac36306e7df154d1335f58"
+    },
+    "47": {
+      "url": "https://www.bundestag.de/resource/blob/1128778/amtpr21047.pdf",
+      "sha256": "e847cc514992ebd3232c2cb65985c777fa0e32dd531db4466e607ec3a4fa2686"
+    },
+    "48": {
+      "url": "https://www.bundestag.de/resource/blob/1128780/amtpr21048.pdf",
+      "sha256": "90b1bbbc3b159111604fd7ce36cb993822a2ce653963d97b0614b46beb4be327"
+    },
+    "49": {
+      "url": "https://www.bundestag.de/resource/blob/1133830/amtpr21049.pdf",
+      "sha256": "8225dd9a94211f1eaa395318c2b1f778662805eae98bb43f77c535716a734529"
+    },
+    "50": {
+      "url": "https://www.bundestag.de/resource/blob/1133828/amtpr21050.pdf",
+      "sha256": "35a97d1d981c959069ed5a5b80ab0fb4b9152f8fb4ed78a71bfd73a6c5eba0e7"
+    },
+    "51": {
+      "url": "https://www.bundestag.de/resource/blob/1133826/amtpr21051.pdf",
+      "sha256": "4b80ca99b27b5aa4379c9e53c52a554af0adab97ee1ab2f2811f576050bacfe1"
+    },
+    "52": {
+      "url": "https://www.bundestag.de/resource/blob/1135148/amtpr21052.pdf",
+      "sha256": "956ae70525caf789096ca7ea797ce248a63ac4f1dcf9fee6a4bd789b647746a1"
+    },
+    "53": {
+      "url": "https://www.bundestag.de/resource/blob/1135146/amtpr21053.pdf",
+      "sha256": "72ced2f73135995e1ec364e466803aede609f71352ed3b0c0f56d034af310db6"
+    },
+    "54": {
+      "url": "https://www.bundestag.de/resource/blob/1135144/amtpr21054.pdf",
+      "sha256": "8d22bc2730d2ae557e50ad2dbee1b29387984b538d4403324f14684f983b3b46"
+    },
+    "55": {
+      "url": "https://www.bundestag.de/resource/blob/1137564/amtpr21055.pdf",
+      "sha256": "f884709640e8405357c9eaa29f03560a27fcef0b62804b7bd14ed5925bf0997a"
+    },
+    "56": {
+      "url": "https://www.bundestag.de/resource/blob/1137566/amtpr21056.pdf",
+      "sha256": "c3c94cc6f57991a6faf57f161aa95ac5baeb7f6cd118afc3dd7929fbf73bc22c"
+    },
+    "57": {
+      "url": "https://www.bundestag.de/resource/blob/1137568/amtpr21057.pdf",
+      "sha256": "a5400f6c72d13a9b03ebbf7a0a14420484fe3b7f8e0b25cafe505bfa1806049a"
+    },
+    "58": {
+      "url": "https://www.bundestag.de/resource/blob/1150416/amtpr21058.pdf",
+      "sha256": "788c287f145443b26492b9c9c26daaec071305fc9b20686fd3d06e8629c349ed"
+    },
+    "59": {
+      "url": "https://www.bundestag.de/resource/blob/1150418/amtpr21059.pdf",
+      "sha256": "e95133660e0c389a9c5d825698e697906372b0ac24d0b31db37b3354bbe9e3f2"
+    },
+    "60": {
+      "url": "https://www.bundestag.de/resource/blob/1150420/amtpr21060.pdf",
+      "sha256": "005fb1d4b5f40cee4ecd39aeac0adc1ff8894d3cb88aa6a0be9b8da3d5183a93"
+    },
+    "61": {
+      "url": "https://www.bundestag.de/resource/blob/1151670/amtpr21061.pdf",
+      "sha256": "b1eea0dc2cf498eee3605deb97ec21bcaac659b179a9324b489114c859dee5c6"
+    },
+    "62": {
+      "url": "https://www.bundestag.de/resource/blob/1151672/amtpr21062.pdf",
+      "sha256": "d0908593ce49608e6a432a7f918274bbae9833987ca124b9be0bec14484dbb5a"
+    },
+    "63": {
+      "url": "https://www.bundestag.de/resource/blob/1151680/amtpr21063.pdf",
+      "sha256": "4a674580d6b8e388751572bf809ab9c26907c9dc0de24c1fc4fda94779c17822"
+    },
+    "64": {
+      "url": "https://www.bundestag.de/resource/blob/1155776/amtpr21064.pdf",
+      "sha256": "29cce7a7bb251af87290a8a11e28adfbb987b6589ce0baab76ce1f71e096cd8a"
+    },
+    "65": {
+      "url": "https://www.bundestag.de/resource/blob/1155778/amtpr21065.pdf",
+      "sha256": "cf95297fde9c7e1a121b18a9f8c0df66f89af85448449d2bcf01771e3b0912a5"
+    },
+    "66": {
+      "url": "https://www.bundestag.de/resource/blob/1155780/amtpr21066.pdf",
+      "sha256": "fe1b08e188240255b3d112d10eed63eb26f4f6a9ba4aa45a0b9f44f6dcb5ba78"
+    },
+    "67": {
+      "url": "https://www.bundestag.de/resource/blob/1157392/amtpr21067.pdf",
+      "sha256": "58ebfbcfcf3f238b65b8543dce78fbe310482ebd74ea1a0410492d0398bb1dd1"
+    },
+    "68": {
+      "url": "https://www.bundestag.de/resource/blob/1157390/amtpr21068.pdf",
+      "sha256": "1f91b75e58520a96e97541769823df5d80dd9087914154ac5b62ffaf2932bb24"
+    },
+    "69": {
+      "url": "https://www.bundestag.de/resource/blob/1157388/amtpr21069.pdf",
+      "sha256": "3f33fc7566a98d469f828d17aebb8eae1670927f98a0606aca87c15ad498ef07"
+    },
+    "70": {
+      "url": "https://www.bundestag.de/resource/blob/1164728/amtpr21070.pdf",
+      "sha256": "6b5f5007a1fcfc69a0520c5079ed4cd8571e354ee2b6b292761559a908199f67"
+    },
+    "71": {
+      "url": "https://www.bundestag.de/resource/blob/1164730/amtpr21071.pdf",
+      "sha256": "fbed85027f0e38130e7ecac574da009946bf6fb37b1f70141f550874b8801530"
+    },
+    "72": {
+      "url": "https://www.bundestag.de/resource/blob/1164732/amtpr21072.pdf",
+      "sha256": "7cbf0429a74507dee443be80efc07ada69601b01236cb6827c8f80889af127d3"
+    },
+    "73": {
+      "url": "https://www.bundestag.de/resource/blob/1167288/amtpr21073.pdf",
+      "sha256": "437ce0b0027c94ba419e8b8dbd85f2d607a68c173d38503764cbf73c1bfe2c48"
+    },
+    "74": {
+      "url": "https://www.bundestag.de/resource/blob/1167290/amtpr21074.pdf",
+      "sha256": "d4614b0910c4e3acdded15c0d46381e0ed67b3283f9d0d8d82c6db920b271e78"
+    },
+    "75": {
+      "url": "https://www.bundestag.de/resource/blob/1167292/amtpr21075.pdf",
+      "sha256": "41a03d6fc776e78faf4acc28005e6fa685d46d5e86985c65ed51380c3a57aeaf"
+    },
+    "76": {
+      "url": "https://www.bundestag.de/resource/blob/1174602/amtpr21076.pdf",
+      "sha256": "9785517900cc91d105e8dd5af7fda3117bcdba781820ede7c634161a94c4e35b"
+    },
+    "77": {
+      "url": "https://www.bundestag.de/resource/blob/1174604/amtpr21077.pdf",
+      "sha256": "af16eaeb2eb15403bc930a49a17be31f9f590ef2baa4bb0269c985edabe121e9"
+    },
+    "78": {
+      "url": "https://www.bundestag.de/resource/blob/1174606/amtpr21078.pdf",
+      "sha256": "d679e3f0a05ca59a333add2b63037a7b059a6ce9555dc4d77da77bd1b1c90656"
+    },
+    "79": {
+      "url": "https://www.bundestag.de/resource/blob/1178864/amtpr21079.pdf",
+      "sha256": "0aefea9df436b58ca99a7810b036cd44c0516a1126bbf7e476fcd01cd1418c99"
+    },
+    "80": {
+      "url": "https://www.bundestag.de/resource/blob/1178866/amtpr21080.pdf",
+      "sha256": "d5f7cff5defb78150f256337c2280b7ff779dec4ff0667571979f47419adb7d6"
+    },
+    "81": {
+      "url": "https://www.bundestag.de/resource/blob/1178868/amtpr21081.pdf",
+      "sha256": "3f6876d4223e50c830619643b6d2275293cf6910a2649cb575662c96f230de12"
+    },
+    "82": {
+      "url": "https://www.bundestag.de/resource/blob/1183490/amtpr21082.pdf",
+      "sha256": "e3c3c2723fe120753d7974949b05215981e6202039e3f4e57e7bf1280710b868"
+    },
+    "83": {
+      "url": "https://www.bundestag.de/resource/blob/1183492/amtpr21083.pdf",
+      "sha256": "ec21b3aed679ef869ad584d3982dea2d6123426b640153387f69c7a20082f5eb"
+    },
+    "84": {
+      "url": "https://www.bundestag.de/resource/blob/1183494/amtpr21084.pdf",
+      "sha256": "b9e96718e71768f6e03fde6d2708d92cda5d619a59f3948bd8afa4d499a57b8c"
+    },
+    "85": {
+      "url": "https://www.bundestag.de/resource/blob/1191442/amtpr21085.pdf",
+      "sha256": "65ab62c2f26df5b93ae16f0a7ef4c8ab3f8779e55f7b4c14c4dfddf5f7b87cb1"
+    },
+    "86": {
+      "url": "https://www.bundestag.de/resource/blob/1191444/amtpr21086.pdf",
+      "sha256": "0acf39b996750da43b6352f9dbfdae390fd76794a48a9dab5c836f1ae229eb4b"
+    },
+    "87": {
+      "url": "https://www.bundestag.de/resource/blob/1191446/amtpr21087.pdf",
+      "sha256": "ee816cf42856c40424c6dc53e629633f399f0ccbe0f01a435dad675733907b83"
+    },
+    "88": {
+      "url": "https://www.bundestag.de/resource/blob/1193896/amtpr21088.pdf",
+      "sha256": "685a5cd2e3cd0845e13a22f96d70404529c43229bef29557e6920547a09912ce"
+    },
+    "89": {
+      "url": "https://www.bundestag.de/resource/blob/1193898/amtpr21089.pdf",
+      "sha256": "7d43355fdd78a3d7062f5e8449b2cdff09d05ac4ca5d4b32c6bd3ce7bbda61a8"
+    },
+    "90": {
+      "url": "https://www.bundestag.de/resource/blob/1193900/amtpr21090.pdf",
+      "sha256": "3ed1752fea23e452860ac7f1a977b48d8ddb9079e51687c4010c453304eb86e8"
+    },
+    "91": {
+      "url": "https://www.bundestag.de/resource/blob/1211082/amtpr21091.pdf",
+      "sha256": "9cac72337cf7e266abdc4d6d41ca85454355085999707e26454ac73efc1dfcb7"
+    },
+    "92": {
+      "url": "https://www.bundestag.de/resource/blob/1211084/amtpr21092.pdf",
+      "sha256": "e81cb8e4f0883a829bed202109a9eab044b0d8d7a4b16b5a4b37dbba09e49581"
+    },
+    "93": {
+      "url": "https://www.bundestag.de/resource/blob/1211086/amtpr21093.pdf",
+      "sha256": "f94e9c89afbdb37c22eacff37bdadd832dcd8f26f397cd8e84970981888fff46"
+    },
+    "94": {
+      "url": "https://www.bundestag.de/resource/blob/1211088/amtpr21094.pdf",
+      "sha256": "738ac10d0505ed5cc51bfe72aef499f0f196925d1bf044284bc3de00a71a2366"
+    },
+    "95": {
+      "url": "https://www.bundestag.de/resource/blob/1217458/amtpr21095.pdf",
+      "sha256": "a5d5313e51c2dfc0bc04129c57194a26010d431dc5d5d98d53f5b932c3a02b57"
+    },
+    "96": {
+      "url": "https://www.bundestag.de/resource/blob/1217460/amtpr21096.pdf",
+      "sha256": "1227d4d78ab43665da00912aeabfc0e6aaf2ab453ef9361162d261366dbb40d7"
+    },
+    "97": {
+      "url": "https://www.bundestag.de/resource/blob/1217462/amtpr21097.pdf",
+      "sha256": "664b180673801bd71926e3a86f556c044cd618db32ab8807823639755e739e14"
+    },
+    "98": {
+      "url": "https://www.bundestag.de/resource/blob/1223440/amtpr21098.pdf",
+      "sha256": "822ac015db078c022d2f966fa4e751170db31479150b807bd35e4c11cf618d27"
+    },
+    "99": {
+      "url": "https://www.bundestag.de/resource/blob/1223442/amtpr21099.pdf",
+      "sha256": "bf484b21df5db7e06b90fc67ae0c447c5a8829892a040dd98e7c154065976b96"
+    },
+    "100": {
+      "url": "https://www.bundestag.de/resource/blob/1223444/amtpr21100.pdf",
+      "sha256": "ae519e25e7be31253efb78411bea57532f6375a26c29a3d61e8c3cf8bde04dcd"
+    }
+  }
+}

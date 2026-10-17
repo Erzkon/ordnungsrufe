@@ -104,6 +104,18 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertNotIn('git push', source)
         self.assertNotIn('git merge', source)
 
+    def test_official_minutes_change_triage_keeps_baseline_immutable(self):
+        workflow = Path('.github/workflows/wp21_amtliche_katalog.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('wp21_minuten_delta.py',workflow)
+        self.assertIn('tests.test_wp21_minuten_delta',workflow)
+        self.assertIn('daten/wp21_amtliche_protokolle_baseline.json',workflow)
+        self.assertIn('amtliche_minuten_delta.json',workflow)
+        self.assertIn('reference_baseline_not_updated_by_this_scan',workflow)
+        self.assertIn('sha256sum --check',workflow)
+        self.assertNotIn('git push',workflow)
+        self.assertNotIn('git merge',workflow)
+
     def test_janich_conditional_original_wording_is_review_only(self):
         self.assertIn('id: janichContext',self.workflow)
         self.assertIn('wp21_janich_erste_quellenkritik.py',self.workflow)

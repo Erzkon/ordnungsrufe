@@ -8,6 +8,9 @@ on:
       - 'tests/test_wp21_amtliche_protokolle_katalog.py'
       - '.github/workflows/wp21_amtliche_katalog.yml'
       - 'wp21_gottschalk_amtliche_beschluesse.py'
+      - 'wp21_minuten_delta.py'
+      - 'tests/test_wp21_minuten_delta.py'
+      - 'daten/wp21_amtliche_protokolle_baseline.json'
   workflow_dispatch:
   schedule:
     - cron: '20 8 * * 1'
@@ -39,11 +42,20 @@ jobs:
           sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
       - name: Katalog-Paginierung PDF-Quellenidentität und Nichtzählung regressionsprüfen
         run: python -m unittest -v tests.test_wp21_amtliche_protokolle_katalog
+      - name: Amtliche Quellenänderungen gegenüber unveränderlicher Referenz testen
+        run: python -m unittest -v tests.test_wp21_minuten_delta
       - name: Sämtliche seit 21/042 veröffentlichten Amtlichen Beschlussprotokolle lesen
         run: |
           python wp21_amtliche_protokolle_katalog.py \
             --output .audit/amtliche_minuten_vollkatalog.json \
             --brief .audit/amtliche_minuten_vollkatalog.md
+      - name: Neu veröffentlichte, veränderte oder neue personenscharfe Amtliche Quellen einordnen
+        run: |
+          python wp21_minuten_delta.py \
+            --current .audit/amtliche_minuten_vollkatalog.json \
+            --baseline daten/wp21_amtliche_protokolle_baseline.json \
+            --output .audit/amtliche_minuten_delta.json \
+            --brief .audit/amtliche_minuten_delta.md
       - name: Amtliche Quellenabdeckung im Actions-Protokoll festhalten
         run: |
           python - <<'PY'
@@ -52,6 +64,9 @@ jobs:
           x=json.loads(Path('.audit/amtliche_minuten_vollkatalog.json').read_text())
           if x['public_counter_delta'] or x['automatically_confirmed_effective_sanctions']:
               raise ValueError('Amtliche PDF-Metadaten dürfen keine Zähler freigeben')
+          delta=json.loads(Path('.audit/amtliche_minuten_delta.json').read_text())
+          if delta['protected_public_counter_delta'] or not delta['reference_baseline_not_updated_by_this_scan']:
+              raise ValueError('Unzulässige Änderung an der Referenz')
           lines=[
               '## Amtliche Beschlussprotokolle: offizieller vollständiger Publikationskatalog',
               '- Sitzungen 21/042–21/%03d: %d veröffentlichte PDFs' % (
@@ -59,6 +74,9 @@ jobs:
               '- Amtliche PDF-Seiten: %d' % x['pages_checked'],
               '- Spätere personenscharfe manuelle Prüffundstellen: %d' %
                   x['later_review_context_count'],
+              '- Neu veröffentlichte PDFs: %d; nachträglich veränderte PDFs: %d' % (
+                  len(delta['new_official_minutes']),
+                  len(delta['revised_historical_pdf_sources'])),
               '- Nicht veröffentlichte Protokolle bleiben offen; keine Zähleränderung.',
           ]
           print('\n'.join(lines))
@@ -76,6 +94,8 @@ jobs:
           path: |
             .audit/amtliche_minuten_vollkatalog.json
             .audit/amtliche_minuten_vollkatalog.md
+            .audit/amtliche_minuten_delta.json
+            .audit/amtliche_minuten_delta.md
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
