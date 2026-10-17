@@ -36,6 +36,30 @@ jobs:
       - name: Bytegleichheit bestätigter Zähler sichern
         run: |
           sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Offizielle Bundestags-Katalogstruktur nur lesen und diagnostizieren
+        run: |
+          python - <<'PY'
+          import re
+          from urllib.request import Request, urlopen
+          url='https://www.bundestag.de/dokumente/protokolle/amtlicheprotokolle'
+          req=Request(url,headers={'User-Agent':'OrdnungsrufCounter/0.7 (github.com/Erzkon/ordnungsrufe)'})
+          with urlopen(req,timeout=35) as response:
+              data=response.read(3_000_001)
+          if len(data)>3_000_000: raise ValueError('Katalogseite über 3 MB')
+          text=data.decode('utf-8')
+          print('AMTLICHE_INDEX_LENGTH',len(text))
+          for token in ('filterlist','amtpr210','data-ajax','data-url','paginator','pagination','21/96','Sitzung am'):
+              match=re.search(re.escape(token),text,re.I)
+              if match:
+                  print('AMTLICHE_INDEX_MARKER',token,repr(text[max(0,match.start()-170):match.end()+300]))
+              else:
+                  print('AMTLICHE_INDEX_MISSING',token)
+          candidates=sorted(set(re.findall(
+              r'[^"\\x27\\s<>]{0,220}(?:ajax/filterlist|amtpr21\\d{3}\\.pdf)[^"\\x27\\s<>]{0,250}',text,re.I)))
+          for c in candidates[:16]:
+              print('AMTLICHE_INDEX_LINK',c[:400])
+          print('AMTLICHE_INDEX_LINK_COUNT',len(candidates))
+          PY
       - name: Namens-/Einspruchs-Kontexte und Negativbelege prüfen
         run: python -m unittest -v tests.test_wp21_gottschalk_plenar_folgen tests.test_wp21_gottschalk_amtliche_beschluesse
       - name: Alle späteren veröffentlichten Original-XMLs personen- und entscheidungskritisch durchsuchen
