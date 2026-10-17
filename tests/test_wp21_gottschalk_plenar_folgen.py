@@ -14,7 +14,8 @@ def xml(session,*text):
     point=etree.SubElement(flow,'tagesordnungspunkt')
     for t in text:
         etree.SubElement(point,'p').text=t
-    return root
+    # Parse serialized XML to obtain real source-line metadata.
+    return etree.fromstring(etree.tostring(root))
 
 
 FIRST='Einspruch des Abgeordneten Kay Gottschalk gegen den Ordnungsruf.'
