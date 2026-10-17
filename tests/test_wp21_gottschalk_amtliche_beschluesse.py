@@ -55,7 +55,7 @@ class OfficialResolutions(unittest.TestCase):
     def test_source_identity_must_match_official_session(self):
         with self.assertRaisesRegex(ValueError,'Sitzungsidentität'):
             hints_for_pages(pages(97),96,SOURCES[1][1])
-        with self.assertRaisesRegex(ValueError,'erste'):
+        with self.assertRaisesRegex(ValueError,'Erste'):
             hints_for_pages([pages(42)[0],'Gottschalk hält eine allgemeine Rede zu einem Gesetzentwurf.',pages(42)[2]],
                             42,SOURCES[0][1])
 
