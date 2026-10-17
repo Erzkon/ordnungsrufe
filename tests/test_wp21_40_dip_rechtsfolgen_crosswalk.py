@@ -68,7 +68,7 @@ class CrosswalkTests(unittest.TestCase):
         self.assertTrue(m['candidate_dip_positions'][0]['requires_manual_source_review'])
         self.assertEqual(m['appeal_decision_status'],'unverified')
         self.assertEqual(r['automatically_confirmed_effective_sanctions'],0)
-        self.assertIn('keine Rechtswirksamkeit',markdown(r).lower())
+        self.assertIn('keine bestätigte rechtswirksamkeit',markdown(r).lower())
 
     def test_mixl_unrelated_legislation_and_missing_name_not_counted(self):
         unrelated=position('699984',parent='335824',
