@@ -143,6 +143,13 @@ jobs:
           print('GOTTSCHALK_BOUNDED_SOURCE_SEARCH_OK',len(docs),
                 'parents',len(source_rows),'named','explicit_second_vote',len(outcomes))
           PY
+      - name: Amtlichen begrenzten Gottschalk-Folgenbefund gegen Beweisgrenzen prüfen
+        run: |
+          python -m unittest -v tests.test_wp21_gottschalk_bounded_review
+          python wp21_gottschalk_bounded_review.py \
+            --source .audit/gottschalk2025_bounded/gottschalk_dip_source_scope.json \
+            --output .audit/gottschalk2025_bounded/verified_bounded_review.json \
+            --brief .audit/gottschalk2025_bounded/verified_bounded_review.md
       - name: Bytegleichheit bestätigter Zähler nach amtlichen API-Aufrufen
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
@@ -151,7 +158,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wp21-gottschalk-bounded-official-dip-sources-${{ github.run_id }}
-          path: .audit/gottschalk2025_bounded/gottschalk_dip_source_scope.json
+          path: |
+            .audit/gottschalk2025_bounded/gottschalk_dip_source_scope.json
+            .audit/gottschalk2025_bounded/verified_bounded_review.json
+            .audit/gottschalk2025_bounded/verified_bounded_review.md
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

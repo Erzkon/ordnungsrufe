@@ -32,6 +32,12 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("steps.fourRecipientEvidence.outcome == 'failure'", self.workflow)
         self.assertIn('wp21-vier-quellen-personenpruefung-', self.workflow)
 
+    def test_janich_conditional_original_wording_is_review_only(self):
+        self.assertIn('id: janichContext',self.workflow)
+        self.assertIn('wp21_janich_erste_quellenkritik.py',self.workflow)
+        self.assertIn("steps.janichContext.outcome == 'failure'",self.workflow)
+        self.assertIn("steps.fortyDossier.outcome == 'success'",self.workflow)
+
     def test_two_real_plenary_xmls_for_november_multigrants_are_isolated_review_only(self):
         self.assertIn('id: fortyDossier',self.workflow)
         self.assertIn('python wp21_40_mehrfach_akte.py',self.workflow)

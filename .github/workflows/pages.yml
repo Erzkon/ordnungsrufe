@@ -32,6 +32,8 @@ on:
       - 'wp21_2025_massnahmen_lifecycle.py'
       - 'wp21_2025_sieben_originalzeilen.py'
       - 'wp21_40_mehrfach_akte.py'
+      - 'wp21_janich_erste_quellenkritik.py'
+      - 'wp21_gottschalk_bounded_review.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
       - 'wp21_hochprioritaet_18.py'
@@ -71,6 +73,8 @@ on:
       - 'wp21_2025_massnahmen_lifecycle.py'
       - 'wp21_2025_sieben_originalzeilen.py'
       - 'wp21_40_mehrfach_akte.py'
+      - 'wp21_janich_erste_quellenkritik.py'
+      - 'wp21_gottschalk_bounded_review.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
       - 'wp21_hochprioritaet_18.py'
@@ -512,6 +516,29 @@ jobs:
       - name: Fehlende Originalbelege zu Sitzung 40/42 warnen, nie automatisch zählen
         if: github.event_name != 'pull_request' && steps.fortyDossier.outcome == 'failure'
         run: echo '::warning::Sitzungen 21/040/042 mit ursprünglichen Mehrfachrufen nicht quellenverifiziert; kein Zählerupdate.'
+      - name: Janichs bedingte Warnung strikt vom ersten nicht wörtlich belegten Ruf unterscheiden
+        if: github.event_name != 'pull_request' && steps.fortyDossier.outcome == 'success'
+        id: janichContext
+        continue-on-error: true
+        run: |
+          python wp21_janich_erste_quellenkritik.py \
+            --cache .cache/wp21 \
+            --output .audit/wp21_janich_erste_quellenkritik.json \
+            --brief .audit/wp21_janich_erste_quellenkritik.md
+      - name: Amtlichen Janich-Quellenkontext separat archivieren, nicht zählen
+        if: github.event_name != 'pull_request' && steps.janichContext.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-janich-bedingte-originalwarnung-${{ github.run_id }}
+          path: |
+            .audit/wp21_janich_erste_quellenkritik.json
+            .audit/wp21_janich_erste_quellenkritik.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+      - name: Wenn Janichs ursprünglicher Text nicht mehr passt, nur warnen
+        if: github.event_name != 'pull_request' && steps.janichContext.outcome == 'failure'
+        run: echo '::warning::Bedingte Janich-Originalwarnung/Einspruchsformulierung verändert; keine automatische Erteilungs-/Zählerzuordnung.'
       - name: Weitere sieben 2025 Original-XML-Erteilungsstellen quellengenau absichern
         if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
         id: sevenOriginals
