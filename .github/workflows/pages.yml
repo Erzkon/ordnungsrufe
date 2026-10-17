@@ -307,7 +307,8 @@ jobs:
           retention-days: 30
       - name: Bei neuem/fehlendem 2025-DIP-Verfahrensschritt warnen statt statistisch korrigieren
         if: github.event_name != 'pull_request' && steps.original2025.outcome == 'failure'
-        run: echo '::warning::Historische DIP-2025-Originalfälle oder Einsprüche haben sich geändert: fachliche Quellenprüfung erforderlich, keine Zähleränderung.'
+        run: |
+          echo '::warning::Historische DIP-2025-Originalfälle oder Einsprüche haben sich geändert: fachliche Quellenprüfung erforderlich, keine Zähleränderung.'
       - name: 18 Einzelakten mit vollständigen amtlichen DIP-Vorgangspositionen abgleichen
         if: github.event_name != 'pull_request' && steps.dipqueue.outcome == 'success'
         id: eighteenDIP
