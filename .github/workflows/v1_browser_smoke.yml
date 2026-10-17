@@ -6,6 +6,8 @@ on:
       - 'docs/**'
       - 'tests/browser_smoke.cjs'
       - '.github/workflows/v1_browser_smoke.yml'
+      - '.github/workflows/pages.yml'
+      - 'V1_READINESS.md'
   workflow_dispatch:
 
 permissions:
@@ -35,6 +37,18 @@ jobs:
           fi
       - name: Render, switch terms, search, test mobile and malicious inputs
         run: node tests/browser_smoke.cjs
+      - name: Test a production-like generated source-health manifest in a temporary preview copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TMP_DIR"' EXIT
+          cp -a docs "$TMP_DIR/docs"
+          python wp21_betriebsbericht.py --data "$TMP_DIR/docs/data" \
+            --json-output "$TMP_DIR/docs/data/quellenstatus_21.json"
+          V1_BROWSER_DOCROOT="$TMP_DIR/docs" \
+            V1_BROWSER_OUT=".audit/browser_smoke/with_manifest" \
+            node tests/browser_smoke.cjs
       - name: Preserve exact PR render and machine-readable result for manual review
         if: always()
         uses: actions/upload-artifact@v4

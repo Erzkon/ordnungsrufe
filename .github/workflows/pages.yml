@@ -919,6 +919,24 @@ jobs:
           python v1_release_gate.py --require-source-health \
             --output .audit/v1_production_report.json \
             --brief .audit/v1_production_report.md
+      - uses: actions/setup-node@v4
+        if: github.event_name != 'pull_request'
+        with:
+          node-version: '22'
+      - name: Vor dem produktiven Pages-Artefakt echten Browser-Smoketest vorbereiten
+        if: github.event_name != 'pull_request'
+        run: npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0
+      - name: Produktive Browseransicht und Quellenstatus mit Chrome auf Mobil und Desktop prüfen
+        if: github.event_name != 'pull_request'
+        run: node tests/browser_smoke.cjs
+      - name: Produktive Browserbilder und Prüfergebnisse getrennt archivieren
+        if: ${{ always() && github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ordnungsruf-v1-production-browser-${{ github.run_id }}
+          path: .audit/browser_smoke/
+          if-no-files-found: warn
+          retention-days: 14
       - name: "Produktion: Quellenstatus und Datenfreigabe-Akte getrennt archivieren"
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4

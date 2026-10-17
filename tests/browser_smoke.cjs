@@ -9,7 +9,7 @@ const {execFileSync}=require('node:child_process');
 const assert=require('node:assert/strict');
 const puppeteer=require('puppeteer-core');
 
-const ROOT=path.resolve(__dirname,'..','docs');
+const ROOT=path.resolve(process.env.V1_BROWSER_DOCROOT || path.resolve(__dirname,'..','docs'));
 const OUT=path.resolve(process.env.V1_BROWSER_OUT || '.audit/browser_smoke');
 const HAS_PUBLISHED_HEALTH=fs.existsSync(path.join(ROOT,'data','quellenstatus_21.json'));
 const HEALTH_STATES=HAS_PUBLISHED_HEALTH?['fresh','degraded','stale']:['missing'];

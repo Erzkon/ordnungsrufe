@@ -8,6 +8,32 @@ class WorkflowOperationalChecks(unittest.TestCase):
     def setUpClass(cls):
         cls.workflow = Path('.github/workflows/pages.yml').read_text(encoding='utf-8')
 
+    def test_v1_real_browser_is_blocking_before_any_production_artifact(self):
+        wf=self.workflow
+        health=wf.index('python wp21_betriebsbericht.py --data docs/data --json-output docs/data/quellenstatus_21.json')
+        gate=wf.index('python v1_release_gate.py --require-source-health')
+        browser=wf.index('node tests/browser_smoke.cjs')
+        upload=wf.index('      - name: Website-Artefakt zur Veroeffentlichung uebertragen')
+        self.assertLess(health,gate)
+        self.assertLess(gate,browser)
+        self.assertLess(browser,upload)
+        self.assertIn('npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0',wf)
+        self.assertIn('ordnungsruf-v1-production-browser-',wf)
+        self.assertNotIn('continue-on-error: true',wf[gate:browser])
+        self.assertIn('actions/deploy-pages@v4',wf)
+
+    def test_browser_preview_cannot_publish_and_handles_a_synthetic_source_outage(self):
+        wf=Path('.github/workflows/v1_browser_smoke.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('  pull_request:',wf)
+        self.assertIn('tests/browser_smoke.cjs',wf)
+        self.assertIn('docs/**',wf)
+        self.assertIn('wp21_betriebsbericht.py',wf)
+        self.assertIn('V1_BROWSER_DOCROOT=',wf)
+        self.assertIn('v1-actual-browser-preview-',wf)
+        self.assertNotIn('deploy-pages@',wf)
+        self.assertNotIn('git push',wf)
+
     def test_v1_production_gate_after_health_and_before_any_pages_artifact(self):
         wf=self.workflow
         source=wf.index('python wp21_betriebsbericht.py --data docs/data --json-output docs/data/quellenstatus_21.json')
