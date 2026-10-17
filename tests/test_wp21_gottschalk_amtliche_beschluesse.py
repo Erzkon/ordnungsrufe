@@ -83,7 +83,7 @@ class OfficialResolutions(unittest.TestCase):
 
     def test_deny_unread_proceedings_but_keep_known_first(self):
         r=audit(fake(),provisional_103(html()))
-        self.assertEqual(r['official_minutes_sessions_checked'],5)
+        self.assertEqual(r['official_minutes_sessions_checked'],12)
         self.assertEqual(r['checked_resolution_minutes'][0]
                          ['non_first_appeal_candidate_count'],0)
         self.assertEqual(len(r['checked_resolution_minutes'][0]
@@ -127,7 +127,7 @@ class OfficialResolutions(unittest.TestCase):
                   download_source=load,extract=extract)
             self.assertEqual(r['public_counter_delta'],0)
             self.assertTrue((Path(d)/'audit.json').exists())
-            self.assertEqual(len(r['checked_resolution_minutes']),5)
+            self.assertEqual(len(r['checked_resolution_minutes']),12)
 
 
 if __name__=='__main__':

@@ -18,6 +18,13 @@ from urllib.request import Request, urlopen
 # Curated direct references found in the official Bundestag archive.
 SOURCES = (
     (42, 'https://www.bundestag.de/resource/blob/1127824/amtpr21042.pdf'),
+    (47, 'https://www.bundestag.de/resource/blob/1128778/amtpr21047.pdf'),
+    (50, 'https://www.bundestag.de/resource/blob/1133828/amtpr21050.pdf'),
+    (62, 'https://www.bundestag.de/resource/blob/1151672/amtpr21062.pdf'),
+    (64, 'https://www.bundestag.de/resource/blob/1155776/amtpr21064.pdf'),
+    (72, 'https://www.bundestag.de/resource/blob/1164732/amtpr21072.pdf'),
+    (75, 'https://www.bundestag.de/resource/blob/1167292/amtpr21075.pdf'),
+    (90, 'https://www.bundestag.de/resource/blob/1193900/amtpr21090.pdf'),
     (96, 'https://www.bundestag.de/resource/blob/1217460/amtpr21096.pdf'),
     (97, 'https://www.bundestag.de/resource/blob/1217462/amtpr21097.pdf'),
     (98, 'https://www.bundestag.de/resource/blob/1223440/amtpr21098.pdf'),
