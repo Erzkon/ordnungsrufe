@@ -54,6 +54,8 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('wp21_gottschalk_unkategorisierte_positionen.py',source)
         self.assertIn('tests.test_wp21_gottschalk_unkategorisierte_positionen',source)
         self.assertIn('sha256sum --check',source)
+        self.assertIn('wp21_gottschalk_historischer_backfill.py',source)
+        self.assertIn('tests.test_wp21_gottschalk_historischer_backfill',source)
         self.assertIn('--start "$WINDOW_START" --end "$WINDOW_END"',source)
 
     def test_title_independent_gottschalk_positions_watch_uses_recent_window_only(self):
