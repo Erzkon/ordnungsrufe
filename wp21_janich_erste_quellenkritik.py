@@ -22,7 +22,7 @@ ARTICLE='https://www.bundestag.de/dokumente/textarchiv/2025/kw48-de-einspruch-or
 # These source lines were independently checked on the genuine official PDFs
 # page 4626 and page 4865 and on the source XML wordings.
 LINES={
-    'sichert_first_grant':(40,8715,r'\bIch\s+erteile\s+Ihnen\s+jetzt\s+einen\s+Ordnungsruf\b'),
+    'sichert_first_grant':(40,8715,r'\bIch\s+erteile\s+Ihnen\s+jetzt\s+einen\s+Ordnungsruf\b.{0,180}\bmit\s+dem\s+Finger\s+auf\s+Kollegen\s+gezeigt\b'),
     'janich_conditional_laughter_warning':(
         40,8717,
         r'\bUnd\s+wenn\s+Sie\s+lachen\b.{0,110}'
