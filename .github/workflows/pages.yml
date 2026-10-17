@@ -919,7 +919,7 @@ jobs:
           python v1_release_gate.py --require-source-health \
             --output .audit/v1_production_report.json \
             --brief .audit/v1_production_report.md
-      - name: Produktion: Quellenstatus und Datenfreigabe-Akte getrennt archivieren
+      - name: "Produktion: Quellenstatus und Datenfreigabe-Akte getrennt archivieren"
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
