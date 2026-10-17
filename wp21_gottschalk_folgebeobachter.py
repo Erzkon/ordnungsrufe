@@ -85,8 +85,14 @@ def inspect(parent_state,position_state):
         if (not isinstance(title,str) or not isinstance(abstract,str)
                 or not isinstance(row.get('date') or '',str)):
             raise ValueError('DIP-Eltern-Metadatenfeld ungültig')
-        if (not re.search(r'\bordnungsruf\w*\b',title,re.I)
-                or not (named(title,'Kay Gottschalk') or named(abstract,'Kay Gottschalk'))):
+        # Parent titles are not guaranteed to say "Ordnungsruf".
+        # Later objection decisions may mention "Ordnungsmaßnahme" or
+        # "Einspruch" only in the abstract. The upstream cache is itself
+        # lexically filtered; this remains a bounded candidate check.
+        if (not (named(title,'Kay Gottschalk') or named(abstract,'Kay Gottschalk'))
+                or not re.search(
+                    r'\b(?:ordnungsruf\w*|ordnungsma[ßs]nahm\w*|einspruch\w*)\b',
+                    title+' '+abstract,re.I)):
             continue
         date=row.get('date') or ''
         if date and date<'2025-11-13':
@@ -99,6 +105,11 @@ def inspect(parent_state,position_state):
             'parent_id':ident,'title':title,'date':date,
             'active':row.get('active',True),
             'source':row['source'],
+            'matching_fields':[field for field,body in
+                               (('title',title),('abstract',abstract))
+                               if re.search(
+                                   r'\b(?:ordnungsruf\w*|ordnungsma[ßs]nahm\w*|einspruch\w*)\b',
+                                   body,re.I)],
             'potentially_related_not_verified':True,
         })
     manual=bool(extras or other_parents)
@@ -130,7 +141,7 @@ def markdown(r):
             or r.get('eventual_effectiveness_of_second_measure_unresolved') is not True
             or r.get('automatically_confirmed_effective_sanctions')!=0
             or r.get('public_counter_delta')!=0):
-        raise ValueError('Inkremetaler Gottschalk-Bericht ohne Beweisgrenzen')
+        raise ValueError('Inkrementeller Gottschalk-Bericht ohne Beweisgrenzen')
     lines=[
         '# Gottschalks zweite Erteilung: tägliche DIP-Metadaten-Folgekontrolle',
         '',

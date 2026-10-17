@@ -85,6 +85,31 @@ class IncrementalGottschalkScoping(unittest.TestCase):
                          ['339999'])
         self.assertEqual(r['automatically_confirmed_effective_sanctions'],0)
 
+    def test_abstract_only_ordnungsmaßnahme_and_objection_title_are_candidates(self):
+        a,b=states()
+        a['items']['339998']={
+            'id':'339998','active':True,'date':'2026-09-01',
+            'title':'Einspruch des Abgeordneten Kay Gottschalk',
+            'abstract_excerpt':'Mögliche spätere Entscheidung zu einer Ordnungsmaßnahme',
+            'source':'https://dip.bundestag.de/vorgang/339998',
+        }
+        r=inspect(a,b)
+        self.assertTrue(r['manual_review_required'])
+        self.assertEqual(r['other_potential_gottschalk_parents'][0]['parent_id'],
+                         '339998')
+        self.assertEqual(r['other_potential_gottschalk_parents'][0]['matching_fields'],
+                         ['title','abstract'])
+        self.assertEqual(r['public_counter_delta'],0)
+
+    def test_unrelated_name_only_metadata_is_not_an_appeal_candidate(self):
+        a,b=states()
+        a['items']['339997']={
+            'id':'339997','active':True,'date':'2026-09-01',
+            'title':'Rede des Kay Gottschalk zum Haushalt',
+            'source':'https://dip.bundestag.de/vorgang/339997',
+        }
+        self.assertFalse(inspect(a,b)['manual_review_required'])
+
     def test_older_unrelated_original_parent_is_not_second_2025_proceeding(self):
         a,b=states()
         self.assertFalse(inspect(a,b)['other_potential_gottschalk_parents'])

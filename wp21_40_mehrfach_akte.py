@@ -29,6 +29,11 @@ PHRASES_40={
     'Gottschalk_second_original_issuance':
         r'ich\s+erteile\s+Ihnen\s+einen\s+zweiten\s+Ordnungsruf\b',
 }
+# A conditional future warning is context, never a literal first issuance.
+JANICH_CONDITIONAL_40=(
+    r'Und\s+wenn\s+Sie\s+lachen\b.{0,120}'
+    r'\berteile\s+ich\s+Ihnen\s+gleich\s+fürs\s+Lachen\s+den\s+nächsten\s+Ordnungsruf\b'
+)
 PHRASES_42={
     'Sichert_objection_vote':
         r'Wer\s+stimmt\s+für\s+den\s+Einspruch\s+des\s+Abgeordneten'
@@ -75,6 +80,11 @@ def inspect(roots):
             raise ValueError('Kein echter stenografischer Sitzungswortlaut')
     grants={key:matching_paragraph(rows[40],pattern,key)
             for key,pattern in PHRASES_40.items()}
+    conditional=matching_paragraph(
+        rows[40],JANICH_CONDITIONAL_40,'Janich_first_conditional_warning')
+    if (conditional['original_xml_line'] >=
+            grants['Janich_second_original_issuance_words']['original_xml_line']):
+        raise ValueError('Bedingte Janich-Androhung nicht vor zweiter Erteilung')
     votes={key:matching_paragraph(rows[42],pattern,key)
            for key,pattern in PHRASES_42.items()}
     # Vote outcomes are reported as "Der Einspruch ist damit zurückgewiesen."
@@ -98,18 +108,26 @@ def inspect(roots):
         'gottschalk_appeals_decided_in_42':1,
         'janich_appeals_distinguish_first_and_second':True,
         'original_phrase_locations_not_sanction_count':len(grants),
+        'original_issuance_phrases_explicitly_located':len(grants),
+        'janich_first_original_unconditional_issuance_xml_line':None,
+        'janich_first_measure_basis':'separate_official_objection_decision_21_042',
+        'janich_first_warning_is_issuance':False,
+        'source_non_issuance_context_paragraphs':{
+            'Janich_first_conditional_warning':conditional},
         'source_issuance_paragraphs':grants,
         'source_appeal_paragraphs':votes,
         'four_separate_vote_rejection_wordings_checked':rejections,
         'automatically_confirmed_effective_sanctions':0,
         'automatically_rescinded_sanctions':0,
         'protected_public_counters_changed':False,
-        'warning':('Vier originalsprachliche Prüfpassagen sind NICHT vier '
-                   'gesetzlich wirksame Rufe. 21/040 enthält fünf '
-                   'ursprüngliche Erteilungen und 21/042 nur vier '
-                   'Einspruchszurückweisungen. Gottschalks zweiter Ruf '
-                   'ist mit diesem einen Einspruchsvorgang nicht abgegolten; '
-                   'andere spätere Rechtsfolgen bleiben offen.'),
+        'warning':('Fünf ursprüngliche Maßnahmen sind quellübergreifend '
+                   'dokumentiert, aber nur vier ausdrücklich ausgesprochene '
+                   'Original-Erteilungsabsätze hier lokalisiert. Janichs '
+                   'erste Erteilung wird NICHT aus der bedingten Androhung '
+                   'rekonstruiert, sondern nur aus der späteren eigenständigen '
+                   'Einspruchsentscheidung erschlossen. Gottschalks zweite '
+                   'Maßnahme ist nicht durch den einen entschiedenen Einspruch '
+                   'abgegolten; weitere Rechtsfolgen bleiben offen.'),
     }
 
 
@@ -119,6 +137,11 @@ def render_markdown(report):
             or report.get('distinct_rejected_appeals_in_42')!=4
             or report.get('gottschalk_original_issued_measures')!=2
             or report.get('gottschalk_appeals_decided_in_42')!=1
+            or report.get('original_issuance_phrases_explicitly_located')!=4
+            or report.get('janich_first_original_unconditional_issuance_xml_line') is not None
+            or report.get('janich_first_measure_basis')!='separate_official_objection_decision_21_042'
+            or report.get('janich_first_warning_is_issuance') is not False
+            or len(report.get('source_non_issuance_context_paragraphs',{}))!=1
             or len(report.get('source_issuance_paragraphs',{}))!=4
             or len(report.get('source_appeal_paragraphs',{}))!=4
             or report.get('automatically_confirmed_effective_sanctions')!=0
@@ -127,7 +150,10 @@ def render_markdown(report):
     lines=[
         '# Sitzungen 21/040 und 21/042: vier Einzel-Einsprüche versus fünf Rufe',
         '',
-        '**Amtlich ursprünglich ausgesprochen:** Sichert 1, Janich 2, Gottschalk 2.',
+        '**Amtlich dokumentierte ursprüngliche Maßnahmen:** Sichert 1, Janich 2, Gottschalk 2.',
+        '**Im Original 21/040 eindeutig formulierte Erteilungen:** vier.',
+        'Janichs erste Erteilung hat keine zugeordnete unbedingte Original-XML-Zeile;', 
+        'sie ist durch die spätere eigenständige Einspruchsentscheidung belegt.',
         '**In der späteren Sitzung 21/042 zurückgewiesene Einsprüche:**',
         'Sichert 1, Janich 2, Gottschalk 1.',
         '',
@@ -142,6 +168,15 @@ def render_markdown(report):
             f"- {name}: [XML 21/040 L{record['original_xml_line']}]"
             f"({report['original_protocol']}), "
             f"SHA256 {record['paragraph_sha256'][:16]}…")
+    context=report['source_non_issuance_context_paragraphs']['Janich_first_conditional_warning']
+    lines += [
+        '', '## Bedingte Warnung (ausdrücklich KEINE Erteilung)',
+        '',
+        f"- Janich: [XML 21/040 L{context['original_xml_line']}]"
+        f"({report['original_protocol']}), "
+        f"SHA256 {context['paragraph_sha256'][:16]}…",
+        'Bedingter Zukunftssatz, keine erfundene erste Erteilungsstelle.',
+    ]
     lines+=['','## Einspruchsformulierungen 21/042','']
     for name,record in report['source_appeal_paragraphs'].items():
         lines.append(

@@ -8,6 +8,7 @@ from wp21_40_mehrfach_akte import (
 def fixture(number,rewrites=None,duplicate=None):
     orig=[
         'Ich erteile Ihnen jetzt einen Ordnungsruf, weil Sie mit dem Finger auf Kollegen gezeigt haben; das ist unparlamentarisch.',
+        'Und wenn Sie lachen – und ich weiß, wer gelacht hat –, erteile ich Ihnen gleich fürs Lachen den nächsten Ordnungsruf.',
         'Ich erteile Ihnen auch für den Widerspruch gerade einen zweiten Ordnungsruf; das kann ich.',
         'Herr Kollege Gottschalk, ich erteile Ihnen jetzt einen Ordnungsruf für die Verwendung des Wortes pfui.',
         'Und ich erteile Ihnen einen zweiten Ordnungsruf dafür, dass Sie vorhin eine Gleichsetzung mit dem Nationalsozialismus vorgenommen haben.',
@@ -28,7 +29,7 @@ def fixture(number,rewrites=None,duplicate=None):
     src=(
         f'<dbtplenarprotokoll wahlperiode="21" sitzung-nr="{number}" sitzung-datum="{date}">'
         '<sitzungsverlauf><tagesordnungspunkt><name>Vizepräsidentin Andrea Lindholz</name>'
-        +''.join('<p>'+t+'</p>' for t in body)+
+        +'\n'.join('<p>'+t+'</p>' for t in body)+
         '</tagesordnungspunkt></sitzungsverlauf></dbtplenarprotokoll>')
     return etree.fromstring(src.encode())
 
@@ -40,6 +41,13 @@ class CaseFortySourceCrossChecks(unittest.TestCase):
         self.assertEqual(r['distinct_rejected_appeals_in_42'],4)
         self.assertEqual(r['four_separate_vote_rejection_wordings_checked'],4)
         self.assertEqual(len(r['source_issuance_paragraphs']),4)
+        self.assertEqual(r['original_issuance_phrases_explicitly_located'],4)
+        self.assertIsNone(r['janich_first_original_unconditional_issuance_xml_line'])
+        self.assertFalse(r['janich_first_warning_is_issuance'])
+        self.assertEqual(r['janich_first_measure_basis'],
+                         'separate_official_objection_decision_21_042')
+        self.assertEqual(len(r['source_non_issuance_context_paragraphs']),1)
+        self.assertIn('Bedingte Warnung',render_markdown(r))
         self.assertEqual(len(r['source_appeal_paragraphs']),4)
         self.assertEqual(r['gottschalk_original_issued_measures'],2)
         self.assertEqual(r['gottschalk_appeals_decided_in_42'],1)
@@ -55,14 +63,33 @@ class CaseFortySourceCrossChecks(unittest.TestCase):
             inspect({40:fixture(40),42:bad})
 
     def test_gottschalk_two_grants_not_derived_from_one_vote(self):
-        bad=fixture(40,{3:'Keine weitere Äußerung der Sitzungsleitung.'})
+        bad=fixture(40,{4:'Keine weitere Äußerung der Sitzungsleitung.'})
         with self.assertRaisesRegex(ValueError,'Gottschalk_second'):
             inspect({40:bad,42:fixture(42)})
 
     def test_conditional_only_or_ambiguous_source_cannot_replace_actual(self):
-        bad=fixture(40,{1:'Wenn Sie widersprechen, erteile ich einen Ordnungsruf.'})
+        bad=fixture(40,{2:'Wenn Sie widersprechen, erteile ich einen Ordnungsruf.'})
         with self.assertRaisesRegex(ValueError,'Janich_second'):
             inspect({40:bad,42:fixture(42)})
+
+    def test_conditional_context_missing_or_promoted_cannot_pass(self):
+        missing=fixture(40,{1:'Ich erteile Ihnen jetzt den ersten Ordnungsruf.'})
+        with self.assertRaisesRegex(ValueError,'Janich_first_conditional_warning'):
+            inspect({40:missing,42:fixture(42)})
+        wrongly_ordered=fixture(40)
+        # Source-line order matters; the future threat must precede the second call.
+        children=wrongly_ordered.xpath('.//p')
+        children[1].text,children[2].text=children[2].text,children[1].text
+        with self.assertRaises(ValueError):
+            inspect({40:wrongly_ordered,42:fixture(42)})
+
+    def test_report_never_accepts_a_fabricated_first_literal_grant(self):
+        r=inspect({40:fixture(40),42:fixture(42)})
+        with self.assertRaises(ValueError):
+            render_markdown({**r,
+                'janich_first_original_unconditional_issuance_xml_line':2})
+        with self.assertRaises(ValueError):
+            render_markdown({**r,'janich_first_warning_is_issuance':True})
 
     def test_not_four_rejections_fails(self):
         bad=fixture(42,{3:'Wer stimmt für den Einspruch des Abgeordneten Kay Gottschalk? Der Antrag wird vertagt.'})
