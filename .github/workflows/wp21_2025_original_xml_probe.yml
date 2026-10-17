@@ -1,0 +1,56 @@
+name: Isolierte 2025-Erteilungs-Fundstellen in acht Originalprotokollen
+
+# Initial PR one-time evidence survey, restore manual-only after evidence audit.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/wp21_2025_original_xml_probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  eight-original-protocols:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vier geschützte Statistikdateien von main bytegleich halten
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for f in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$f" | cmp -s - "$f" || exit 1
+          done
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Zählerschutz-Hashes sichern
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
+      - name: Acht 2025-Ursprungsprotokolle beschränkt prüfen und Fundstellen archivieren
+        timeout-minutes: 12
+        run: |
+          python wp21_2025_original_xml_loci_probe.py \
+            --cache .audit/original_2025_xml \
+            --output .audit/original_2025_candidates.json \
+            --brief .audit/original_2025_candidates.md
+      - name: Verifizierte Statistikdateien müssen auch nach XML-Scan unverändert sein
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
+      - name: Amtliche XML-Fundstellen ausschließlich als Forschungsartefakt bereitstellen
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-2025-eight-source-original-lines-${{ github.run_id }}
+          path: |
+            .audit/original_2025_candidates.json
+            .audit/original_2025_candidates.md
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
