@@ -208,6 +208,7 @@ jobs:
             --output .audit/gottschalk_unfiltered/positions.json \
             --brief .audit/gottschalk_unfiltered/positions.md
       - name: Alle späteren Gottschalk-DIP-Positionen in begrenzten historischen Teilfenstern prüfen
+        if: github.event_name == 'workflow_dispatch'
         env:
           DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
         run: |

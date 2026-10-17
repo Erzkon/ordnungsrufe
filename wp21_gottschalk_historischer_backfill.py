@@ -8,6 +8,7 @@ positions with no identifying searchable name.
 """
 import argparse
 import json
+import os
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -126,7 +127,10 @@ def markdown(r):
     return '\n'.join(lines)
 
 
-def run(start, end, output, brief, *, key=PUBLIC_KEY, load=position_page):
+def run(start, end, output, brief, *, key=None, load=position_page):
+    key = key or os.getenv('DIP_API_KEY') or PUBLIC_KEY
+    if '\n' in key or '\r' in key:
+        raise ValueError('DIP-API-Key ungültig')
     data = review(start, end, key=key, load=load)
     explanation = markdown(data)
     # No file is written until every source page has passed validation.
