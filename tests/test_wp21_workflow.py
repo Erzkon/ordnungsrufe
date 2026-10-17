@@ -47,6 +47,15 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('wp21_gottschalk_bounded_review.py',source)
         self.assertIn('sha256sum --check',source)
 
+    def test_title_independent_dip_position_probe_does_not_publish_counts(self):
+        source=Path('.github/workflows/wp21_18_einzelakten.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('gottschalk-position-first:',source)
+        self.assertIn('wp21_gottschalk_unkategorisierte_positionen.py',source)
+        self.assertIn('tests.test_wp21_gottschalk_unkategorisierte_positionen',source)
+        self.assertIn('sha256sum --check',source)
+        self.assertIn('--start "$WINDOW_START" --end "$WINDOW_END"',source)
+
     def test_janich_conditional_original_wording_is_review_only(self):
         self.assertIn('id: janichContext',self.workflow)
         self.assertIn('wp21_janich_erste_quellenkritik.py',self.workflow)
