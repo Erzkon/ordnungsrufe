@@ -20,6 +20,8 @@ SOURCES = (
     (42, 'https://www.bundestag.de/resource/blob/1127824/amtpr21042.pdf'),
     (96, 'https://www.bundestag.de/resource/blob/1217460/amtpr21096.pdf'),
     (97, 'https://www.bundestag.de/resource/blob/1217462/amtpr21097.pdf'),
+    (98, 'https://www.bundestag.de/resource/blob/1223440/amtpr21098.pdf'),
+    (99, 'https://www.bundestag.de/resource/blob/1223442/amtpr21099.pdf'),
 )
 PROVISIONAL_103 = (
     'https://www.bundestag.de/dokumente/protokolle/vorlaeufig/'
