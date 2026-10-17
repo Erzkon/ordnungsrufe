@@ -39,9 +39,9 @@ CASES=(
 )
 # Explicit, person- and case-specific original procedural distinction.
 SPECIAL_ABSTRACTS={
- ('2025-11-13','Kay Gottschalk'):
+ ('2025-11-13',norm('Kay Gottschalk')):
      ('gegen die erste Ordnungsmaßnahme',),
- ('2025-11-13','Steffen Janich'):
+ ('2025-11-13',norm('Steffen Janich')):
      ('gegen die 1. Ordnungsmaßnahme',
       'gegen die 2. Ordnungsmaßnahme'),
 }
@@ -180,11 +180,18 @@ def inspect(snapshot):
             raise ValueError('Original/Abstimmung nicht getrennt nachgewiesen')
         fragments=SPECIAL_ABSTRACTS.get(key)
         if fragments:
-            if len(fragments)!=len(votes) or {
-                    phrase for phrase in fragments
-                    if not any(phrase.casefold() in v['abstract_excerpt'].casefold()
-                               for v in votes)
-                    }:
+            # Each verified first/second-appeal marker must occur in ONE
+            # distinct DIP vote position. Merely mentioning both in the
+            # same summary must not count as two different decisions.
+            matched_positions=[]
+            for phrase in fragments:
+                matches=[index for index,vote in enumerate(votes)
+                         if phrase.casefold() in vote['abstract_excerpt'].casefold()]
+                if len(matches)!=1:
+                    raise ValueError('Einspruch für die erste/zweite Maßnahme nicht unterscheidbar')
+                matched_positions.extend(matches)
+            if (len(fragments)!=len(votes)
+                    or len(set(matched_positions))!=len(votes)):
                 raise ValueError('Einspruch für die erste/zweite Maßnahme nicht unterscheidbar')
         status=(
             'second_original_measured_but_no_second_appeal_vote_in_this_parent'
