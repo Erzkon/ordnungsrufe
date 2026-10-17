@@ -6,6 +6,8 @@ on:
     paths:
       - 'wp21_gottschalk_plenar_folgen.py'
       - 'tests/test_wp21_gottschalk_plenar_folgen.py'
+      - 'wp21_gottschalk_amtliche_beschluesse.py'
+      - 'tests/test_wp21_gottschalk_amtliche_beschluesse.py'
       - '.github/workflows/wp21_gottschalk_plenar_folgen.yml'
   workflow_dispatch:
 
@@ -32,7 +34,7 @@ jobs:
           cache: pip
       - run: python -m pip install -r requirements.txt
       - name: Namens-/Einspruchs-Kontexte und Negativbelege prüfen
-        run: python -m unittest -v tests.test_wp21_gottschalk_plenar_folgen
+        run: python -m unittest -v tests.test_wp21_gottschalk_plenar_folgen tests.test_wp21_gottschalk_amtliche_beschluesse
       - name: Bytegleichheit bestätigter Zähler sichern
         run: |
           sha256sum daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/protected.sha256"
@@ -43,6 +45,11 @@ jobs:
             --max-session 125 \
             --output .audit/gottschalk_later_plenary.json \
             --brief .audit/gottschalk_later_plenary.md
+      - name: Amtliche Beschlussprotokoll-PDFs und vorläufige 21/103 quellenkritisch prüfen
+        run: |
+          python wp21_gottschalk_amtliche_beschluesse.py \
+            --output .audit/gottschalk_minutes.json \
+            --brief .audit/gottschalk_minutes.md
       - name: Bestätigte Zähler nach Datenabruf bytegleich
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/protected.sha256"
@@ -54,6 +61,8 @@ jobs:
           path: |
             .audit/gottschalk_later_plenary.json
             .audit/gottschalk_later_plenary.md
+            .audit/gottschalk_minutes.json
+            .audit/gottschalk_minutes.md
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30

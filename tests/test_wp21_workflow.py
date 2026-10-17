@@ -80,6 +80,18 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('sha256sum --check',standalone)
         self.assertIn("github.event_name == 'pull_request'",standalone)
 
+    def test_minute_pdf_and_provisional_html_check_only_creates_audit(self):
+        self.assertIn('id: gottschalkOfficialMinutes', self.workflow)
+        self.assertIn('wp21_gottschalk_amtliche_beschluesse.py', self.workflow)
+        self.assertIn("steps.gottschalkOfficialMinutes.outcome == 'success'",
+                      self.workflow)
+        self.assertIn("steps.gottschalkOfficialMinutes.outcome == 'failure'",
+                      self.workflow)
+        source=Path('.github/workflows/wp21_gottschalk_plenar_folgen.yml').read_text(encoding='utf-8')
+        self.assertIn('tests.test_wp21_gottschalk_amtliche_beschluesse',source)
+        self.assertIn('gottschalk_minutes.json',source)
+        self.assertIn('sha256sum --check',source)
+
     def test_janich_conditional_original_wording_is_review_only(self):
         self.assertIn('id: janichContext',self.workflow)
         self.assertIn('wp21_janich_erste_quellenkritik.py',self.workflow)

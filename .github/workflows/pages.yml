@@ -35,6 +35,7 @@ on:
       - 'wp21_janich_erste_quellenkritik.py'
       - 'wp21_gottschalk_folgebeobachter.py'
       - 'wp21_gottschalk_plenar_folgen.py'
+      - 'wp21_gottschalk_amtliche_beschluesse.py'
       - 'wp21_gottschalk_bounded_review.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
@@ -78,6 +79,7 @@ on:
       - 'wp21_janich_erste_quellenkritik.py'
       - 'wp21_gottschalk_folgebeobachter.py'
       - 'wp21_gottschalk_plenar_folgen.py'
+      - 'wp21_gottschalk_amtliche_beschluesse.py'
       - 'wp21_gottschalk_bounded_review.py'
       - 'wp21_anonyme_quellen.py'
       - 'wp21_vier_quellenbelege.py'
@@ -370,6 +372,28 @@ jobs:
       - name: Bei unvollständigen Folge-Plenarprotokollen nur warnen
         if: github.event_name != 'pull_request' && steps.gottschalkPlenary.outcome == 'failure'
         run: echo '::warning::Gottschalk-Folgeprotokolle nicht vollständig; keine automatische Einspruchsentscheidung oder Zähleränderung.'
+      - name: Amtliche Gottschalk-Beschlussprotokolle plus vorläufige Sitzung 21/103 nur lesen
+        if: github.event_name != 'pull_request' && steps.scan.outcome == 'success'
+        id: gottschalkOfficialMinutes
+        continue-on-error: true
+        run: |
+          python wp21_gottschalk_amtliche_beschluesse.py \
+            --output .audit/gottschalk_amtliche_protokolle.json \
+            --brief .audit/gottschalk_amtliche_protokolle.md
+      - name: Amtliche unabhängige PDF-Stichprobe separat archivieren
+        if: github.event_name != 'pull_request' && steps.gottschalkOfficialMinutes.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wp21-gottschalk-amtliche-protokolle-${{ github.run_id }}
+          path: |
+            .audit/gottschalk_amtliche_protokolle.json
+            .audit/gottschalk_amtliche_protokolle.md
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+      - name: Amtliche Beschlussprotokoll-Ausfälle ausschließlich warnen
+        if: github.event_name != 'pull_request' && steps.gottschalkOfficialMinutes.outcome == 'failure'
+        run: echo '::warning::Amtliche Beschlussprotokoll-Stichprobe oder vorläufige 21/103 nicht verfügbar; keine Zähleränderung.'
       - name: Zehn 2025-Originalvorgänge und differenzierte Einsprüche aus erfolgreichem DIP-Cache prüfen
         if: github.event_name != 'pull_request' && steps.dippositions.outcome == 'success'
         id: original2025
