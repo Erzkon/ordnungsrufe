@@ -85,3 +85,7 @@ Der Browser-Smoke simuliert jetzt **fünf getrennte Monitorzustände**, ohne Que
 ## Zugänglicher Fehlerzustand bei ungültigen veröffentlichten Datensätzen
 
 Werden bestätigte CSV-/JSON-Exporte versehentlich inkonsistent oder unvollständig ausgeliefert, bricht die Anzeige bereits heute **fail-closed** ab. Ein ergänztes `role=alert` informiert jetzt auch Nutzer assistiver Technik ausdrücklich, dass **keine ungeprüften Zahlen angezeigt werden**. Der Browser-Smoke manipuliert die unvollständige WP21-Kennzeichnung nur im Netzwerktransport, erwartet die unberührte Anzeige `—` statt einer Zahl, kontrolliert den sichtbaren Alarm und führt zusätzlich eine Axe-Prüfung dieses Fehlerzustands durch. Die Testmanipulation ist temporär und wird nicht veröffentlicht.
+
+## Zusätzliche veröffentlichte Datenfehler abgesichert
+
+Neben einer versehentlich fehlenden Teilmengenmarkierung für WP21 simuliert der PR-Browser-Test jetzt drei weitere **ausschließlich abgefangene HTTP-Antworten**: fehlende Offenlegung der amtlichen Personendifferenz in WP20, ein unzulässiger nichtamtlicher Protokolllink und ein Widerspruch zwischen Anzahl und Einzelnachweisen der WP21. In jedem Fall wird die Veröffentlichungsdatenprüfung abgebrochen, `role=alert` angezeigt und weder eine geprüfte Zahl noch ein vermeintlich offizieller Quellenlink ausgegeben. Keine der originalen vier geschützten Dateien wird verändert.

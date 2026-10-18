@@ -163,6 +163,20 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("assert.equal(result.count,'8')",smoke)
         self.assertNotIn('public_counter_delta=1',smoke)
 
+    def test_browser_rejects_multiple_independent_dataset_corruptions(self):
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        for token in (
+            'WP20 missing official personal discrepancy',
+            'WP20 unauthorised source origin',
+            'WP21 count and evidence mismatch',
+            'https://example.invalid/fake.pdf#page=1',
+            "payload.meta.count+=1",
+            "el.querySelectorAll('a.source-link').length"
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token,smoke)
+        self.assertIn('Fail-closed verified dataset:',smoke)
+
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
         self.assertIn("github.ref == 'refs/heads/main'", self.workflow)

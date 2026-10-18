@@ -370,6 +370,56 @@ async function main() {
     assert.deepEqual(tamperedViolations,[]);
     pass('Tampered unlabelled WP21 input raises an accessible alert and blocks counts');
     await broken.close();
+
+    // These are temporary interception-only mutations, never writes to
+    // either protected published dataset. Prove failures in each legislature.
+    const immutableInputs=[
+      {
+        name:'WP20 missing official personal discrepancy',
+        path:'ordnungsrufe.json',
+        tamper:payload=>{
+          payload.meta.official_beatrix_von_storch=
+            payload.meta.verified_beatrix_von_storch;
+        }
+      },
+      {
+        name:'WP20 unauthorised source origin',
+        path:'ordnungsrufe.json',
+        tamper:payload=>{
+          payload.records[0].source='https://example.invalid/fake.pdf#page=1';
+        }
+      },
+      {
+        name:'WP21 count and evidence mismatch',
+        path:'ordnungsrufe_21.json',
+        tamper:payload=>{payload.meta.count+=1;}
+      }
+    ];
+    for(const bad of immutableInputs){
+      const compromised=await browser.newPage();
+      const tampered=JSON.parse(fs.readFileSync(
+        path.join(ROOT,'data',bad.path),'utf8'));
+      bad.tamper(tampered);
+      try{
+        await compromised.setRequestInterception(true);
+        compromised.on('request',req=>{
+          if(req.url().endsWith('/data/'+bad.path)){
+            req.respond({status:200,contentType:'application/json',
+              body:JSON.stringify(tampered)});
+          } else req.continue();
+        });
+        await compromised.goto(url+'?wp='+(
+          bad.path==='ordnungsrufe.json'?'20':'21'),{waitUntil:'load'});
+        await compromised.waitForFunction(()=>
+          !document.querySelector('#data-error').hidden,{timeout:10000});
+        assert.equal(await textOf(compromised,'#metric-total'),'—');
+        assert.equal(await textOf(compromised,'#result-count'),'—');
+        assert.match(await textOf(compromised,'#data-error'),/keine ungeprüften Zahlen/);
+        assert.equal(await compromised.$eval('#records-body',el=>
+          el.querySelectorAll('a.source-link').length),0);
+        pass('Fail-closed verified dataset: '+bad.name);
+      }finally{await compromised.close();}
+    }
     assert.deepEqual(browserErrors,[],'Uncaught browser JavaScript exceptions');
     pass('No uncaught JavaScript errors in valid views');
     const report={schema:'ordnungsrufe-v1-browser-smoke-v1',
