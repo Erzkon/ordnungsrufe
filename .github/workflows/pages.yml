@@ -932,7 +932,7 @@ jobs:
       - name: WCAG A/AA und Best-Practice-Audit vor produktiver Veroeffentlichung
         if: github.event_name != 'pull_request'
         env:
-          AXE_ENFORCE: '0'
+          AXE_ENFORCE: '1'
         run: node tests/accessibility_audit.cjs
       - name: Produktive Browserbilder und Prüfergebnisse getrennt archivieren
         if: ${{ always() && github.event_name != 'pull_request' }}

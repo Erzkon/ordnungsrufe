@@ -95,7 +95,8 @@ function renderRecords() {
     link.href = item.source;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
-    link.setAttribute('aria-label',`Plenarprotokoll ${state.period}/${String(item.session).padStart(3,'0')} für ${item.person} öffnen`);
+    // Keep the visible "Protokoll" label inside the accessible name (WCAG 2.5.3).
+    link.append(el('span','sr-only',` für ${item.person}, Sitzung ${state.period}/${String(item.session).padStart(3,'0')} öffnen`));
     cell.append(link);
     tr.append(cell);
     body.append(tr);

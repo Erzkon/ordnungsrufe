@@ -69,6 +69,11 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn('--gold-dark:#84531d',stylesheet)
         self.assertIn('color:#58646e',stylesheet)
 
+    def test_provenance_links_have_label_in_name_without_unsafely_changing_urls(self):
+        self.assertNotIn("link.setAttribute('aria-label'",self.js)
+        self.assertIn("link.append(el('span','sr-only'",self.js)
+        self.assertIn("link.rel = 'noopener noreferrer'",self.js)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',

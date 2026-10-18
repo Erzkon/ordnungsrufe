@@ -80,6 +80,23 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("state:'closed', state_reason:'completed'",wf)
         self.assertIn("steps.health.outcome == 'failure'",wf)
 
+    def test_wcag_axe_audit_blocks_publication(self):
+        workflow=self.workflow
+        browser=workflow.index('node tests/browser_smoke.cjs')
+        accessibility=workflow.index('node tests/accessibility_audit.cjs')
+        publication=workflow.index('      - name: Website-Artefakt zur Veroeffentlichung uebertragen')
+        self.assertLess(browser,accessibility)
+        self.assertLess(accessibility,publication)
+        self.assertIn("AXE_ENFORCE: '1'",workflow)
+        self.assertIn('axe-core@4.14.0',workflow)
+        self.assertNotIn('continue-on-error: true',workflow[browser:publication])
+        pr=Path('.github/workflows/v1_browser_smoke.yml').read_text(encoding='utf-8')
+        self.assertIn("AXE_ENFORCE: '1'",pr)
+        self.assertIn('node tests/accessibility_audit.cjs',pr)
+        self.assertIn('axe-core@4.14.0',pr)
+        self.assertIn('tests/accessibility_audit.cjs',pr)
+        self.assertNotIn('continue-on-error: true',pr)
+
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
         self.assertIn("github.ref == 'refs/heads/main'", self.workflow)
