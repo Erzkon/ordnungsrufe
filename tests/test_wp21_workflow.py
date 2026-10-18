@@ -144,6 +144,14 @@ class WorkflowOperationalChecks(unittest.TestCase):
                 self.assertIn(text,audit)
         self.assertIn("AXE_ENFORCE: '1'",self.workflow)
 
+    def test_dynamic_a11y_rule_violations_are_saved_before_failing(self):
+        audit=Path('tests/accessibility_audit.cjs').read_text(
+            encoding='utf-8')
+        self.assertIn("state:'empty-search'",audit)
+        self.assertIn('x.filteredState?.violationRules',audit)
+        self.assertIn('A11Y_FILTERED_AXE_VIOLATIONS',audit)
+        self.assertIn('if(ENFORCE&&violations.length)process.exitCode=1',audit)
+
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
         self.assertIn("github.ref == 'refs/heads/main'", self.workflow)

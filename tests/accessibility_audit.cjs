@@ -180,12 +180,16 @@ async function auditPage(browser,url,period,width,height){
         incompleteRules:changed.incomplete.map(sample)
       };
       if(changed.violations.length){
-        throw new Error('A11Y_FILTERED_AXE_VIOLATIONS '+
-          JSON.stringify({period,width,violations:filteredState.violationRules}));
+        // Do not throw before persisting a report; keep fail-closed via
+        // violationsTotal/ENFORCE after both normal and dynamic rules run.
+        console.log('A11Y_FILTERED_AXE_VIOLATIONS',JSON.stringify({
+          period,width,violations:filteredState.violationRules.map(v=>v.id)
+        }));
+      } else {
+        console.log('AXE_DYNAMIC_EMPTY_PASS',JSON.stringify({
+          period,width,violations:0,incomplete:changed.incomplete.length
+        }));
       }
-      console.log('AXE_DYNAMIC_EMPTY_PASS',JSON.stringify({
-        period,width,violations:0,incomplete:changed.incomplete.length
-      }));
     }
     return {
       viewport:width+'x'+height,
@@ -230,9 +234,14 @@ async function main(){
         }))
       }));
     }
-    const violations=results.flatMap(x=>x.violations.map(v=>({
-      period:x.period,viewport:x.viewport,...v
-    })));
+    const violations=results.flatMap(x=>[
+      ...x.violations.map(v=>({
+        period:x.period,viewport:x.viewport,state:'base',...v
+      })),
+      ...(x.filteredState?.violationRules||[]).map(v=>({
+        period:x.period,viewport:x.viewport,state:'empty-search',...v
+      }))
+    ]);
     const report={schema:'ordnungsrufe-axe-accessibility-v1',enforce:ENFORCE,
       analysis_only:true,statistic_files_changed:false,
       ruleTags:TAGS,views:results,violationsTotal:violations.length,

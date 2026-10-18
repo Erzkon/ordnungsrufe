@@ -69,3 +69,7 @@ Die Axe-Prüfung untersucht auf **1366 und 390 CSS-Pixeln** zusätzlich für bei
 ## Leerer Suchzustand – zusätzliche gemessene Korrektur
 
 Die erste Interaktionsmessung im dynamischen Leerzustand identifizierte für „Keine passenden Maßnahmen“ auf Weiß ein tatsächliches Kontrastverhältnis von **4,02:1**. Die Statusmeldung verwendet jetzt `#53616b` statt `#70818d`; der neue Interaktions-Axe-Test überwacht diesen Zustand in beiden Wahlperioden auf Desktop und Mobil verbindlich.
+
+## Nachweisbarkeit der Negativkontrolle
+
+Eine frühe Fassung des erweiterten dynamischen Audits brach bei einem absichtlich fehlerhaften Button vor dem JSON-Export ab. Nun werden Verstöße aus **Standardansichten und dynamischen Leerzuständen zuerst gemeinsam als `violationsTotal` protokolliert** und erst danach mit `AXE_ENFORCE=1` als Blocker ausgewertet. Die Negativkontrolle muss so den konkreten Treffer `button-name` aus dem geschriebenen Bericht nachweisen können, statt lediglich einen fehlgeschlagenen Prozess zu beobachten.
