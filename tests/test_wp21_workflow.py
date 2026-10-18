@@ -123,6 +123,16 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('cp -a docs "$TMP_DIR/docs"',pr)
         self.assertNotIn('git push',pr)
 
+    def test_chromium_accessibility_tree_checks_are_fail_closed(self):
+        audit=Path('tests/accessibility_audit.cjs').read_text(encoding='utf-8')
+        for text in ('Accessibility.getPartialAXTree','Accessibility.enable',
+                     'ACCESSIBILITY_TREE_MISMATCH','AX_NODE_IGNORED',
+                     'accessibilityTreeChecks','Unvollständige Auswahl',
+                     'Einträge anzeigen','Sitzung'):
+            with self.subTest(token=text):
+                self.assertIn(text,audit)
+        self.assertIn("AXE_ENFORCE: '1'",self.workflow)
+
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
         self.assertIn("github.ref == 'refs/heads/main'", self.workflow)

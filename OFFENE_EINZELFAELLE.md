@@ -45,3 +45,11 @@ Diese Quellensichtung bestätigt **keine neue Maßnahme**; sie präzisiert, welc
 - **Von Storch:** [Bundestagsübersicht](https://www.bundestag.de/dokumente/textarchiv/1949-09-20-ordnungsruf-1086652) nennt 19 gegenüber 18 einzeln belegten Maßnahmen. Dieser Übersichts-Widerspruch wird **nicht** durch die Übernahme einer zusätzlichen ungesicherten DIP-Position aufgelöst.
 
 **Nächste gezielte Quellenarbeit:** Für Janich die Art des ursprünglichen Vermerks in einem weiteren amtlichen Dokumenttyp untersuchen; für Gottschalk und Mixl unabhängig datierte spätere Einspruchs-/Beschlussveröffentlichungen suchen; für von Storch eine **vollständig eigene konkrete weitere Erteilung** statt nur einer statistischen Gesamtangabe identifizieren. Bis dahin ausschließlich Prüfnachweise, keine bestätigten Zähleränderungen.
+
+## Nachtrag: unabhängige amtliche Video-Metadaten zu Janich (18.10.2026)
+
+Die [Original-Mediathekseite zur sitzungsleitenden Andrea Lindholz, Sitzung 21/040, TOP 19](https://www.bundestag.de/mediathek/video?videoid=7644769) enthält eine **redaktionelle Bemerkung des Bundestages**, die den **zweiten Ordnungsruf während der Rede Martin Sicherts** ausdrücklich dem Abgeordneten **Steffen Janich** zuordnet. Die redaktionelle Empfängerangabe ist ein **separater amtlicher Kontextbeleg** für die bereits dokumentierte zweite Erteilung und stützt die Zuordnung der im Original ohne namentliche Anrede gesprochenen Passage in [21/040](https://dserver.bundestag.de/btp/21/21040.pdf).
+
+Der [amtliche Bundestagsbericht über die Zurückweisung am 25.11.2025](https://www.bundestag.de/dokumente/textarchiv/2025/kw48-de-einspruch-ordnungsruf-1127758) erläutert außerdem Janichs **eigene Einspruchsbegründung**: Er habe nach Sicherts Erteilung wegen seines Lachens eine zweite Maßnahme bekommen. Die Darstellung belegt, wie Janich die Ereignisabfolge selbst schilderte; sie ist **keine stenografische Originalwiedergabe der bisher fehlenden ersten Erteilungsformel**.
+
+**Erkenntnisfortschritt:** Zuordnung des **zweiten** ursprünglichen Janich-Rufs zusätzlich amtlich abgesichert; die **erste unbedingte Erteilung und ihre exakte gesprochene Fundstelle bleiben weiterhin ungeklärt**. Keine Änderung an bestätigten Maßnahmenzahlen und keine automatische rechtswirksame Einordnung.

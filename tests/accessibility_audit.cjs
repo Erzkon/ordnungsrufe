@@ -42,6 +42,57 @@ function localServer(){
     server.listen(0,'127.0.0.1',()=>resolve({server,url:'http://127.0.0.1:'+server.address().port+'/'}));
   });
 }
+async function inspectAccessibilityTree(page,period){
+  // These names and roles are computed by Chromium's accessibility engine.
+  // This checks browser semantics, not speech output from NVDA/VoiceOver.
+  const cdp=await page.createCDPSession();
+  try{
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const root=(await cdp.send('DOM.getDocument',{depth:1})).root.nodeId;
+    async function read(selector){
+      const matched=await cdp.send('DOM.querySelector',{nodeId:root,selector});
+      if(!matched.nodeId)throw new Error('AX_NODE_MISSING '+selector);
+      const details=await cdp.send('Accessibility.getPartialAXTree',{
+        nodeId:matched.nodeId,fetchRelatives:false
+      });
+      const node=details.nodes.find(n=>!n.ignored&&n.role?.value);
+      if(!node)throw new Error('AX_NODE_IGNORED '+selector);
+      const props=Object.fromEntries((node.properties||[]).map(p=>[
+        p.name,p.value?.value
+      ]));
+      return {role:node.role.value,name:node.name?.value||'',properties:props};
+    }
+    const main=await read('#inhalt');
+    const chosen=await read('#period-'+period);
+    const other=await read('#period-'+(period==='20'?'21':'20'));
+    const live=await read('#period-announcement');
+    const search=await read('#search');
+    const group=await read('#group-filter');
+    const source=await read('#records-body a.source-link');
+    const ranking=await read('#people-ranking .bar-row');
+    const table=await read('.table-scroller');
+    const checks={
+      main:main.role==='main',
+      chosen:chosen.role==='button'&&chosen.properties.pressed===true,
+      other:other.role==='button'&&other.properties.pressed===false,
+      switchStatus:live.role==='status'&&live.name.includes(period+'. Wahlperiode')&&
+        (period!=='21'||live.name.includes('Unvollständige Auswahl')),
+      search:search.role==='searchbox'&&search.name.includes('PERSON ODER SITZUNG'),
+      group:group.role==='combobox'&&group.name.includes('ZUGEHÖRIGKEIT'),
+      source:source.role==='link'&&source.name.includes('Protokoll')&&
+        source.name.includes('Sitzung'),
+      ranking:ranking.role==='button'&&ranking.name.includes('Einträge anzeigen'),
+      table:table.role==='region'&&table.name.includes('Horizontale Maßnahmen-Tabelle')
+    };
+    const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
+    const snapshot={period,checks,main,chosen,other,live,search,group,source,ranking,table};
+    if(failed.length)throw new Error('ACCESSIBILITY_TREE_MISMATCH '+
+      JSON.stringify({failed,snapshot}));
+    return snapshot;
+  } finally {await cdp.detach();}
+}
+
 async function auditPage(browser,url,period,width,height){
   const page=await browser.newPage();
   try {
@@ -86,6 +137,7 @@ async function auditPage(browser,url,period,width,height){
     if(width<=390 && (!reflow.tableScrollable || !reflow.tableFocusable)){
       throw new Error('Mobile records table must stay scrollable and keyboard focusable');
     }
+    const semantics=await inspectAccessibilityTree(page,period);
     await page.addScriptTag({content:axe.source});
     const result=await page.evaluate(async tags=>window.axe.run(document,{
       runOnly:{type:'tag',values:tags},
@@ -104,6 +156,7 @@ async function auditPage(browser,url,period,width,height){
       period,
       incomplete_21st:period==='21',
       reflow,
+      semantics,
       checkedRules:result.violations.length+result.passes.length+result.incomplete.length,
       violations:result.violations.map(sample),
       incomplete:result.incomplete.map(sample),
@@ -132,6 +185,7 @@ async function main(){
       results.push(result);
       console.log('AXE_VIEW',JSON.stringify({
         period,width,height,reflow:result.reflow,
+        semantics:Object.keys(result.semantics.checks),
         violations:result.violations.map(v=>({
           id:v.id,impact:v.impact,count:v.count,targets:v.nodes.map(n=>n.target)
         })),incomplete:result.incomplete.map(v=>({
@@ -147,6 +201,8 @@ async function main(){
       ruleTags:TAGS,views:results,violationsTotal:violations.length,
       reflowChecks:results.length,
       reducedMotionChecks:results.filter(x=>x.reflow.reducedMotion).length,
+      accessibilityTreeChecks:results.reduce((n,x)=>n+
+        Object.keys(x.semantics.checks).length,0),
       violationNodes:results.reduce((n,v)=>n+v.violationNodes,0),
       manualScreenReaderReviewStillRequired:true};
     fs.writeFileSync(path.join(OUT,'axe_report.json'),JSON.stringify(report,null,2)+'\n');
@@ -164,6 +220,7 @@ async function main(){
     console.log('AXE_AUDIT_SUMMARY',JSON.stringify({
       views:results.length,reflowChecks:report.reflowChecks,
       reducedMotionChecks:report.reducedMotionChecks,
+      accessibilityTreeChecks:report.accessibilityTreeChecks,
       violations:report.violationsTotal,
       nodes:report.violationNodes,enforced:ENFORCE
     }));

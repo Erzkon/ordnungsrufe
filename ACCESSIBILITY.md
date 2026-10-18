@@ -57,3 +57,7 @@ Die konkreten manuellen Aufgaben stehen in [ACCESSIBILITY_MANUAL_CHECKLIST.md](A
 Der PR-Workflow setzt in einer **temporären Kopie der Website** absichtlich einen sichtbaren, aber unbeschrifteten Button ein. Er startet den unveränderten Axe-Audit mit `AXE_ENFORCE=1` und verlangt **beides**: einen Nicht-Null-Exitcode **und** den konkreten WCAG-Regeltreffer `button-name`. Ein roter Prozess wegen eines anderen Fehlers genügt ausdrücklich **nicht**. Das Original wird nicht verändert, die künstliche Seite wird niemals deployt. Im Archiv bleibt eine Diagnose zur Kontrolle.
 
 Damit wird der entscheidende Fehlerschutz des neuen Release-Gates selbst auf seine Wirksamkeit getestet.
+
+## Erweiterte Browser-Semantikprüfung
+
+Zusätzlich zu den acht Axe-Prüfungen wird über das Chrome DevTools Protocol die tatsächlich berechnete Accessibility-Struktur kontrolliert: `main`-Landmarke, `aria-pressed` der beiden Wahlperioden-Buttons, Status-Region mit der Unvollständigkeitswarnung, Suchfeld, Auswahlfeld, Protokolllink samt Person/Sitzung, Ranking-Schaltfläche und fokussierbare Tabellenregion. Ein nicht zuordenbares, ignoriertes oder unerwartet benanntes Element macht die CI rot. **Das misst den Chromium-Zugänglichkeitsbaum und weder tatsächliche Sprachausgabe noch Bedienbarkeit mit NVDA oder VoiceOver.**
