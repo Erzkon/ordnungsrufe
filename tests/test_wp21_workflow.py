@@ -20,7 +20,7 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0',wf)
         self.assertIn('ordnungsruf-v1-production-browser-',wf)
         self.assertNotIn('continue-on-error: true',wf[gate:browser])
-        self.assertIn('actions/deploy-pages@v4',wf)
+        self.assertIn('actions/deploy-pages@v5',wf)
 
     def test_browser_preview_cannot_publish_and_handles_a_synthetic_source_outage(self):
         wf=Path('.github/workflows/v1_browser_smoke.yml').read_text(
@@ -47,8 +47,38 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('python v1_release_gate.py',wf)
         self.assertIn("github.event_name != 'pull_request'",wf)
         self.assertIn('needs: pruefen',wf)
-        self.assertIn('actions/upload-pages-artifact@v4',wf)
-        self.assertIn('actions/deploy-pages@v4',wf)
+        self.assertIn('actions/upload-pages-artifact@v5',wf)
+        self.assertIn('actions/deploy-pages@v5',wf)
+
+    def test_pages_and_source_watch_actions_use_node24_compatible_versions(self):
+        wf=self.workflow
+        expected=(
+            'actions/cache@v5',
+            'actions/download-artifact@v7',
+            'actions/github-script@v8',
+            'actions/configure-pages@v6',
+            'actions/upload-pages-artifact@v5',
+            'actions/deploy-pages@v5',
+        )
+        for action in expected:
+            with self.subTest(action=action):
+                self.assertIn(action,wf)
+        forbidden=(
+            'actions/cache@v4',
+            'actions/download-artifact@v4',
+            'actions/github-script@v7',
+            'actions/configure-pages@v5',
+            'actions/upload-pages-artifact@v4',
+            'actions/deploy-pages@v4',
+        )
+        for action in forbidden:
+            with self.subTest(outdated=action):
+                self.assertNotIn(action,wf)
+        self.assertIn('if: ${{ always() && github.event_name != \'pull_request\'',wf)
+        self.assertIn('if: github.event_name != \'pull_request\' && github.ref == \'refs/heads/main\'',wf)
+        self.assertIn("data.state !== 'fresh'",wf)
+        self.assertIn("state:'closed', state_reason:'completed'",wf)
+        self.assertIn("steps.health.outcome == 'failure'",wf)
 
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
