@@ -95,7 +95,9 @@ async function main(){
       console.log('AXE_VIEW',JSON.stringify({
         period,width,height,violations:result.violations.map(v=>({
           id:v.id,impact:v.impact,count:v.count,targets:v.nodes.map(n=>n.target)
-        })),incomplete:result.incomplete.length
+        })),incomplete:result.incomplete.map(v=>({
+          id:v.id,impact:v.impact,count:v.count,targets:v.nodes.slice(0,12).map(n=>n.target)
+        }))
       }));
     }
     const violations=results.flatMap(x=>x.violations.map(v=>({
