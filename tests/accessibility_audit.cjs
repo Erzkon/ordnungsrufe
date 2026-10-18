@@ -67,6 +67,7 @@ async function inspectAccessibilityTree(page,period){
     const chosen=await read('#period-'+period);
     const other=await read('#period-'+(period==='20'?'21':'20'));
     const live=await read('#period-announcement');
+    const statusText=await page.$eval('#period-announcement',el=>el.textContent||'');
     const search=await read('#search');
     const group=await read('#group-filter');
     const source=await read('#records-body a.source-link');
@@ -74,10 +75,11 @@ async function inspectAccessibilityTree(page,period){
     const table=await read('.table-scroller');
     const checks={
       main:main.role==='main',
-      chosen:chosen.role==='button'&&chosen.properties.pressed===true,
-      other:other.role==='button'&&other.properties.pressed===false,
-      switchStatus:live.role==='status'&&live.name.includes(period+'. Wahlperiode')&&
-        (period!=='21'||live.name.includes('Unvollständige Auswahl')),
+      chosen:chosen.role==='button'&&chosen.properties.pressed==='true',
+      other:other.role==='button'&&other.properties.pressed==='false',
+      switchStatus:live.role==='status'&&live.properties.live==='polite'&&
+        statusText.includes(period+'. Wahlperiode')&&
+        (period!=='21'||statusText.includes('Unvollständige Auswahl')),
       search:search.role==='searchbox'&&search.name.includes('PERSON ODER SITZUNG'),
       group:group.role==='combobox'&&group.name.includes('ZUGEHÖRIGKEIT'),
       source:source.role==='link'&&source.name.includes('Protokoll')&&
@@ -86,7 +88,7 @@ async function inspectAccessibilityTree(page,period){
       table:table.role==='region'&&table.name.includes('Horizontale Maßnahmen-Tabelle')
     };
     const failed=Object.entries(checks).filter(([,ok])=>!ok).map(([name])=>name);
-    const snapshot={period,checks,main,chosen,other,live,search,group,source,ranking,table};
+    const snapshot={period,checks,statusText,main,chosen,other,live,search,group,source,ranking,table};
     if(failed.length)throw new Error('ACCESSIBILITY_TREE_MISMATCH '+
       JSON.stringify({failed,snapshot}));
     return snapshot;
