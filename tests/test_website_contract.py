@@ -39,6 +39,25 @@ class TestWebsiteContract(unittest.TestCase):
         missing=refs-set(self.identifiers)
         self.assertEqual(missing,set(),f'JavaScript points to missing HTML elements: {missing}')
 
+    def test_accessible_navigation_and_horizontal_table(self):
+        self.assertIn('<main id="inhalt" tabindex="-1">',self.html)
+        self.assertIn('class="skip-link" href="#inhalt"',self.html)
+        self.assertIn('class="table-scroller" role="region"',self.html)
+        self.assertIn('aria-label="Horizontale Maßnahmen-Tabelle" tabindex="0"',self.html)
+        self.assertIn('id="records-caption" class="sr-only"',self.html)
+        self.assertIn('id="period-announcement" class="sr-only" role="status"',self.html)
+        self.assertIn('aria-live="polite" aria-atomic="true"',self.html)
+
+    def test_keyboard_ranking_controls_focus_and_period_announces_scope(self):
+        self.assertIn('$(filterName).focus({preventScroll:true});',self.js)
+        self.assertIn("$('period-announcement').textContent",self.js)
+        self.assertIn('Unvollständige Auswahl, keine Gesamtzahl.',self.js)
+        self.assertIn("$('records-caption').textContent",self.js)
+
+    def test_manual_case_review_link_keeps_no_automatic_counting(self):
+        self.assertIn('/blob/main/OFFENE_EINZELFAELLE.md',self.html)
+        self.assertIn('nicht repräsentativ',self.html)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',

@@ -77,10 +77,21 @@ async function main() {
     assert.equal(await visible(page,'#wp20-note'),true);
     assert.equal(await visible(page,'#wp21-note'),false);
     pass('Desktop historical baseline 135/123 and dated discrepancy');
+    await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(()=>
+      document.activeElement?.classList.contains('skip-link')),true);
+    await page.keyboard.press('Enter');
+    assert.equal(await page.evaluate(()=>location.hash),'#inhalt');
+    assert.equal(await page.evaluate(()=>document.activeElement?.id),'inhalt');
+    pass('Keyboard skip link focuses the main landmark');
     await page.screenshot({path:path.join(OUT,'desktop_wp20.png'),fullPage:true});
 
-    await page.click('#period-21');
+    await page.focus('#period-21');
+    await page.keyboard.press('Enter');
     await readyCount(page,8);
+    assert.equal(await page.$eval('#period-21',e=>e.getAttribute('aria-pressed')),'true');
+    assert.match(await textOf(page,'#period-announcement'),/Unvollständige Auswahl, keine Gesamtzahl/);
+    pass('Keyboard period switch announces incomplete WP21 sample');
     assert.match(await textOf(page,'#metric-total-label'),/BISHER EINZELN GEPRÜFT/);
     assert.equal(await visible(page,'#wp21-note'),true);
     assert.equal(await visible(page,'#wp20-note'),false);
@@ -113,6 +124,14 @@ async function main() {
     await page.type('#search','Beatrix von Storch');
     assert.equal(await textOf(page,'#result-count'),'18');
     pass('Named-person historical filter respects individually reviewed count');
+    await page.focus('#people-ranking .bar-row');
+    await page.keyboard.press('Enter');
+    const filterFocus=await page.evaluate(()=>({
+      id:document.activeElement?.id,value:document.querySelector('#search').value
+    }));
+    assert.equal(filterFocus.id,'search');
+    assert.ok(filterFocus.value.length>0);
+    pass('Keyboard ranking filter transfers focus to the search control');
 
     await page.setViewport({width:390,height:844,deviceScaleFactor:2,isMobile:true,
       hasTouch:true});
@@ -133,6 +152,19 @@ async function main() {
     assert.equal(geometry.metaVisible,true);
     await page.screenshot({path:path.join(OUT,'mobile_wp21.png'),fullPage:true});
     pass('Mobile 390px partial WP21 fits viewport');
+    await page.focus('.table-scroller');
+    const region=await page.$eval('.table-scroller',box=>({
+      focused:document.activeElement===box,
+      overflow:box.scrollWidth>box.clientWidth,
+      role:box.getAttribute('role')
+    }));
+    assert.equal(region.focused,true);
+    assert.equal(region.role,'region');
+    assert.equal(region.overflow,true);
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(()=>
+      document.querySelector('.table-scroller').scrollLeft>0,{timeout:4000});
+    pass('Mobile horizontal table is keyboard focusable and scrollable');
 
     const srcs=await page.$$eval('#records-body a.source-link',links=>
       links.map(link=>({href:link.href,target:link.target,rel:link.rel})));
