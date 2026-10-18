@@ -65,3 +65,7 @@ Zusätzlich zu den acht Axe-Prüfungen wird über das Chrome DevTools Protocol d
 ## Zustandswechsel zusätzlich geprüft (18.10.2026)
 
 Die Axe-Prüfung untersucht auf **1366 und 390 CSS-Pixeln** zusätzlich für beide Wahlperioden den **dynamischen leeren Suchzustand**: tatsächliche Tastatureingabe, Fokus im Suchfeld, sichtbare Leermeldung und unveränderte geprüfte Gesamtzahl. Danach wird die gerenderte Oberfläche erneut mit denselben WCAG-A/AA- und Best-Practice-Regeln bewertet. Unabhängig davon läuft die komplette Acht-Ansichten-Prüfung in der PR-CI zusätzlich mit einem **temporär generierten Quellenstatusbericht**; reale GitHub-Pages-Daten werden dabei nicht überschrieben und nichts veröffentlicht. Jeder gemeldete Verstoß stoppt den PR-Workflow.
+
+## Leerer Suchzustand – zusätzliche gemessene Korrektur
+
+Die erste Interaktionsmessung im dynamischen Leerzustand identifizierte für „Keine passenden Maßnahmen“ auf Weiß ein tatsächliches Kontrastverhältnis von **4,02:1**. Die Statusmeldung verwendet jetzt `#53616b` statt `#70818d`; der neue Interaktions-Axe-Test überwacht diesen Zustand in beiden Wahlperioden auf Desktop und Mobil verbindlich.

@@ -87,6 +87,11 @@ class TestWebsiteContract(unittest.TestCase):
         smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
         self.assertIn("name:'forced-colors',value:'active'",smoke)
 
+    def test_empty_search_notice_keeps_readable_contrast(self):
+        style=(ROOT/'styles.css').read_text(encoding='utf-8')
+        self.assertIn('.empty-state{text-align:center;color:#53616b',style)
+        self.assertNotIn('.empty-state{text-align:center;color:#70818d',style)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',
