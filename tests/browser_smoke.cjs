@@ -190,6 +190,30 @@ async function main() {
     assert.equal(await page.evaluate(()=>document.activeElement?.id),'load-more');
     assert.equal(await textOf(page,'#metric-total'),'135');
     pass('Keyboard load-more preserves focus and verified total');
+    // Complete the remaining pages with Enter. On the final activation,
+    // the button becomes hidden and focus must not disappear.
+    for(let count=45;count<=135;count+=15){
+      await page.keyboard.press('Enter');
+      assert.equal(await textOf(page,'#showing-count'),
+        count+' von 135 Einträgen angezeigt');
+      assert.equal(await textOf(page,'#metric-total'),'135');
+      if(count<135){
+        assert.equal(await page.evaluate(()=>document.activeElement?.id),'load-more');
+      } else {
+        const end=await page.evaluate(()=>({
+          hidden:document.querySelector('#load-more').hidden,
+          focusTag:document.activeElement?.tagName,
+          focusIndex:[...document.querySelectorAll('#records-body tr')]
+            .indexOf(document.activeElement),
+          rowCount:document.querySelectorAll('#records-body tr').length
+        }));
+        assert.equal(end.hidden,true);
+        assert.equal(end.focusTag,'TR');
+        assert.equal(end.focusIndex,120);
+        assert.equal(end.rowCount,135);
+      }
+    }
+    pass('Final keyboard pagination retains focus on first newly revealed row');
 
     // Microsoft/Windows high-contrast emulation: selected period and focus
     // must remain distinguishable without relying only on fill colours.

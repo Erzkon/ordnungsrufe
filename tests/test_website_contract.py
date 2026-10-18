@@ -92,6 +92,15 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn('.empty-state{text-align:center;color:#53616b',style)
         self.assertNotIn('.empty-state{text-align:center;color:#70818d',style)
 
+    def test_last_page_focus_after_load_button_disappears(self):
+        self.assertIn("const previouslyShown = $('records-body').rows.length;",self.js)
+        self.assertIn("const newRow = $('records-body').rows[previouslyShown];",self.js)
+        self.assertIn('newRow.tabIndex = -1;',self.js)
+        self.assertIn('newRow.focus({preventScroll:false});',self.js)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('Final keyboard pagination retains focus',smoke)
+        self.assertIn('count<=135',smoke)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',

@@ -75,3 +75,7 @@
   .source-link{text-decoration:underline}
   .table-scroller:focus-visible{outline:3px solid Highlight}
 }
+
+/* Preserve a visible keyboard focus when the last pagination button disappears. */
+#records-body tr:focus-visible{outline:3px solid #84531d;outline-offset:-3px}
+@media(forced-colors:active){#records-body tr:focus-visible{outline:3px solid Highlight}}

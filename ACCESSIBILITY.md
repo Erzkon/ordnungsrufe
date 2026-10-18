@@ -73,3 +73,7 @@ Die erste Interaktionsmessung im dynamischen Leerzustand identifizierte für „
 ## Nachweisbarkeit der Negativkontrolle
 
 Eine frühe Fassung des erweiterten dynamischen Audits brach bei einem absichtlich fehlerhaften Button vor dem JSON-Export ab. Nun werden Verstöße aus **Standardansichten und dynamischen Leerzuständen zuerst gemeinsam als `violationsTotal` protokolliert** und erst danach mit `AXE_ENFORCE=1` als Blocker ausgewertet. Die Negativkontrolle muss so den konkreten Treffer `button-name` aus dem geschriebenen Bericht nachweisen können, statt lediglich einen fehlgeschlagenen Prozess zu beobachten.
+
+## Fokus nach der letzten Paginierungsseite
+
+Bei Tastaturbedienung bleibt der Fokus beim Knopf „Weitere Einträge anzeigen“, solange weitere Seiten vorhanden sind. Wird die **letzte** Seite geladen, verschwindet der Knopf. In diesem Fall setzt die Website den Fokus ausdrücklich auf die erste neu erschienene Tabellenzeile, statt den Fokus stillschweigend auf den Seitenanfang zu verlieren. Ein echter Chrome-Test bedient nun **alle** 135 historischen Einträge mit Enter und kontrolliert die Fokusübernahme beim letzten Schritt; sichtbare Fokuskonturen sind auch für erzwungene Farben vorgesehen.

@@ -472,7 +472,20 @@ function start() {
     $('search').value='';$('group-filter').value='';$('sort').value='newest';
     state.visible=ITEMS_PER_PAGE;renderRecords();
   });
-  $('load-more').addEventListener('click',()=>{state.visible+=ITEMS_PER_PAGE;renderRecords();});
+  $('load-more').addEventListener('click',()=>{
+    const previouslyShown = $('records-body').rows.length;
+    state.visible += ITEMS_PER_PAGE;
+    renderRecords();
+    if ($('load-more').hidden) {
+      // When the triggering button disappears, move focus to the first
+      // newly appended row instead of leaving keyboard focus on <body>.
+      const newRow = $('records-body').rows[previouslyShown];
+      if (newRow) {
+        newRow.tabIndex = -1;
+        newRow.focus({preventScroll:false});
+      }
+    }
+  });
   for(const period of ['20','21']) {
     $(`period-${period}`).addEventListener('click',()=>activate(period));
   }
