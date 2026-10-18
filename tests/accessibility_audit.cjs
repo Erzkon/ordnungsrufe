@@ -64,7 +64,7 @@ async function auditPage(browser,url,period,width,height){
     const sample=rule=>({
       id:rule.id,impact:rule.impact,description:rule.help,
       helpUrl:rule.helpUrl,count:rule.nodes.length,
-      nodes:rule.nodes.slice(0,12).map(node=>({
+      nodes:rule.nodes.slice(0,90).map(node=>({
         target:node.target,html:node.html.slice(0,280),
         failureSummary:node.failureSummary?.slice(0,420)||null
       }))

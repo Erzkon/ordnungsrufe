@@ -46,14 +46,14 @@ function ranking(container, entries, kind) {
   entries.forEach(([name, count], index) => {
     const button = el('button', 'bar-row');
     button.type = 'button';
-    button.setAttribute('aria-label', `${name}: ${count} geprüfte Ordnungsrufe. Einträge anzeigen`);
+    // Visible rank, person and count remain part of the accessible button name.
     const heading = el('span', 'bar-heading');
     heading.append(el('span', 'bar-title', `${String(index + 1).padStart(2, '0')}  ${name}`), el('span', 'bar-value', count));
     const rail = el('span', 'bar-rail');
     const fill = el('span', 'bar-fill');
     fill.style.width = `${100 * count / max}%`;
     rail.append(fill);
-    button.append(heading, rail);
+    button.append(heading, rail, el('span', 'sr-only', ' Einträge anzeigen'));
     button.addEventListener('click', () => applyFilterAndScroll(kind === 'person' ? 'search' : 'group-filter', name));
     root.append(button);
   });

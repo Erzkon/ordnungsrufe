@@ -930,6 +930,7 @@ jobs:
         if: github.event_name != 'pull_request'
         run: node tests/browser_smoke.cjs
       - name: WCAG A/AA und Best-Practice-Audit vor produktiver Veroeffentlichung
+        if: github.event_name != 'pull_request'
         env:
           AXE_ENFORCE: '0'
         run: node tests/accessibility_audit.cjs

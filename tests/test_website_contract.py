@@ -58,6 +58,17 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn('/blob/main/OFFENE_EINZELFAELLE.md',self.html)
         self.assertIn('nicht repräsentativ',self.html)
 
+    def test_dynamic_accessible_names_include_visible_label(self):
+        self.assertNotIn('aria-label="Ordnungsruf-Counter',self.html)
+        self.assertNotIn("button.setAttribute('aria-label'",self.js)
+        self.assertIn("el('span', 'sr-only', ' Einträge anzeigen')",self.js)
+
+    def test_axe_contrast_patches_are_kept(self):
+        stylesheet=(ROOT/'styles.css').read_text(encoding='utf-8')
+        self.assertIn('--muted:#53616b',stylesheet)
+        self.assertIn('--gold-dark:#84531d',stylesheet)
+        self.assertIn('color:#58646e',stylesheet)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',
