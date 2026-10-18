@@ -511,6 +511,10 @@ function start() {
     showCoverageAudit();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
+    const alert=$('data-error');
+    alert.textContent='Die bestätigten Datensätze konnten nicht sicher geladen werden. '+
+      'Es werden keine ungeprüften Zahlen angezeigt. Bitte die Seite erneut laden.';
+    alert.hidden=false;
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
     $('group-ranking').textContent='Die Daten konnten nicht geladen werden.';
     $('records-body').replaceChildren();

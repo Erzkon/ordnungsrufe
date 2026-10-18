@@ -355,7 +355,20 @@ async function main() {
       ()=>document.querySelector('#people-ranking')?.textContent.includes('Daten konnten nicht geladen werden'),
       {timeout:12000});
     assert.equal(await textOf(broken,'#metric-total'),'—');
-    pass('Tampered unlabelled WP21 input blocks both rankings');
+    assert.equal(await visible(broken,'#data-error'),true);
+    assert.equal(await broken.$eval('#data-error',node=>node.getAttribute('role')),'alert');
+    assert.match(await textOf(broken,'#data-error'),/keine ungeprüften Zahlen/);
+    await broken.addScriptTag({content:axe.source});
+    const tamperedViolations=await broken.evaluate(async()=>{
+      const report=await window.axe.run(document,{
+        runOnly:{type:'tag',values:[
+          'wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa','best-practice'
+        ]},resultTypes:['violations']
+      });
+      return report.violations.map(v=>v.id);
+    });
+    assert.deepEqual(tamperedViolations,[]);
+    pass('Tampered unlabelled WP21 input raises an accessible alert and blocks counts');
     await broken.close();
     assert.deepEqual(browserErrors,[],'Uncaught browser JavaScript exceptions');
     pass('No uncaught JavaScript errors in valid views');

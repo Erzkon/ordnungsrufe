@@ -101,6 +101,15 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn('Final keyboard pagination retains focus',smoke)
         self.assertIn('count<=135',smoke)
 
+    def test_invalid_published_dataset_shows_accessible_error_without_numbers(self):
+        self.assertIn('id="data-error"',self.html)
+        self.assertIn('role="alert" hidden',self.html)
+        self.assertIn("const alert=$('data-error');",self.js)
+        self.assertIn("alert.hidden=false;",self.js)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn("getAttribute('role')),'alert'",smoke)
+        self.assertIn("tamperedViolations",smoke)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',
