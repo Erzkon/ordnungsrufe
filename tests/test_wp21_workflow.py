@@ -97,6 +97,19 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('tests/accessibility_audit.cjs',pr)
         self.assertNotIn('continue-on-error: true',pr)
 
+    def test_reflow_and_reduced_motion_are_part_of_blocking_a11y_gate(self):
+        audit=Path('tests/accessibility_audit.cjs').read_text(encoding='utf-8')
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn("['20',320,720]",audit)
+        self.assertIn("['21',320,720]",audit)
+        self.assertIn("['20',640,900]",audit)
+        self.assertIn("['21',640,900]",audit)
+        self.assertIn('WCAG reflow horizontal document overflow',audit)
+        self.assertIn('prefers-reduced-motion',audit)
+        self.assertIn("320px narrow reflow",smoke)
+        self.assertIn("Keyboard load-more preserves focus",smoke)
+        self.assertIn("AXE_ENFORCE: '1'",self.workflow)
+
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
         self.assertIn("github.ref == 'refs/heads/main'", self.workflow)

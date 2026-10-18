@@ -2,7 +2,7 @@
 
 **Stand 18.10.2026 · Änderungen nur über reviewten Pull Request.**
 
-Die Website führt jetzt zusätzlich zum echten Desktop-/Mobil-Chrome-Smoke einen automatisierten [axe-core](https://github.com/dequelabs/axe-core)-Audit durch. Der Audit testet **vier reale Zustände**: 20. und 21. Wahlperiode jeweils auf Desktop (1366 × 900) und Mobil (390 × 844).
+Die Website führt jetzt zusätzlich zum echten Desktop-/Mobil-Chrome-Smoke einen automatisierten [axe-core](https://github.com/dequelabs/axe-core)-Audit durch. Der Audit testet **acht reale Zustände**: 20. und 21. Wahlperiode jeweils mit 1366, 640, 390 und 320 CSS-Pixeln Breite. Die kleineren Breiten bilden Reflow-Anforderungen bei größerer Darstellung näherungsweise ab, stellen aber keine tatsächlichen 200- oder 400-Prozent-Zoomtests dar.
 
 ## Reproduzierbar
 
@@ -37,3 +37,11 @@ Die Website bleibt ein unabhängiges nichtamtliches Projekt. Ihre historischen Z
 Der erfolgreiche axe-Prüflauf vom 18.10.2026 (PR #9) meldete **null bestätigte automatische Verstöße** in vier Ansichten. Unter `incomplete` verblieben jedoch insbesondere auf Mobilgeräten einzelne Kontrastbewertungen: dynamischer Hero-Text, dekorative Pfeilsymbole und Zellen der horizontal scrollbaren Tabelle. Solche `incomplete`-Regeln sind **keine bestandenen Prüfungen**, sondern gezielt in Browser, Zoom- und Screenreader-Umgebungen nachzuprüfen. Der außerdem aufgetretene unklare ARIA-Kontext für die DIP-Fallregion wurde durch eine explizite benannte `role="region"`-Kennzeichnung präzisiert.
 
 Eine manuelle NVDA-/VoiceOver-Stichprobe muss noch folgen, bevor eine umfassende Konformitätsaussage zulässig wäre.
+
+## Zusätzliche Reflow-, Tastatur- und Bewegungsprüfungen (18.10.2026)
+
+- Die verbindliche Axe-Prüfung untersucht beide Wahlperioden jetzt auch bei **640 und 320 CSS-Pixeln** auf document-weiten Überlauf. Die separat horizontal scrollbare Quellentabelle bleibt absichtlich innerhalb ihres fokussierbaren Bereichs verschiebbar.
+- Bei 320 CSS-Pixeln wird `prefers-reduced-motion: reduce` simuliert und geprüft, ob glattes Scrollen und Buttonanimationen deaktiviert sind. Das ist eine Computed-Style-Prüfung im Chrome, kein Screenreader-Test.
+- Der funktionale Chrome-Smoke überprüft außerdem, dass mit **Enter** auf „Weitere Einträge anzeigen“ die nächste Seite erscheint, der Fokus am Button bleibt und die historische Gesamtzahl unverändert ist.
+
+**Grenze:** Geräteemulation und CSS-Reflow-Checks ersetzen weder optisches Vergrößern bei 200/400 % auf mehreren echten Browsern noch Screenreader- und Hochkontrasttests. Unklare Axe-Ergebnisse bleiben dokumentiert.

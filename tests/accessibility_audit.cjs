@@ -47,6 +47,9 @@ async function auditPage(browser,url,period,width,height){
   try {
     await page.setViewport({width,height,deviceScaleFactor:width<600?2:1,
       isMobile:width<600,hasTouch:width<600});
+    if(width===320)await page.emulateMediaFeatures([
+      {name:'prefers-reduced-motion',value:'reduce'}
+    ]);
     await page.goto(url+'?wp='+period,{waitUntil:'load'});
     await page.waitForFunction(expected=>{
       return document.querySelector('#metric-total')?.textContent.trim()===expected &&
@@ -56,6 +59,33 @@ async function auditPage(browser,url,period,width,height){
       const el=document.querySelector('#wp21-health');
       return el && (el.hidden || !el.textContent.includes('wird geladen'));
     },{timeout:12000});
+    // WCAG 1.4.10 reflow proxy: at 320 CSS pixels, content must not widen
+    // the document. A scrollable, keyboard-focusable data table is exempt.
+    const reflow=await page.evaluate(()=>{
+      const doc=document.documentElement;
+      const table=document.querySelector('.table-scroller');
+      const button=document.querySelector('.hero-actions .button');
+      return {
+        viewport:doc.clientWidth,documentWidth:doc.scrollWidth,
+        tableScrollable:table.scrollWidth>table.clientWidth,
+        tableFocusable:table.tabIndex===0,
+        reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,
+        scrollBehavior:getComputedStyle(doc).scrollBehavior,
+        buttonTransition:getComputedStyle(button).transitionDuration
+      };
+    });
+    if(reflow.documentWidth>reflow.viewport+3){
+      throw new Error('WCAG reflow horizontal document overflow: '+
+        JSON.stringify({period,width,...reflow}));
+    }
+    if(width===320 && (!reflow.reducedMotion || reflow.scrollBehavior!=='auto' ||
+      reflow.buttonTransition!=='0s')){
+      throw new Error('Reduced-motion preference not respected: '+
+        JSON.stringify({period,width,...reflow}));
+    }
+    if(width<=390 && (!reflow.tableScrollable || !reflow.tableFocusable)){
+      throw new Error('Mobile records table must stay scrollable and keyboard focusable');
+    }
     await page.addScriptTag({content:axe.source});
     const result=await page.evaluate(async tags=>window.axe.run(document,{
       runOnly:{type:'tag',values:tags},
@@ -73,6 +103,7 @@ async function auditPage(browser,url,period,width,height){
       viewport:width+'x'+height,
       period,
       incomplete_21st:period==='21',
+      reflow,
       checkedRules:result.violations.length+result.passes.length+result.incomplete.length,
       violations:result.violations.map(sample),
       incomplete:result.incomplete.map(sample),
@@ -87,13 +118,21 @@ async function main(){
   try{
     browser=await puppeteer.launch({headless:true,executablePath:chromePath(),
       args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
-    const targets=[['20',1366,900],['21',1366,900],['20',390,844],['21',390,844]];
+    // 640px ~ desktop 200% CSS reflow; 320px ~ desktop 400% CSS reflow.
+    // These viewports are proxies, not an actual Chrome optical-zoom audit.
+    const targets=[
+      ['20',1366,900],['21',1366,900],
+      ['20',640,900],['21',640,900],
+      ['20',390,844],['21',390,844],
+      ['20',320,720],['21',320,720]
+    ];
     const results=[];
     for(const [period,width,height] of targets){
       const result=await auditPage(browser,url,period,width,height);
       results.push(result);
       console.log('AXE_VIEW',JSON.stringify({
-        period,width,height,violations:result.violations.map(v=>({
+        period,width,height,reflow:result.reflow,
+        violations:result.violations.map(v=>({
           id:v.id,impact:v.impact,count:v.count,targets:v.nodes.map(n=>n.target)
         })),incomplete:result.incomplete.map(v=>({
           id:v.id,impact:v.impact,count:v.count,targets:v.nodes.slice(0,12).map(n=>n.target)
@@ -106,6 +145,8 @@ async function main(){
     const report={schema:'ordnungsrufe-axe-accessibility-v1',enforce:ENFORCE,
       analysis_only:true,statistic_files_changed:false,
       ruleTags:TAGS,views:results,violationsTotal:violations.length,
+      reflowChecks:results.length,
+      reducedMotionChecks:results.filter(x=>x.reflow.reducedMotion).length,
       violationNodes:results.reduce((n,v)=>n+v.violationNodes,0),
       manualScreenReaderReviewStillRequired:true};
     fs.writeFileSync(path.join(OUT,'axe_report.json'),JSON.stringify(report,null,2)+'\n');
@@ -121,7 +162,9 @@ async function main(){
     ];
     fs.writeFileSync(path.join(OUT,'summary.md'),summary.join('\n')+'\n');
     console.log('AXE_AUDIT_SUMMARY',JSON.stringify({
-      views:results.length,violations:report.violationsTotal,
+      views:results.length,reflowChecks:report.reflowChecks,
+      reducedMotionChecks:report.reducedMotionChecks,
+      violations:report.violationsTotal,
       nodes:report.violationNodes,enforced:ENFORCE
     }));
     if(ENFORCE&&violations.length)process.exitCode=1;

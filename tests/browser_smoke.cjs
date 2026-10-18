@@ -166,6 +166,34 @@ async function main() {
       document.querySelector('.table-scroller').scrollLeft>0,{timeout:4000});
     pass('Mobile horizontal table is keyboard focusable and scrollable');
 
+    await page.setViewport({width:320,height:720,deviceScaleFactor:2,
+      isMobile:true,hasTouch:true});
+    await page.goto(url+'?wp=20',{waitUntil:'load'});
+    await readyCount(page,135);
+    const narrow=await page.evaluate(()=>({
+      viewport:document.documentElement.clientWidth,
+      width:document.documentElement.scrollWidth,
+      tableScroll:document.querySelector('.table-scroller').scrollWidth>
+        document.querySelector('.table-scroller').clientWidth,
+      total:document.querySelector('#metric-total').textContent.trim()
+    }));
+    if(narrow.width>narrow.viewport+3)
+      fail('320px reflow','Unexpected whole-page overflow '+JSON.stringify(narrow));
+    assert.equal(narrow.tableScroll,true);
+    assert.equal(narrow.total,'135');
+    pass('320px narrow reflow preserves verified totals and horizontal table access');
+
+    await page.focus('#load-more');
+    await page.keyboard.press('Enter');
+    assert.equal(await textOf(page,'#showing-count'),'30 von 135 Einträgen angezeigt');
+    assert.equal(await page.evaluate(()=>document.activeElement?.id),'load-more');
+    assert.equal(await textOf(page,'#metric-total'),'135');
+    pass('Keyboard load-more preserves focus and verified total');
+
+    await page.setViewport({width:390,height:844,deviceScaleFactor:2,
+      isMobile:true,hasTouch:true});
+    await page.goto(url+'?wp=21',{waitUntil:'load'});
+    await readyCount(page,8);
     const srcs=await page.$$eval('#records-body a.source-link',links=>
       links.map(link=>({href:link.href,target:link.target,rel:link.rel})));
     assert.ok(srcs.length>0);
@@ -196,7 +224,8 @@ async function main() {
     pass('No uncaught JavaScript errors in valid views');
     const report={schema:'ordnungsrufe-v1-browser-smoke-v1',
       result:'pass',checks:steps,
-      viewports:['1366x900 desktop WP20','390x844 mobile WP21'],
+      viewports:['1366x900 desktop WP20','390x844 mobile WP21',
+        '320x720 narrow WP20'],
       legal_effect_inferred:false,counter_files_changed:false,
       screenshots:['desktop_wp20.png','mobile_wp21.png'],
       source_health_on_render:HAS_PUBLISHED_HEALTH
