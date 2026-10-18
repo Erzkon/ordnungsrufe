@@ -45,3 +45,9 @@ Eine manuelle NVDA-/VoiceOver-Stichprobe muss noch folgen, bevor eine umfassende
 - Der funktionale Chrome-Smoke überprüft außerdem, dass mit **Enter** auf „Weitere Einträge anzeigen“ die nächste Seite erscheint, der Fokus am Button bleibt und die historische Gesamtzahl unverändert ist.
 
 **Grenze:** Geräteemulation und CSS-Reflow-Checks ersetzen weder optisches Vergrößern bei 200/400 % auf mehreren echten Browsern noch Screenreader- und Hochkontrasttests. Unklare Axe-Ergebnisse bleiben dokumentiert.
+
+## Ergänzte praktische Prüfung vor dem nächsten Merge
+
+Der Browser-Smoke prüft zusätzlich eine **320-CSS-Pixel-Ansicht** mit Screenshot, die tastaturgesteuerte Paginierung („Weitere Einträge anzeigen“) sowie im Chromium **emulierte erzwungene Farben**. Im CSS sind markierte Perioden und Ranglistenbalken in diesem Modus nicht nur durch Farbfüllung erkennbar. Auf Smartphones wurden besonders kleine Beschriftungen angehoben; Formularnamen stammen weiterhin von sichtbaren `label`-Elementen.
+
+Die konkreten manuellen Aufgaben stehen in [ACCESSIBILITY_MANUAL_CHECKLIST.md](ACCESSIBILITY_MANUAL_CHECKLIST.md). Diese Checkliste ist **noch nicht als bestanden** markiert. Eine Emulation von `forced-colors` ist keine echte Windows-High-Contrast-Systemprüfung.

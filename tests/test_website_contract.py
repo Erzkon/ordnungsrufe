@@ -74,6 +74,19 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn("link.append(el('span','sr-only'",self.js)
         self.assertIn("link.rel = 'noopener noreferrer'",self.js)
 
+    def test_native_form_labels_and_mobile_legibility(self):
+        self.assertNotIn('aria-label="Nach Person oder Sitzungsnummer suchen"',self.html)
+        self.assertNotIn('aria-label="Historische Zugehörigkeit filtern"',self.html)
+        self.assertNotIn('aria-label="Reihenfolge"',self.html)
+        for text in ('PERSON ODER SITZUNG','ZUGEHÖRIGKEIT','SORTIERUNG'):
+            self.assertIn(f'<span>{text}</span>',self.html)
+        stylesheet=(ROOT/'styles.css').read_text(encoding='utf-8')
+        self.assertIn('.metric-label{font-size:11px',stylesheet)
+        self.assertIn('.metric-foot{font-size:12px',stylesheet)
+        self.assertIn('@media(forced-colors:active)',stylesheet)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn("name:'forced-colors',value:'active'",smoke)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',

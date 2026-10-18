@@ -56,3 +56,22 @@
 /* Accessible-only status text and focus for horizontally scrollable records. */
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .table-scroller:focus-visible{outline:3px solid #b66e14;outline-offset:-3px}
+
+/* WCAG-oriented small-screen readability: avoid 8-10px informational labels. */
+@media(max-width:430px){
+  .metric-label{font-size:11px;letter-spacing:.05em;line-height:1.5}
+  .metric-foot{font-size:12px;line-height:1.45}
+  .hero-bottom{font-size:11px}
+  .nav a{font-size:12px}
+  .panel-hint{font-size:12px}
+  .section-heading p{font-size:14px}
+}
+/* Preserve non-colour state and input boundaries in Windows High Contrast. */
+@media(forced-colors:active){
+  .period-button{border:1px solid ButtonText}
+  .period-button.is-active{outline:2px solid Highlight;outline-offset:2px}
+  .bar-rail{border:1px solid CanvasText}
+  .bar-fill{background:Highlight}
+  .source-link{text-decoration:underline}
+  .table-scroller:focus-visible{outline:3px solid Highlight}
+}

@@ -182,6 +182,7 @@ async function main() {
     assert.equal(narrow.tableScroll,true);
     assert.equal(narrow.total,'135');
     pass('320px narrow reflow preserves verified totals and horizontal table access');
+    await page.screenshot({path:path.join(OUT,'narrow_wp20.png'),fullPage:true});
 
     await page.focus('#load-more');
     await page.keyboard.press('Enter');
@@ -189,6 +190,22 @@ async function main() {
     assert.equal(await page.evaluate(()=>document.activeElement?.id),'load-more');
     assert.equal(await textOf(page,'#metric-total'),'135');
     pass('Keyboard load-more preserves focus and verified total');
+
+    // Microsoft/Windows high-contrast emulation: selected period and focus
+    // must remain distinguishable without relying only on fill colours.
+    await page.emulateMediaFeatures([{name:'forced-colors',value:'active'}]);
+    const contrast=await page.evaluate(()=>{
+      const active=document.querySelector('#period-20');
+      const rail=document.querySelector('#people-ranking .bar-rail');
+      return {emulated:matchMedia('(forced-colors: active)').matches,
+        selectedOutline:getComputedStyle(active).outlineStyle,
+        railBorder:getComputedStyle(rail).borderStyle};
+    });
+    assert.equal(contrast.emulated,true);
+    assert.notEqual(contrast.selectedOutline,'none');
+    assert.notEqual(contrast.railBorder,'none');
+    pass('Forced-colors mode distinguishes selected period and chart boundaries');
+    await page.emulateMediaFeatures([{name:'forced-colors',value:'none'}]);
 
     await page.setViewport({width:390,height:844,deviceScaleFactor:2,
       isMobile:true,hasTouch:true});
@@ -227,7 +244,7 @@ async function main() {
       viewports:['1366x900 desktop WP20','390x844 mobile WP21',
         '320x720 narrow WP20'],
       legal_effect_inferred:false,counter_files_changed:false,
-      screenshots:['desktop_wp20.png','mobile_wp21.png'],
+      screenshots:['desktop_wp20.png','mobile_wp21.png','narrow_wp20.png'],
       source_health_on_render:HAS_PUBLISHED_HEALTH
         ? 'generated_manifest_displayed' : 'missing_manifest_disclosed_in_PR_preview',
       publication:'none_PR_only'};
