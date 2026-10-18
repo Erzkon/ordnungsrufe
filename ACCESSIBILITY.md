@@ -31,3 +31,9 @@ Die daraufhin vorgenommenen Verbesserungen:
 Automatische Regelprüfungen **ersetzen keine umfassende WCAG-Konformitätsprüfung**, keinen echten NVDA-, VoiceOver- oder TalkBack-Test und keine manuelle Prüfung von Vergrößerung, Kontrastmodi, Zeitverhalten, Tastatur-Fokusfolgen und Sinnverständlichkeit. `incomplete`-Ergebnisse von axe werden im JSON dokumentiert und müssen bei manueller Abnahme einzeln beurteilt werden.
 
 Die Website bleibt ein unabhängiges nichtamtliches Projekt. Ihre historischen Zähler (20. WP: 135 Maßnahmen, 123 Ereignisse) und die ausdrücklich unvollständige 21.-WP-Auswahl von acht Maßnahmen werden **durch den Accessibility-Audit nie verändert**.
+
+## Derzeit noch manuell zu prüfen
+
+Der erfolgreiche axe-Prüflauf vom 18.10.2026 (PR #9) meldete **null bestätigte automatische Verstöße** in vier Ansichten. Unter `incomplete` verblieben jedoch insbesondere auf Mobilgeräten einzelne Kontrastbewertungen: dynamischer Hero-Text, dekorative Pfeilsymbole und Zellen der horizontal scrollbaren Tabelle. Solche `incomplete`-Regeln sind **keine bestandenen Prüfungen**, sondern gezielt in Browser, Zoom- und Screenreader-Umgebungen nachzuprüfen. Der außerdem aufgetretene unklare ARIA-Kontext für die DIP-Fallregion wurde durch eine explizite benannte `role="region"`-Kennzeichnung präzisiert.
+
+Eine manuelle NVDA-/VoiceOver-Stichprobe muss noch folgen, bevor eine umfassende Konformitätsaussage zulässig wäre.
