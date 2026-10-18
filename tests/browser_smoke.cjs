@@ -284,7 +284,7 @@ async function main() {
     };
     const monitoredScenarios=[
       {kind:'fresh',state:'fresh',message:/7 von 7/},
-      {kind:'degraded',state:'degraded',message:/DIP-Verfahrensschritte \\(fehlt\\)/},
+      {kind:'degraded',state:'degraded',message:/DIP-Verfahrensschritte \(fehlt\)/},
       {kind:'stale',state:'stale',message:/Quellenüberwachung veraltet/},
       {kind:'invalid',state:'missing',message:/nicht verfügbar/},
       {kind:'future',state:'missing',message:/nicht verfügbar/}
