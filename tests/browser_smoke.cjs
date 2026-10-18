@@ -193,7 +193,12 @@ async function main() {
 
     // Microsoft/Windows high-contrast emulation: selected period and focus
     // must remain distinguishable without relying only on fill colours.
-    await page.emulateMediaFeatures([{name:'forced-colors',value:'active'}]);
+    // Puppeteer's high-level media API does not expose forced-colors.
+    // DevTools Protocol does; keep test pinned to real Chromium support.
+    const session=await page.createCDPSession();
+    await session.send('Emulation.setEmulatedMedia',{
+      features:[{name:'forced-colors',value:'active'}]
+    });
     const contrast=await page.evaluate(()=>{
       const active=document.querySelector('#period-20');
       const rail=document.querySelector('#people-ranking .bar-rail');
@@ -205,7 +210,10 @@ async function main() {
     assert.notEqual(contrast.selectedOutline,'none');
     assert.notEqual(contrast.railBorder,'none');
     pass('Forced-colors mode distinguishes selected period and chart boundaries');
-    await page.emulateMediaFeatures([{name:'forced-colors',value:'none'}]);
+    await session.send('Emulation.setEmulatedMedia',{
+      features:[{name:'forced-colors',value:'none'}]
+    });
+    await session.detach();
 
     await page.setViewport({width:390,height:844,deviceScaleFactor:2,
       isMobile:true,hasTouch:true});
