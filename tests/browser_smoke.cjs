@@ -8,6 +8,7 @@ const os=require('node:os');
 const {execFileSync}=require('node:child_process');
 const assert=require('node:assert/strict');
 const puppeteer=require('puppeteer-core');
+const axe=require('axe-core');
 
 const ROOT=path.resolve(process.env.V1_BROWSER_DOCROOT || path.resolve(__dirname,'..','docs'));
 const OUT=path.resolve(process.env.V1_BROWSER_OUT || '.audit/browser_smoke');
@@ -250,6 +251,93 @@ async function main() {
       link.target==='_blank' && link.rel.includes('noopener') &&
       link.rel.includes('noreferrer')));
     pass('Displayed official source links open safely');
+
+    // Inject only a source-health response: no published sanctions dataset,
+    // source monitor cache or filesystem input is changed.
+    const sourceIds=[
+      'scan_21.json','autopruefung_21.json','rechtsfolgen_21.json',
+      'dip_live_21.json','dip_positionen_21.json','dip_prueffalle_21.json',
+      'vollstaendigkeit_21.json'
+    ];
+    const syntheticSourceHealth=kind=>{
+      const today=new Date().toISOString().slice(0,10);
+      const sources=Object.fromEntries(sourceIds.map(key=>[
+        key,{state:'fresh',date:today,reason:''}
+      ]));
+      const payload={
+        schema:'wp21-health-v1',all_sources_fresh:true,
+        generated_at_utc:new Date().toISOString(),sources
+      };
+      if(kind==='degraded'){
+        sources['dip_positionen_21.json']={
+          state:'missing',date:'',reason:'Missing workflow artifact'
+        };
+        payload.all_sources_fresh=false;
+      } else if(kind==='stale'){
+        payload.generated_at_utc=new Date(Date.now()-72*3600_000).toISOString();
+      } else if(kind==='invalid'){
+        sources['dip_prueffalle_21.json'].state='unreviewed-as-confirmed';
+      } else if(kind==='future'){
+        payload.generated_at_utc=new Date(Date.now()+3600_000).toISOString();
+      }
+      return payload;
+    };
+    const monitoredScenarios=[
+      {kind:'fresh',state:'fresh',message:/7 von 7/},
+      {kind:'degraded',state:'degraded',message:/DIP-Verfahrensschritte \\(fehlt\\)/},
+      {kind:'stale',state:'stale',message:/Quellenüberwachung veraltet/},
+      {kind:'invalid',state:'missing',message:/nicht verfügbar/},
+      {kind:'future',state:'missing',message:/nicht verfügbar/}
+    ];
+    for(const scenario of monitoredScenarios){
+      const monitored=await browser.newPage();
+      const payload=syntheticSourceHealth(scenario.kind);
+      try{
+        await monitored.setRequestInterception(true);
+        monitored.on('request',req=>{
+          if(req.url().endsWith('/data/quellenstatus_21.json')){
+            req.respond({status:200,contentType:'application/json',
+              body:JSON.stringify(payload)});
+          }else req.continue();
+        });
+        await monitored.goto(url+'?wp=21',{waitUntil:'load'});
+        await readyCount(monitored,8);
+        await monitored.waitForFunction((wanted)=>{
+          const status=document.querySelector('#wp21-health');
+          return status?.dataset.state===wanted &&
+            !status.hidden && !status.textContent.includes('wird geladen') &&
+            status.textContent.length>40;
+        },{timeout:12000},scenario.state);
+        const result=await monitored.evaluate(()=>({
+          state:document.querySelector('#wp21-health').dataset.state,
+          message:document.querySelector('#wp21-health').textContent,
+          live:document.querySelector('#wp21-health').getAttribute('aria-live'),
+          role:document.querySelector('#wp21-health').getAttribute('role'),
+          count:document.querySelector('#metric-total').textContent.trim(),
+          disclaimer:document.querySelector('#ranking-caption').textContent
+        }));
+        assert.equal(result.state,scenario.state);
+        assert.match(result.message,scenario.message);
+        assert.equal(result.live,'polite');
+        assert.equal(result.role,'status');
+        assert.equal(result.count,'8');
+        assert.match(result.disclaimer,/nicht repräsentativ/);
+        if(scenario.kind==='degraded'||scenario.kind==='invalid'){
+          await monitored.addScriptTag({content:axe.source});
+          const audit=await monitored.evaluate(async()=>{
+            const result=await window.axe.run(document,{
+              runOnly:{type:'tag',values:[
+                'wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa','best-practice'
+              ]},
+              resultTypes:['violations']
+            });
+            return result.violations.map(v=>({id:v.id,nodes:v.nodes.length}));
+          });
+          assert.deepEqual(audit,[]);
+        }
+        pass('Simulated '+scenario.kind+' source monitor stays truthful and counter-safe');
+      }finally{await monitored.close();}
+    }
 
     // Deliberately tamper the partial-term JSON in network transit to verify
     // fail-closed UI behavior: no historical or current number may be shown.

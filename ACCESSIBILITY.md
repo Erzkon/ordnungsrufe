@@ -77,3 +77,7 @@ Eine frühe Fassung des erweiterten dynamischen Audits brach bei einem absichtli
 ## Fokus nach der letzten Paginierungsseite
 
 Bei Tastaturbedienung bleibt der Fokus beim Knopf „Weitere Einträge anzeigen“, solange weitere Seiten vorhanden sind. Wird die **letzte** Seite geladen, verschwindet der Knopf. In diesem Fall setzt die Website den Fokus ausdrücklich auf die erste neu erschienene Tabellenzeile, statt den Fokus stillschweigend auf den Seitenanfang zu verlieren. Ein echter Chrome-Test bedient nun **alle** 135 historischen Einträge mit Enter und kontrolliert die Fokusübernahme beim letzten Schritt; sichtbare Fokuskonturen sind auch für erzwungene Farben vorgesehen.
+
+## Live-Zustände der automatischen Quellenüberwachung
+
+Der Browser-Smoke simuliert jetzt **fünf getrennte Monitorzustände**, ohne Quelldaten oder bestätigte Zählerdateien zu ändern: sieben aktuelle Quellen, ein fehlender DIP-Positionsbericht, ein um 72 Stunden veralteter Bericht, ein ungültiger Zustandswert und ein unzulässig zukünftiger Zeitstempel. Der Browser muss jeweils den passenden lesbaren, per `role=status` angekündigten Quellenhinweis zeigen und die WP21-Anzeige weiterhin ausdrücklich als **acht belegte Teilmengenfälle** kennzeichnen. Für die gestörten und ungültigen Anzeigen wird zusätzlich eine Axe-Prüfung auf der tatsächlich gerenderten Warnoberfläche ausgeführt. Die Fälle sollen regressionssicher verhindern, dass ein fehlerhafter Quellenmonitor als aktuelle Vollständigkeit oder als Bestätigung von Ordnungsrufen erscheint.

@@ -152,6 +152,17 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn('A11Y_FILTERED_AXE_VIOLATIONS',audit)
         self.assertIn('if(ENFORCE&&violations.length)process.exitCode=1',audit)
 
+    def test_actual_browser_simulates_five_source_health_outcomes(self):
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        for token in ("kind:'fresh'","kind:'degraded'","kind:'stale'",
+                      "kind:'invalid'","kind:'future'",
+                      "all_sources_fresh=false","role,'status'",
+                      'DIP-Verfahrensschritte','monitored.addScriptTag'):
+            with self.subTest(token=token):
+                self.assertIn(token,smoke)
+        self.assertIn("assert.equal(result.count,'8')",smoke)
+        self.assertNotIn('public_counter_delta=1',smoke)
+
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
         self.assertIn("github.ref == 'refs/heads/main'", self.workflow)
