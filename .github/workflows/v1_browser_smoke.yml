@@ -50,6 +50,9 @@ jobs:
           V1_BROWSER_DOCROOT="$TMP_DIR/docs" \
             V1_BROWSER_OUT=".audit/browser_smoke/with_manifest" \
             node tests/browser_smoke.cjs
+          AXE_ENFORCE=1 V1_BROWSER_DOCROOT="$TMP_DIR/docs" \
+            V1_ACCESSIBILITY_OUT=".audit/browser_smoke/with_manifest/accessibility" \
+            node tests/accessibility_audit.cjs
       - name: Analyze four real Chrome views for WCAG A/AA and best-practice regressions
         env:
           AXE_ENFORCE: '1'

@@ -153,9 +153,44 @@ async function auditPage(browser,url,period,width,height){
         failureSummary:node.failureSummary?.slice(0,420)||null
       }))
     });
+    let filteredState=null;
+    if(width===1366||width===390){
+      // Run the same WCAG rules after live filtering changes the DOM.
+      const query='Kein solches Mitglied: Axe-Leerzustand';
+      await page.click('#search');
+      await page.type('#search',query);
+      await page.waitForFunction(()=>document.querySelector('#result-count')?.textContent==='0',
+        {timeout:6000});
+      const empty=await page.evaluate(()=>({
+        focus:document.activeElement?.id,
+        emptyVisible:!document.querySelector('#empty-state').hidden,
+        total:document.querySelector('#metric-total').textContent.trim(),
+        displayed:document.querySelector('#showing-count').textContent.trim()
+      }));
+      if(empty.focus!=='search'||!empty.emptyVisible||empty.total!==(period==='20'?'135':'8')){
+        throw new Error('A11Y_FILTERED_STATE_INVALID '+JSON.stringify({period,width,...empty}));
+      }
+      const changed=await page.evaluate(async tags=>window.axe.run(document,{
+        runOnly:{type:'tag',values:tags},
+        resultTypes:['violations','incomplete']
+      }),TAGS);
+      filteredState={
+        state:'empty-search',total:empty.total,focused:empty.focus,
+        violationRules:changed.violations.map(sample),
+        incompleteRules:changed.incomplete.map(sample)
+      };
+      if(changed.violations.length){
+        throw new Error('A11Y_FILTERED_AXE_VIOLATIONS '+
+          JSON.stringify({period,width,violations:filteredState.violationRules}));
+      }
+      console.log('AXE_DYNAMIC_EMPTY_PASS',JSON.stringify({
+        period,width,violations:0,incomplete:changed.incomplete.length
+      }));
+    }
     return {
       viewport:width+'x'+height,
       period,
+      filteredState,
       incomplete_21st:period==='21',
       reflow,
       semantics,
@@ -205,6 +240,7 @@ async function main(){
       reducedMotionChecks:results.filter(x=>x.reflow.reducedMotion).length,
       accessibilityTreeChecks:results.reduce((n,x)=>n+
         Object.keys(x.semantics.checks).length,0),
+      filteredStateChecks:results.filter(x=>x.filteredState).length,
       violationNodes:results.reduce((n,v)=>n+v.violationNodes,0),
       manualScreenReaderReviewStillRequired:true};
     fs.writeFileSync(path.join(OUT,'axe_report.json'),JSON.stringify(report,null,2)+'\n');
@@ -223,6 +259,7 @@ async function main(){
       views:results.length,reflowChecks:report.reflowChecks,
       reducedMotionChecks:report.reducedMotionChecks,
       accessibilityTreeChecks:report.accessibilityTreeChecks,
+      filteredStateChecks:report.filteredStateChecks,
       violations:report.violationsTotal,
       nodes:report.violationNodes,enforced:ENFORCE
     }));

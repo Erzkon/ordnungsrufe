@@ -61,3 +61,7 @@ Damit wird der entscheidende Fehlerschutz des neuen Release-Gates selbst auf sei
 ## Erweiterte Browser-Semantikprüfung
 
 Zusätzlich zu den acht Axe-Prüfungen wird über das Chrome DevTools Protocol die tatsächlich berechnete Accessibility-Struktur kontrolliert: `main`-Landmarke, `aria-pressed` der beiden Wahlperioden-Buttons, Status-Region mit der Unvollständigkeitswarnung, Suchfeld, Auswahlfeld, Protokolllink samt Person/Sitzung, Ranking-Schaltfläche und fokussierbare Tabellenregion. Ein nicht zuordenbares, ignoriertes oder unerwartet benanntes Element macht die CI rot. **Das misst den Chromium-Zugänglichkeitsbaum und weder tatsächliche Sprachausgabe noch Bedienbarkeit mit NVDA oder VoiceOver.**
+
+## Zustandswechsel zusätzlich geprüft (18.10.2026)
+
+Die Axe-Prüfung untersucht auf **1366 und 390 CSS-Pixeln** zusätzlich für beide Wahlperioden den **dynamischen leeren Suchzustand**: tatsächliche Tastatureingabe, Fokus im Suchfeld, sichtbare Leermeldung und unveränderte geprüfte Gesamtzahl. Danach wird die gerenderte Oberfläche erneut mit denselben WCAG-A/AA- und Best-Practice-Regeln bewertet. Unabhängig davon läuft die komplette Acht-Ansichten-Prüfung in der PR-CI zusätzlich mit einem **temporär generierten Quellenstatusbericht**; reale GitHub-Pages-Daten werden dabei nicht überschrieben und nichts veröffentlicht. Jeder gemeldete Verstoß stoppt den PR-Workflow.

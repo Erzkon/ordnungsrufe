@@ -110,6 +110,17 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("Keyboard load-more preserves focus",smoke)
         self.assertIn("AXE_ENFORCE: '1'",self.workflow)
 
+    def test_axe_covers_dynamic_empty_search_and_generated_manifest(self):
+        audit=Path('tests/accessibility_audit.cjs').read_text(encoding='utf-8')
+        pr=Path('.github/workflows/v1_browser_smoke.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('A11Y_FILTERED_STATE_INVALID',audit)
+        self.assertIn('A11Y_FILTERED_AXE_VIOLATIONS',audit)
+        self.assertIn('AXE_DYNAMIC_EMPTY_PASS',audit)
+        self.assertIn('filteredStateChecks',audit)
+        self.assertIn('V1_ACCESSIBILITY_OUT=".audit/browser_smoke/with_manifest/accessibility"',pr)
+        self.assertIn('AXE_ENFORCE=1 V1_BROWSER_DOCROOT="$TMP_DIR/docs"',pr)
+
     def test_pr_a11y_gate_has_a_fail_closed_negative_control(self):
         pr=Path('.github/workflows/v1_browser_smoke.yml').read_text(
             encoding='utf-8')
