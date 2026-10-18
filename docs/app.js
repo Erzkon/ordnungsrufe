@@ -35,6 +35,8 @@ function applyFilterAndScroll(filterName, value) {
   $(filterName).value = value;
   state.visible = ITEMS_PER_PAGE;
   renderRecords();
+  // Keep the keyboard and screen-reader destination aligned with the applied filter.
+  $(filterName).focus({preventScroll:true});
   $('eintraege').scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
 function ranking(container, entries, kind) {
@@ -152,6 +154,10 @@ function activate(period) {
   $('wp21-scan').hidden = period !== '21';
   $('wp21-health').hidden = period !== '21';
   $('wp21-activity').hidden = period !== '21';
+  $('period-announcement').textContent = period === '20'
+    ? `20. Wahlperiode ausgewählt: ${payload.meta.count} geprüfte Ordnungsrufe in ${payload.meta.events} Ereignissen.`
+    : `21. Wahlperiode ausgewählt: ${payload.meta.count} einzeln geprüfte Maßnahmen. Unvollständige Auswahl, keine Gesamtzahl.`;
+  $('records-caption').textContent = `Einzeln belegte Ordnungsrufe der ${period}. Wahlperiode`;
   $('period-methodology').textContent = period === '20' ? '20. Wahlperiode' : '20. und 21. Wahlperiode';
   const groupNames=[...new Set(state.records.map(row=>row.group))].sort((a,b)=>a.localeCompare(b,'de'));
   addOptions(groupNames);
