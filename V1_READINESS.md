@@ -1,3 +1,22 @@
+# Version 1.0 – Betriebsstatus und archivierte Release-Abnahme
+
+## Bestätigter Produktionsstand (18.10.2026)
+
+- **Live:** https://erzkon.github.io/ordnungsrufe/
+- PR [#4](https://github.com/Erzkon/ordnungsrufe/pull/4) wurde ausdrücklich freigegeben und als Release 1.0 per Squash-Merge nach `main` übernommen. Die folgende ursprüngliche Release-Einschätzung dokumentiert den **damaligen** (vor dem Merge) Prüfstand und ist kein aktuelles Merge-Verbot mehr.
+- PR [#6](https://github.com/Erzkon/ordnungsrufe/pull/6) wurde ebenfalls mit expliziter Zustimmung gemergt: amtliche Bundesratsfundstellen `1054` und `1058` werden von Bundestagsprotokollen getrennt.
+- Der [produktive Main-Lauf 39071191105](https://github.com/Erzkon/ordnungsrufe/actions/runs/39071191105) bestätigte **alle drei Jobs erfolgreich**: amtliche Quellenverarbeitung, GitHub Pages und automatische Quellenwache. **Alle sieben Quellenbereiche** waren aktuell; der produktive Chrome-Test bestand.
+- Die automatische Quellenstörung [#5](https://github.com/Erzkon/ordnungsrufe/issues/5) wurde nach Wiederherstellung der DIP-Positions- und Prüffallberichte durch die Quellenwache selbständig als abgeschlossen markiert.
+- Vier bestätigte Statistikdateien sind beim Vergleich vor/nach beiden Merges **inhaltlich identisch nach Git-Blob-SHA**; automatisches Hinzufügen, Ändern oder Aberkennen von Ordnungsrufen ist weiterhin ausgeschlossen.
+- **Aussagegrenze bleibt bestehen:** Historisch 20. WP **135 Maßnahmen in 123 Ereignissen**; die 21. WP zeigt **acht einzeln belegte Beispiele**, keine vollständige Gesamtzahl. Die amtlich gemeldeten 19 vs. 18 einzeln belegten Fälle von Beatrix von Storch bleiben eine dokumentierte Differenz.
+- **Offene P2-Aufgaben:** Node.js-24-Migration der bis dahin noch älteren Main-only-Workflow-Actions, gezielte barrierefreie Tastatur-/Screenreader-Prüfung und weitere manuelle Quellenaufklärung. Spätere Wartungs-PRs benötigen jeweils eine **neue ausdrückliche Merge-Freigabe**; grüne PR-CI allein gilt nicht als Produktionsnachweis.
+
+---
+
+## Archiv: ursprüngliche Freigabeprüfung vor den Merges
+
+Die nachfolgenden Aussagen über einen offenen PR #4, eine noch ausstehende Zustimmung oder ein nicht geprüftes Produktions-Deployment beziehen sich **ausschließlich auf den Stand der ursprünglichen Vorabprüfung vom 17.10.2026**. Sie wurden anschließend durch die oben dokumentierten Merges und den erfolgreichen produktiven Main-Lauf überholt.
+
 # Version 1.0 – überprüfte Readiness-Entscheidung
 
 **Prüfdatum:** 17.10.2026  
