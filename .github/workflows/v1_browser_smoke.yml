@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/**'
       - 'tests/browser_smoke.cjs'
+      - 'tests/accessibility_audit.cjs'
       - '.github/workflows/v1_browser_smoke.yml'
       - '.github/workflows/pages.yml'
       - 'V1_READINESS.md'
@@ -24,7 +25,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install pinned headless test driver only
-        run: npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0
+        run: npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0 axe-core@4.14.0
       - name: Verify headless Chrome is available on standard Ubuntu runner
         run: |
           if command -v google-chrome >/dev/null; then
@@ -49,6 +50,10 @@ jobs:
           V1_BROWSER_DOCROOT="$TMP_DIR/docs" \
             V1_BROWSER_OUT=".audit/browser_smoke/with_manifest" \
             node tests/browser_smoke.cjs
+      - name: Analyze four real Chrome views for WCAG A/AA and best-practice regressions
+        env:
+          AXE_ENFORCE: '0'
+        run: node tests/accessibility_audit.cjs
       - name: Preserve exact PR render and machine-readable result for manual review
         if: always()
         uses: actions/upload-artifact@v6
