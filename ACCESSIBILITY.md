@@ -51,3 +51,9 @@ Eine manuelle NVDA-/VoiceOver-Stichprobe muss noch folgen, bevor eine umfassende
 Der Browser-Smoke prüft zusätzlich eine **320-CSS-Pixel-Ansicht** mit Screenshot, die tastaturgesteuerte Paginierung („Weitere Einträge anzeigen“) sowie im Chromium **emulierte erzwungene Farben**. Im CSS sind markierte Perioden und Ranglistenbalken in diesem Modus nicht nur durch Farbfüllung erkennbar. Auf Smartphones wurden besonders kleine Beschriftungen angehoben; Formularnamen stammen weiterhin von sichtbaren `label`-Elementen.
 
 Die konkreten manuellen Aufgaben stehen in [ACCESSIBILITY_MANUAL_CHECKLIST.md](ACCESSIBILITY_MANUAL_CHECKLIST.md). Diese Checkliste ist **noch nicht als bestanden** markiert. Eine Emulation von `forced-colors` ist keine echte Windows-High-Contrast-Systemprüfung.
+
+## Fail-Closed-Positivkontrolle für Regelverstöße
+
+Der PR-Workflow setzt in einer **temporären Kopie der Website** absichtlich einen sichtbaren, aber unbeschrifteten Button ein. Er startet den unveränderten Axe-Audit mit `AXE_ENFORCE=1` und verlangt **beides**: einen Nicht-Null-Exitcode **und** den konkreten WCAG-Regeltreffer `button-name`. Ein roter Prozess wegen eines anderen Fehlers genügt ausdrücklich **nicht**. Das Original wird nicht verändert, die künstliche Seite wird niemals deployt. Im Archiv bleibt eine Diagnose zur Kontrolle.
+
+Damit wird der entscheidende Fehlerschutz des neuen Release-Gates selbst auf seine Wirksamkeit getestet.

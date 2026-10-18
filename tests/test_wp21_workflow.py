@@ -110,6 +110,19 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("Keyboard load-more preserves focus",smoke)
         self.assertIn("AXE_ENFORCE: '1'",self.workflow)
 
+    def test_pr_a11y_gate_has_a_fail_closed_negative_control(self):
+        pr=Path('.github/workflows/v1_browser_smoke.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('Prove strict Axe gate rejects an unlabeled control',pr)
+        self.assertIn('axe-negative-control',pr)
+        self.assertIn('AXE_ENFORCE=1',pr)
+        self.assertIn('"id": "button-name"',pr)
+        self.assertIn('AXE_NEGATIVE_CONTROL_PASS',pr)
+        self.assertIn('TMP_DIR="$(mktemp -d)"',pr)
+        self.assertIn("trap 'rm -rf \"$TMP_DIR\"' EXIT",pr)
+        self.assertIn('cp -a docs "$TMP_DIR/docs"',pr)
+        self.assertNotIn('git push',pr)
+
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
         self.assertIn("github.ref == 'refs/heads/main'", self.workflow)
