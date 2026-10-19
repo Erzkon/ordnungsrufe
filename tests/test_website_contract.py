@@ -148,6 +148,17 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn("failFirst&&req.url().endsWith('/data/ordnungsrufe_21.json')",smoke)
         self.assertIn('Accessible data reload recovers only after both ledgers validate',smoke)
 
+    def test_period_switch_has_actual_browser_back_forward_navigation(self):
+        self.assertIn("function activate(period, {navigation = 'replace'} = {})",self.js)
+        self.assertIn("window.history.pushState(null,'',nextUrl)",self.js)
+        self.assertIn("window.history.replaceState(null,'',nextUrl)",self.js)
+        self.assertIn("window.addEventListener('popstate'",self.js)
+        self.assertIn("activate(next,{navigation:'none'})",self.js)
+        browser=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('Browser back and forward restore selected period',browser)
+        self.assertIn('window.history.back()',browser)
+        self.assertIn('window.history.forward()',browser)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',

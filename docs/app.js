@@ -120,7 +120,7 @@ function addOptions(groups) {
     select.append(option);
   }
 }
-function activate(period) {
+function activate(period, {navigation = 'replace'} = {}) {
   const payload = state.datasets[period];
   if (!payload) return;
   state.period = period;
@@ -170,7 +170,13 @@ function activate(period) {
   renderRecords();
   const url = new URL(window.location.href);
   url.searchParams.set('wp',period);
-  window.history.replaceState(null,'',url.pathname+url.search+url.hash);
+  const nextUrl=url.pathname+url.search+url.hash;
+  if (navigation === 'push' &&
+      new URL(window.location.href).searchParams.get('wp') !== period) {
+    window.history.pushState(null,'',nextUrl);
+  } else if (navigation === 'replace') {
+    window.history.replaceState(null,'',nextUrl);
+  }
 }
 async function showSourceHealth() {
   const box = $('wp21-health');
@@ -499,8 +505,15 @@ function start() {
     }
   });
   for(const period of ['20','21']) {
-    $(`period-${period}`).addEventListener('click',()=>activate(period));
+    $(`period-${period}`).addEventListener('click',
+      ()=>activate(period,{navigation:'push'}));
   }
+  window.addEventListener('popstate',()=>{
+    if (!state.datasets['20'] || !state.datasets['21']) return;
+    const next=new URL(window.location.href).searchParams.get('wp')==='21'
+      ? '21' : '20';
+    activate(next,{navigation:'none'});
+  });
   Promise.all([
     fetch('./data/ordnungsrufe.json',{cache:'no-cache'}),
     fetch('./data/ordnungsrufe_21.json',{cache:'no-cache'})

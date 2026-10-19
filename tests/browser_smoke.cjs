@@ -101,6 +101,28 @@ async function main() {
     assert.equal(new URL(page.url()).searchParams.get('wp'),'21');
     pass('Switch to partial WP21 never claims overall count');
 
+    // Browser history is a meaningful navigation affordance: selecting a
+    // period should be reversible without refetching or losing partial scope.
+    const historyPage=await browser.newPage();
+    try{
+      await historyPage.goto(url+'?wp=20',{waitUntil:'load'});
+      await readyCount(historyPage,135);
+      await historyPage.click('#period-21');
+      await readyCount(historyPage,8);
+      assert.equal(new URL(historyPage.url()).searchParams.get('wp'),'21');
+      await historyPage.evaluate(()=>window.history.back());
+      await readyCount(historyPage,135);
+      assert.equal(new URL(historyPage.url()).searchParams.get('wp'),'20');
+      assert.equal(await historyPage.$eval('#period-20',e=>e.getAttribute('aria-pressed')),'true');
+      await historyPage.evaluate(()=>window.history.forward());
+      await readyCount(historyPage,8);
+      assert.equal(new URL(historyPage.url()).searchParams.get('wp'),'21');
+      assert.equal(await historyPage.$eval('#period-21',e=>e.getAttribute('aria-pressed')),'true');
+      assert.match(await textOf(historyPage,'#period-announcement'),
+        /Unvollständige Auswahl, keine Gesamtzahl/);
+      pass('Browser back and forward restore selected period and scope warning');
+    }finally{await historyPage.close();}
+
     await page.waitForFunction(states=>{
       const box=document.querySelector('#wp21-health');
       return box && states.includes(box.dataset.state) &&

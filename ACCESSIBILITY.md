@@ -103,3 +103,7 @@ Die neuen Browserprüfungen halten einen der zwei bestätigten Datensätze absic
 ## Explizite Wiederholung nach vorübergehendem Ausfall
 
 Bei fehlgeschlagenem Datenabruf zeigt die Website neben der `role=alert`-Fehlermeldung jetzt „**Daten erneut laden ↻**“. Dieser Button startet einen **vollständigen Seitenabruf** und prüft beide amtlichen veröffentlichten Datensätze erneut; er übernimmt weder verworfene Teilzustände noch verändert er Daten. Ein echter Browserfall simuliert eine einmalige HTTP-503-Antwort für WP21, betätigt die Wiederholung per Klick und verlangt anschließend wieder die acht belegten, ausdrücklich unvollständigen WP21-Einträge sowie acht echte Protokolllinks. Wenn der zweite Abruf erneut fehlschlägt, bleibt die bisherige sichere Sperre bestehen.
+
+## Browser-Zurück und Vorwärts bei Wahlperiodenwechsel
+
+Der Wechsel von WP20 zu WP21 erzeugt jetzt **einen navigierbaren Browser-Verlaufseintrag** statt die URL nur zu ersetzen. Über die Zurück-/Vorwärts-Navigation wird die ausgewählte Wahlperiode einschließlich `aria-pressed`, ihrer veröffentlichten Kennzahlen, der Tabellenüberschrift und der ausdrücklichen WP21-Unvollständigkeitswarnung wiederhergestellt. Der initiale Ladevorgang normalisiert nur die URL und erzeugt keinen künstlichen zusätzlichen Verlaufseintrag. Der echte Chrome-Smoke prüft beide Richtungen ohne unsichere erneute Datenfreigabe; bei einem fehlgeschlagenen Ledger-Check bleibt die Verlaufsnavigation gesperrt.
