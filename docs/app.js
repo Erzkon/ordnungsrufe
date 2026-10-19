@@ -469,13 +469,19 @@ async function showCoverageAudit() {
 
 function start() {
   for(const id of ['search','group-filter','sort']) {
-    $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
+    $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {
+      if (!state.datasets['20'] || !state.datasets['21']) return;
+      state.visible=ITEMS_PER_PAGE;
+      renderRecords();
+    });
   }
   $('reset').addEventListener('click',()=>{
+    if (!state.datasets[state.period]) return;
     $('search').value='';$('group-filter').value='';$('sort').value='newest';
     state.visible=ITEMS_PER_PAGE;renderRecords();
   });
   $('load-more').addEventListener('click',()=>{
+    if (!state.datasets[state.period]) return;
     const previouslyShown = $('records-body').rows.length;
     state.visible += ITEMS_PER_PAGE;
     renderRecords({appendOnly:true});
