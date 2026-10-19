@@ -159,6 +159,17 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn('window.history.back()',browser)
         self.assertIn('window.history.forward()',browser)
 
+    def test_concise_screenreader_status_instead_of_entire_live_rankings(self):
+        self.assertIn('id="period-announcement" class="sr-only" role="status"',self.html)
+        self.assertIn('id="showing-count" aria-live="polite"',self.html)
+        self.assertIn('id="people-ranking" class="bar-list"',self.html)
+        self.assertIn('id="group-ranking" class="bar-list"',self.html)
+        self.assertNotIn('id="people-ranking" class="bar-list" aria-live',self.html)
+        self.assertNotIn('id="group-ranking" class="bar-list" aria-live',self.html)
+        browser=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('Concise period and result announcements',browser)
+        self.assertIn('Keyboard group filter, sorting and reset',browser)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',

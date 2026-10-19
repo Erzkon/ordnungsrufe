@@ -107,3 +107,7 @@ Bei fehlgeschlagenem Datenabruf zeigt die Website neben der `role=alert`-Fehlerm
 ## Browser-Zurück und Vorwärts bei Wahlperiodenwechsel
 
 Der Wechsel von WP20 zu WP21 erzeugt jetzt **einen navigierbaren Browser-Verlaufseintrag** statt die URL nur zu ersetzen. Über die Zurück-/Vorwärts-Navigation wird die ausgewählte Wahlperiode einschließlich `aria-pressed`, ihrer veröffentlichten Kennzahlen, der Tabellenüberschrift und der ausdrücklichen WP21-Unvollständigkeitswarnung wiederhergestellt. Der initiale Ladevorgang normalisiert nur die URL und erzeugt keinen künstlichen zusätzlichen Verlaufseintrag. Der echte Chrome-Smoke prüft beide Richtungen ohne unsichere erneute Datenfreigabe; bei einem fehlgeschlagenen Ledger-Check bleibt die Verlaufsnavigation gesperrt.
+
+## Reduzierte Screenreader-Meldungen bei Ranglistenwechseln
+
+Die Personen- und Fraktionsranglisten enthalten jeweils zahlreiche interaktive Schaltflächen. Sie werden **nicht mehr als ganze Live-Region** angesagt, wenn die Wahlperiode umgeschaltet wird: Die bestehende, kompakte `role=status`-Meldung zur ausgewählten Wahlperiode und zur ausdrücklich unvollständigen WP21-Erfassung liefert die entscheidende Information, während das `aria-live=polite` am Anzeigezähler für Filter- und Paginierungsänderungen erhalten bleibt. Ein Chrome-Test kontrolliert diese Ansagestruktur sowie die Tastaturnavigation durch Zugehörigkeitsfilter, Sortierung und Zurücksetzen. Das ist eine DOM-/Chromium-Prüfung, keine tatsächliche Sprachausgabeprüfung mit einem Screenreader.

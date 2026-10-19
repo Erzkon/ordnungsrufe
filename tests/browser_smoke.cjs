@@ -123,6 +123,20 @@ async function main() {
       pass('Browser back and forward restore selected period and scope warning');
     }finally{await historyPage.close();}
 
+    // Avoid announcing two entire dynamically rebuilt rankings on each
+    // legislature change; the concise period status already covers scope.
+    const livePolicy=await page.evaluate(()=>({
+      people:document.querySelector('#people-ranking').getAttribute('aria-live'),
+      groups:document.querySelector('#group-ranking').getAttribute('aria-live'),
+      status:document.querySelector('#period-announcement').getAttribute('role'),
+      showing:document.querySelector('#showing-count').getAttribute('aria-live')
+    }));
+    assert.equal(livePolicy.people,null);
+    assert.equal(livePolicy.groups,null);
+    assert.equal(livePolicy.status,'status');
+    assert.equal(livePolicy.showing,'polite');
+    pass('Concise period and result announcements replace verbose ranking-list chatter');
+
     await page.waitForFunction(states=>{
       const box=document.querySelector('#wp21-health');
       return box && states.includes(box.dataset.state) &&
@@ -142,6 +156,30 @@ async function main() {
     await page.click('#reset');
     assert.equal(await textOf(page,'#result-count'),'8');
     pass('Search, empty state and reset work');
+
+    // Native select controls and sort changes must preserve keyboard focus,
+    // user-visible result counts and the explicit incomplete-WP21 scope.
+    const filteredPage=await browser.newPage();
+    try{
+      await filteredPage.goto(url+'?wp=21',{waitUntil:'load'});
+      await readyCount(filteredPage,8);
+      const choice=await filteredPage.$eval('#group-filter',select=>
+        [...select.options].find(o=>o.value)?.value);
+      assert.ok(choice);
+      await filteredPage.select('#group-filter',choice);
+      const groupCount=Number(await textOf(filteredPage,'#result-count'));
+      assert.ok(groupCount>0 && groupCount<=8);
+      assert.equal(await textOf(filteredPage,'#metric-total'),'8');
+      await filteredPage.focus('#sort');
+      await filteredPage.keyboard.press('ArrowDown');
+      assert.equal(await filteredPage.evaluate(()=>document.activeElement?.id),'sort');
+      assert.equal(Number(await textOf(filteredPage,'#result-count')),groupCount);
+      await filteredPage.focus('#reset');
+      await filteredPage.keyboard.press('Enter');
+      assert.equal(await textOf(filteredPage,'#result-count'),'8');
+      assert.match(await textOf(filteredPage,'#ranking-caption'),/nicht repräsentativ/);
+      pass('Keyboard group filter, sorting and reset preserve the verified WP21 scope');
+    }finally{await filteredPage.close();}
     await page.click('#period-20');
     await readyCount(page,135);
     await page.type('#search','Beatrix von Storch');
