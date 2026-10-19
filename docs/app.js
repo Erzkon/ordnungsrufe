@@ -468,6 +468,9 @@ async function showCoverageAudit() {
 }
 
 function start() {
+  // A retry always reloads both published ledgers from scratch, never from
+  // partially validated cached state.
+  $('retry-data').addEventListener('click',()=>window.location.reload());
   for(const id of ['search','group-filter','sort']) {
     $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {
       if (!state.datasets['20'] || !state.datasets['21']) return;
@@ -541,6 +544,7 @@ function start() {
     alert.textContent='Die bestätigten Datensätze konnten nicht sicher geladen werden. '+
       'Es werden keine ungeprüften Zahlen angezeigt. Bitte die Seite erneut laden.';
     alert.hidden=false;
+    $('retry-data').hidden=false;
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
     $('group-ranking').textContent='Die Daten konnten nicht geladen werden.';
     $('records-body').replaceChildren();

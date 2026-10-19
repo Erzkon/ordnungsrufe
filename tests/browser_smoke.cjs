@@ -503,6 +503,35 @@ async function main() {
         pass('Fail-closed verified dataset: '+bad.name);
       }finally{await compromised.close();}
     }
+    // HTTP failure only on the first request; a user-triggered retry must
+    // revalidate BOTH untouched ledgers and restore the partial-WP21 warning.
+    const recovered=await browser.newPage();
+    let failFirst=true;
+    try{
+      await recovered.setRequestInterception(true);
+      recovered.on('request',req=>{
+        if(failFirst&&req.url().endsWith('/data/ordnungsrufe_21.json')){
+          failFirst=false;
+          req.respond({status:503,contentType:'text/plain',body:'Temporary outage'});
+        }else req.continue();
+      });
+      await recovered.goto(url+'?wp=21',{waitUntil:'load'});
+      await recovered.waitForFunction(()=>
+        !document.querySelector('#retry-data').hidden,{timeout:12000});
+      assert.equal(await textOf(recovered,'#metric-total'),'—');
+      assert.equal(await visible(recovered,'#data-error'),true);
+      await Promise.all([
+        recovered.waitForNavigation({waitUntil:'load',timeout:12000}),
+        recovered.click('#retry-data')
+      ]);
+      await readyCount(recovered,8);
+      assert.equal(await visible(recovered,'#retry-data'),false);
+      assert.equal(await visible(recovered,'#data-error'),false);
+      assert.match(await textOf(recovered,'#ranking-caption'),/nicht repräsentativ/);
+      assert.equal(await recovered.$eval('#records-body',el=>
+        el.querySelectorAll('a.source-link').length),8);
+      pass('Accessible data reload recovers only after both ledgers validate');
+    }finally{await recovered.close();}
     assert.deepEqual(browserErrors,[],'Uncaught browser JavaScript exceptions');
     pass('No uncaught JavaScript errors in valid views');
     const report={schema:'ordnungsrufe-v1-browser-smoke-v1',

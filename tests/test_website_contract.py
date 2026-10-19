@@ -140,6 +140,14 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn('new Promise(resolve=>{unblock=resolve;})',smoke)
         self.assertIn("assert.equal(blocked.total,'—')",smoke)
 
+    def test_failed_verification_offers_safe_explicit_retry(self):
+        self.assertIn('id="retry-data" class="button button-more"',self.html)
+        self.assertIn("$('retry-data').addEventListener('click',()=>window.location.reload());",self.js)
+        self.assertIn("$('retry-data').hidden=false;",self.js)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn("failFirst&&req.url().endsWith('/data/ordnungsrufe_21.json')",smoke)
+        self.assertIn('Accessible data reload recovers only after both ledgers validate',smoke)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',

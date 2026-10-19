@@ -99,3 +99,7 @@ Bei „Weitere Einträge anzeigen“ ergänzt die Website nur die **neuen** Tabe
 ## Langsame Verbindung und HTTP-Ausfall (zusätzliche Browserfälle)
 
 Die neuen Browserprüfungen halten einen der zwei bestätigten Datensätze absichtlich im Netzwerk zurück und kontrollieren, dass **vor erfolgreicher gemeinsamer Prüfung** keine öffentliche Kennzahl gesetzt und keine aktive Such- oder Periodensteuerung freigeschaltet wird. Nach Freigabe des zweiten Datensatzes sind die 135 historisch geprüften Einträge wieder bedienbar. Ein unabhängiger Test simuliert außerdem einen echten HTTP-503-Fehler beim Laden des WP20-Datensatzes: Die Website zeigt dann eine zugängliche Fehlermeldung, aber weder eine irreführende Null noch amtlich aussehende Quellenlinks. Alle Eingriffe erfolgen ausschließlich in isolierten Browseranfragen; produktive Dateien bleiben unverändert.
+
+## Explizite Wiederholung nach vorübergehendem Ausfall
+
+Bei fehlgeschlagenem Datenabruf zeigt die Website neben der `role=alert`-Fehlermeldung jetzt „**Daten erneut laden ↻**“. Dieser Button startet einen **vollständigen Seitenabruf** und prüft beide amtlichen veröffentlichten Datensätze erneut; er übernimmt weder verworfene Teilzustände noch verändert er Daten. Ein echter Browserfall simuliert eine einmalige HTTP-503-Antwort für WP21, betätigt die Wiederholung per Klick und verlangt anschließend wieder die acht belegten, ausdrücklich unvollständigen WP21-Einträge sowie acht echte Protokolllinks. Wenn der zweite Abruf erneut fehlschlägt, bleibt die bisherige sichere Sperre bestehen.
