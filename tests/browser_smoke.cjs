@@ -375,6 +375,70 @@ async function main() {
     pass('Tampered unlabelled WP21 input raises an accessible alert and blocks counts');
     await broken.close();
 
+    // Simulated slow network: until both ledgers are verified, all interactive
+    // controls must be disabled and no public count may be implied.
+    const delayed=await browser.newPage();
+    let unblock;
+    const delayedRequest=new Promise(resolve=>{unblock=resolve;});
+    try{
+      await delayed.setRequestInterception(true);
+      delayed.on('request',async req=>{
+        if(req.url().endsWith('/data/ordnungsrufe_21.json')){
+          await delayedRequest;
+        }
+        await req.continue();
+      });
+      await delayed.goto(url+'?wp=20',{waitUntil:'load'});
+      const waiting=await delayed.evaluate(()=>({
+        count:document.querySelector('#metric-total').textContent.trim(),
+        result:document.querySelector('#result-count').textContent.trim(),
+        waiting:document.querySelector('#records-body').textContent.includes('Einträge werden geladen'),
+        locked:['search','group-filter','sort','reset','load-more',
+                'period-20','period-21'].every(id=>document.getElementById(id).disabled)
+      }));
+      assert.equal(waiting.count,'—');
+      assert.equal(waiting.result,'—');
+      assert.equal(waiting.waiting,true);
+      assert.equal(waiting.locked,true);
+      unblock();
+      await readyCount(delayed,135);
+      assert.equal(await delayed.evaluate(()=>
+        ['search','group-filter','sort','reset','load-more',
+         'period-20','period-21'].every(id=>!document.getElementById(id).disabled)),true);
+      pass('Delayed verified dataset keeps controls locked and counts blank until ready');
+    }finally{
+      unblock();
+      await delayed.close();
+    }
+
+    // Real HTTP fetch failure must not be treated as a valid empty dataset.
+    const missing=await browser.newPage();
+    try{
+      await missing.setRequestInterception(true);
+      missing.on('request',req=>{
+        if(req.url().endsWith('/data/ordnungsrufe_20.json') ||
+           req.url().endsWith('/data/ordnungsrufe.json')){
+          req.respond({status:503,contentType:'text/plain',
+            body:'Temporary test-only failure'});
+        }else req.continue();
+      });
+      await missing.goto(url+'?wp=20',{waitUntil:'load'});
+      await missing.waitForFunction(()=>!document.querySelector('#data-error').hidden,
+        {timeout:10000});
+      const blocked=await missing.evaluate(()=>({
+        total:document.querySelector('#metric-total').textContent.trim(),
+        result:document.querySelector('#result-count').textContent.trim(),
+        sourceLinks:document.querySelectorAll('#records-body a.source-link').length,
+        locked:['search','group-filter','sort','reset','load-more',
+                'period-20','period-21'].every(id=>document.getElementById(id).disabled)
+      }));
+      assert.equal(blocked.total,'—');
+      assert.equal(blocked.result,'—');
+      assert.equal(blocked.sourceLinks,0);
+      assert.equal(blocked.locked,true);
+      pass('HTTP source outage fails closed without zero counts or official links');
+    }finally{await missing.close();}
+
     // These are temporary interception-only mutations, never writes to
     // either protected published dataset. Prove failures in each legislature.
     const immutableInputs=[

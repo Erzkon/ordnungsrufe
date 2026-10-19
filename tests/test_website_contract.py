@@ -132,6 +132,14 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn("$(id).textContent='—';",self.js)
         self.assertIn("$('wp20-note').hidden=true;",self.js)
 
+    def test_slow_and_unavailable_http_ledgers_never_display_false_zero(self):
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('Delayed verified dataset keeps controls locked',smoke)
+        self.assertIn('HTTP source outage fails closed',smoke)
+        self.assertIn("status:503,contentType:'text/plain'",smoke)
+        self.assertIn('new Promise(resolve=>{unblock=resolve;})',smoke)
+        self.assertIn("assert.equal(blocked.total,'—')",smoke)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',
