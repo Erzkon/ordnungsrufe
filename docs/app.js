@@ -78,6 +78,8 @@ function filteredRecords() {
   return result;
 }
 function renderRecords({appendOnly = false} = {}) {
+  const tableRegion=document.querySelector('.table-scroller');
+  tableRegion.setAttribute('aria-busy','true');
   const rows = filteredRecords();
   const shown = rows.slice(0,state.visible);
   $('result-count').textContent = String(rows.length);
@@ -104,6 +106,7 @@ function renderRecords({appendOnly = false} = {}) {
     tr.append(cell);
     body.append(tr);
   }
+  tableRegion.setAttribute('aria-busy','false');
 }
 function addOptions(groups) {
   const select = $('group-filter');
@@ -561,6 +564,7 @@ function start() {
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
     $('group-ranking').textContent='Die Daten konnten nicht geladen werden.';
     $('records-body').replaceChildren();
+    document.querySelector('.table-scroller').setAttribute('aria-busy','false');
     const tr=el('tr','');const td=el('td','','Die Daten konnten nicht geladen werden. Bitte die Seite erneut laden.');
     td.colSpan=5;tr.append(td);$('records-body').append(tr);
   });

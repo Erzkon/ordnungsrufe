@@ -78,6 +78,11 @@ async function main() {
     assert.equal(await visible(page,'#wp20-note'),true);
     assert.equal(await visible(page,'#wp21-note'),false);
     pass('Desktop historical baseline 135/123 and dated discrepancy');
+    assert.equal(await page.$eval('.table-scroller',n=>n.getAttribute('aria-busy')),'false');
+    const descriptiveControls=await page.evaluate(()=>
+      ['search','group-filter','sort'].map(id=>document.getElementById(id).getAttribute('aria-describedby')));
+    assert.deepEqual(descriptiveControls,['showing-count','showing-count','showing-count']);
+    pass('Loaded table is marked ready and all filters describe live result totals');
     await page.keyboard.press('Tab');
     assert.equal(await page.evaluate(()=>
       document.activeElement?.classList.contains('skip-link')),true);
@@ -460,8 +465,10 @@ async function main() {
       assert.equal(waiting.result,'—');
       assert.equal(waiting.waiting,true);
       assert.equal(waiting.locked,true);
+      assert.equal(await delayed.$eval('.table-scroller',n=>n.getAttribute('aria-busy')),'true');
       unblock();
       await readyCount(delayed,135);
+      assert.equal(await delayed.$eval('.table-scroller',n=>n.getAttribute('aria-busy')),'false');
       assert.equal(await delayed.evaluate(()=>
         ['search','group-filter','sort','reset','load-more',
          'period-20','period-21'].every(id=>!document.getElementById(id).disabled)),true);
@@ -496,6 +503,7 @@ async function main() {
       assert.equal(blocked.result,'—');
       assert.equal(blocked.sourceLinks,0);
       assert.equal(blocked.locked,true);
+      assert.equal(await missing.$eval('.table-scroller',n=>n.getAttribute('aria-busy')),'false');
       pass('HTTP source outage fails closed without zero counts or official links');
     }finally{await missing.close();}
 

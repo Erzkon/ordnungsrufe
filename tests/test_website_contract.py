@@ -170,6 +170,22 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn('Concise period and result announcements',browser)
         self.assertIn('Keyboard group filter, sorting and reset',browser)
 
+    def test_table_busy_semantics_and_described_filter_results(self):
+        self.assertIn('aria-busy="true" tabindex="0"',self.html)
+        for token in (
+            'id="search" type="search" autocomplete="off" disabled aria-describedby="showing-count"',
+            '<select id="group-filter" disabled aria-describedby="showing-count">',
+            '<select id="sort" disabled aria-describedby="showing-count">'
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token,self.html)
+        self.assertIn("tableRegion.setAttribute('aria-busy','true')",self.js)
+        self.assertIn("tableRegion.setAttribute('aria-busy','false')",self.js)
+        self.assertIn("document.querySelector('.table-scroller').setAttribute('aria-busy','false')",self.js)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('Loaded table is marked ready',smoke)
+        self.assertIn("['showing-count','showing-count','showing-count']",smoke)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',

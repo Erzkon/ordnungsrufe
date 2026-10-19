@@ -91,12 +91,12 @@
         <div class="section-heading"><div><span class="kicker">02 / QUELLENVERZEICHNIS</span><h2>Jeder Ordnungsruf<span class="accent-period">.</span></h2><p>Suche nach Personen, filtere nach historischer Zugehörigkeit und öffne die amtlichen Plenarprotokolle.</p></div></div>
         <div class="records-panel">
           <div class="filters">
-            <label class="field field-search"><span>PERSON ODER SITZUNG</span><input id="search" type="search" autocomplete="off" disabled placeholder="Name oder Sitzungsnummer suchen …"></label>
-            <label class="field"><span>ZUGEHÖRIGKEIT</span><select id="group-filter" disabled><option value="">Alle Zugehörigkeiten</option></select></label>
-            <label class="field"><span>SORTIERUNG</span><select id="sort" disabled><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option><option value="person">Person A–Z</option></select></label>
+            <label class="field field-search"><span>PERSON ODER SITZUNG</span><input id="search" type="search" autocomplete="off" disabled aria-describedby="showing-count" placeholder="Name oder Sitzungsnummer suchen …"></label>
+            <label class="field"><span>ZUGEHÖRIGKEIT</span><select id="group-filter" disabled aria-describedby="showing-count"><option value="">Alle Zugehörigkeiten</option></select></label>
+            <label class="field"><span>SORTIERUNG</span><select id="sort" disabled aria-describedby="showing-count"><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option><option value="person">Person A–Z</option></select></label>
           </div>
           <div class="result-line"><span><strong id="result-count">—</strong> passende Maßnahmen</span><button id="reset" class="text-button" type="button" disabled>Filter zurücksetzen ↺</button></div>
-          <div class="table-scroller" role="region" aria-label="Horizontale Maßnahmen-Tabelle" tabindex="0"><table><caption id="records-caption" class="sr-only">Einzeln belegte Ordnungsrufe der 20. Wahlperiode</caption><thead><tr><th scope="col">DATUM</th><th scope="col">PERSON</th><th scope="col">ZUGEHÖRIGKEIT</th><th scope="col">SITZUNG</th><th scope="col">QUELLE</th></tr></thead><tbody id="records-body"><tr><td colspan="5">Einträge werden geladen …</td></tr></tbody></table></div>
+          <div class="table-scroller" role="region" aria-label="Horizontale Maßnahmen-Tabelle" aria-busy="true" tabindex="0"><table><caption id="records-caption" class="sr-only">Einzeln belegte Ordnungsrufe der 20. Wahlperiode</caption><thead><tr><th scope="col">DATUM</th><th scope="col">PERSON</th><th scope="col">ZUGEHÖRIGKEIT</th><th scope="col">SITZUNG</th><th scope="col">QUELLE</th></tr></thead><tbody id="records-body"><tr><td colspan="5">Einträge werden geladen …</td></tr></tbody></table></div>
           <div id="empty-state" class="empty-state" hidden>Keine passenden Maßnahmen. Versuche einen anderen Suchbegriff oder setze die Filter zurück.</div>
           <div class="more-line"><span id="showing-count" aria-live="polite" aria-atomic="true"></span><button type="button" id="load-more" class="button button-more" hidden disabled>Weitere Einträge anzeigen ↓</button></div>
         </div>
