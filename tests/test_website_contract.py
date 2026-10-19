@@ -43,7 +43,7 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn('<main id="inhalt" tabindex="-1">',self.html)
         self.assertIn('class="skip-link" href="#inhalt"',self.html)
         self.assertIn('class="table-scroller" role="region"',self.html)
-        self.assertIn('aria-label="Horizontale Maßnahmen-Tabelle" tabindex="0"',self.html)
+        self.assertIn('aria-label="Horizontale Maßnahmen-Tabelle" aria-busy="true" tabindex="0"',self.html)
         self.assertIn('id="records-caption" class="sr-only"',self.html)
         self.assertIn('id="period-announcement" class="sr-only" role="status"',self.html)
         self.assertIn('aria-live="polite" aria-atomic="true"',self.html)
@@ -120,9 +120,9 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn('firstRowHandle',smoke)
 
     def test_controls_stay_disabled_when_verified_ledgers_fail(self):
-        for tag in ('id="search" type="search" autocomplete="off" disabled',
-                    '<select id="group-filter" disabled>',
-                    '<select id="sort" disabled>',
+        for tag in ('id="search" type="search" autocomplete="off" disabled aria-describedby="showing-count"',
+                    '<select id="group-filter" disabled aria-describedby="showing-count">',
+                    '<select id="sort" disabled aria-describedby="showing-count">',
                     'id="period-20" class="period-button is-active" type="button" disabled'):
             self.assertIn(tag,self.html)
         self.assertIn('state.datasets={};',self.js)
