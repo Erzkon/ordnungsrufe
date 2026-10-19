@@ -35,7 +35,7 @@
         <div class="eyebrow"><span class="eyebrow-line"></span> PARLAMENTARISCHE DATEN · <span id="hero-period">20. WAHLPERIODE</span></div>
         <h1>Wenn im Plenum<br><em>die Ordnung ruft.</em></h1>
         <p>Wer erhielt wann einen Ordnungsruf? Eine nachvollziehbare Auswertung mit Namen, Zugehörigkeiten zum jeweiligen Zeitpunkt und direkten Verweisen auf die Originalprotokolle.</p>
-        <div class="period-switch" role="group" aria-label="Wahlperiode auswählen"><button id="period-20" class="period-button is-active" type="button" aria-pressed="true">20. Wahlperiode <small>2021–2025</small></button><button id="period-21" class="period-button" type="button" aria-pressed="false">21. Wahlperiode <small>seit 2025 · im Aufbau</small></button></div><p id="period-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p><div class="hero-actions"><a class="button button-primary" href="#ranglisten">Ranglisten ansehen <span aria-hidden="true">↗</span></a><a class="button button-outline" href="#eintraege">Alle Maßnahmen durchsuchen <span aria-hidden="true">→</span></a></div>
+        <div class="period-switch" role="group" aria-label="Wahlperiode auswählen"><button id="period-20" class="period-button is-active" type="button" disabled aria-pressed="true">20. Wahlperiode <small>2021–2025</small></button><button id="period-21" class="period-button" type="button" disabled aria-pressed="false">21. Wahlperiode <small>seit 2025 · im Aufbau</small></button></div><p id="period-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p><div class="hero-actions"><a class="button button-primary" href="#ranglisten">Ranglisten ansehen <span aria-hidden="true">↗</span></a><a class="button button-outline" href="#eintraege">Alle Maßnahmen durchsuchen <span aria-hidden="true">→</span></a></div>
         <div class="hero-bottom"><span class="pulse" aria-hidden="true"></span> QUELLENGESTÜTZTE AUSWERTUNG <span class="hero-separator">/</span> <span id="hero-snapshot">DATENSTAND WIRD GELADEN</span></div>
       </div>
       <div class="hero-lines" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
@@ -90,14 +90,14 @@
         <div class="section-heading"><div><span class="kicker">02 / QUELLENVERZEICHNIS</span><h2>Jeder Ordnungsruf<span class="accent-period">.</span></h2><p>Suche nach Personen, filtere nach historischer Zugehörigkeit und öffne die amtlichen Plenarprotokolle.</p></div></div>
         <div class="records-panel">
           <div class="filters">
-            <label class="field field-search"><span>PERSON ODER SITZUNG</span><input id="search" type="search" autocomplete="off" placeholder="Name oder Sitzungsnummer suchen …"></label>
-            <label class="field"><span>ZUGEHÖRIGKEIT</span><select id="group-filter"><option value="">Alle Zugehörigkeiten</option></select></label>
-            <label class="field"><span>SORTIERUNG</span><select id="sort"><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option><option value="person">Person A–Z</option></select></label>
+            <label class="field field-search"><span>PERSON ODER SITZUNG</span><input id="search" type="search" autocomplete="off" disabled placeholder="Name oder Sitzungsnummer suchen …"></label>
+            <label class="field"><span>ZUGEHÖRIGKEIT</span><select id="group-filter" disabled><option value="">Alle Zugehörigkeiten</option></select></label>
+            <label class="field"><span>SORTIERUNG</span><select id="sort" disabled><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option><option value="person">Person A–Z</option></select></label>
           </div>
-          <div class="result-line"><span><strong id="result-count">—</strong> passende Maßnahmen</span><button id="reset" class="text-button" type="button">Filter zurücksetzen ↺</button></div>
+          <div class="result-line"><span><strong id="result-count">—</strong> passende Maßnahmen</span><button id="reset" class="text-button" type="button" disabled>Filter zurücksetzen ↺</button></div>
           <div class="table-scroller" role="region" aria-label="Horizontale Maßnahmen-Tabelle" tabindex="0"><table><caption id="records-caption" class="sr-only">Einzeln belegte Ordnungsrufe der 20. Wahlperiode</caption><thead><tr><th scope="col">DATUM</th><th scope="col">PERSON</th><th scope="col">ZUGEHÖRIGKEIT</th><th scope="col">SITZUNG</th><th scope="col">QUELLE</th></tr></thead><tbody id="records-body"><tr><td colspan="5">Einträge werden geladen …</td></tr></tbody></table></div>
           <div id="empty-state" class="empty-state" hidden>Keine passenden Maßnahmen. Versuche einen anderen Suchbegriff oder setze die Filter zurück.</div>
-          <div class="more-line"><span id="showing-count" aria-live="polite" aria-atomic="true"></span><button type="button" id="load-more" class="button button-more" hidden>Weitere Einträge anzeigen ↓</button></div>
+          <div class="more-line"><span id="showing-count" aria-live="polite" aria-atomic="true"></span><button type="button" id="load-more" class="button button-more" hidden disabled>Weitere Einträge anzeigen ↓</button></div>
         </div>
       </div>
     </section>

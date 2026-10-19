@@ -89,3 +89,9 @@ Werden bestätigte CSV-/JSON-Exporte versehentlich inkonsistent oder unvollstän
 ## Zusätzliche veröffentlichte Datenfehler abgesichert
 
 Neben einer versehentlich fehlenden Teilmengenmarkierung für WP21 simuliert der PR-Browser-Test jetzt drei weitere **ausschließlich abgefangene HTTP-Antworten**: fehlende Offenlegung der amtlichen Personendifferenz in WP20, ein unzulässiger nichtamtlicher Protokolllink und ein Widerspruch zwischen Anzahl und Einzelnachweisen der WP21. In jedem Fall wird die Veröffentlichungsdatenprüfung abgebrochen, `role=alert` angezeigt und weder eine geprüfte Zahl noch ein vermeintlich offizieller Quellenlink ausgegeben. Keine der originalen vier geschützten Dateien wird verändert.
+
+## Schutz vor falscher Null bei fehlerhaftem Datenladen
+
+Beide bestätigten Datensätze müssen vollständig validiert sein, **bevor** Such-, Filter-, Perioden- und Paginierungssteuerungen freigeschaltet werden. Bei einem Lade-/Prüfungsfehler werden auch bereits zuvor validierte Teildaten verworfen, alle dynamischen Kennzahlen zeigen einen Gedankenstrich statt `0`, alte Vergleichshinweise werden ausgeblendet und die Datensatz-Fehlermeldung erscheint als `role=alert`. Die echten Browser-Fehlerfälle prüfen nun zusätzlich, dass auch absichtlich ausgelöste Suchereignisse **keinen falschen Nullstand** anzeigen können.
+
+Bei „Weitere Einträge anzeigen“ ergänzt die Website nur die **neuen** Tabellenzeilen, statt alle bestehenden DOM-Zeilen neu zu erzeugen. Damit bleibt der virtuelle Lesekontext in bereits angezeigten Tabellenzeilen stabil. Der reale Chrome-Test vergleicht die Elementidentität vor und nach Paginierung; die letzte Seite behält weiterhin die bereits geprüfte Fokusübernahme zur ersten neuen Zeile.

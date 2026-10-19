@@ -77,7 +77,7 @@ function filteredRecords() {
   });
   return result;
 }
-function renderRecords() {
+function renderRecords({appendOnly = false} = {}) {
   const rows = filteredRecords();
   const shown = rows.slice(0,state.visible);
   $('result-count').textContent = String(rows.length);
@@ -85,8 +85,11 @@ function renderRecords() {
   $('load-more').hidden = shown.length >= rows.length;
   $('empty-state').hidden = rows.length !== 0;
   const body = $('records-body');
-  body.replaceChildren();
-  for (const item of shown) {
+  // Keep existing row nodes (and virtual cursor context) when revealing
+  // more records. Filtering/sorting/period changes still fully redraw.
+  const start = appendOnly ? body.rows.length : 0;
+  if (!appendOnly) body.replaceChildren();
+  for (const item of shown.slice(start)) {
     const tr = document.createElement('tr');
     tr.append(el('td','date',dateDE(item.date)),el('td','person',item.person),
       el('td','group',item.group),el('td','session',`${state.period}/${String(item.session).padStart(3,'0')}`));
@@ -475,7 +478,7 @@ function start() {
   $('load-more').addEventListener('click',()=>{
     const previouslyShown = $('records-body').rows.length;
     state.visible += ITEMS_PER_PAGE;
-    renderRecords();
+    renderRecords({appendOnly:true});
     if ($('load-more').hidden) {
       // When the triggering button disappears, move focus to the first
       // newly appended row instead of leaving keyboard focus on <body>.
@@ -498,6 +501,9 @@ function start() {
     for(const [period,payload] of [['20',twenty],['21',twentyOne]]) {
       state.datasets[period] = validatePublishedDataset(period, payload);
     }
+    // Enable interactive controls only after BOTH ledgers pass verification.
+    for(const id of ['search','group-filter','sort','reset','load-more',
+                     'period-20','period-21']) $(id).disabled=false;
     const initial=new URL(window.location.href).searchParams.get('wp')==='21'?'21':'20';
     activate(initial);
     showSourceHealth();
@@ -511,6 +517,20 @@ function start() {
     showCoverageAudit();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
+    // Fail closed even if the first ledger was checked before the second
+    // rejected. A filter must never turn a failed load into a false zero.
+    state.datasets={};
+    state.records=[];
+    state.visible=ITEMS_PER_PAGE;
+    for(const id of ['search','group-filter','sort','reset','load-more',
+                     'period-20','period-21']) $(id).disabled=true;
+    for(const id of ['metric-total','metric-events','metric-people',
+                     'metric-rescinded','result-count']) $(id).textContent='—';
+    $('showing-count').textContent='';
+    $('empty-state').hidden=true;
+    $('load-more').hidden=true;
+    $('wp20-note').hidden=true;
+    $('wp21-note').hidden=true;
     const alert=$('data-error');
     alert.textContent='Die bestätigten Datensätze konnten nicht sicher geladen werden. '+
       'Es werden keine ungeprüften Zahlen angezeigt. Bitte die Seite erneut laden.';

@@ -79,3 +79,6 @@
 /* Preserve a visible keyboard focus when the last pagination button disappears. */
 #records-body tr:focus-visible{outline:3px solid #84531d;outline-offset:-3px}
 @media(forced-colors:active){#records-body tr:focus-visible{outline:3px solid Highlight}}
+
+/* Controls remain disabled until both independently reviewed datasets validate. */
+.field input:disabled,.field select:disabled,.period-button:disabled{cursor:wait}

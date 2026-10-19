@@ -110,6 +110,28 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn("getAttribute('role')),'alert'",smoke)
         self.assertIn("tamperedViolations",smoke)
 
+    def test_progressive_table_append_without_replacing_existing_nodes(self):
+        self.assertIn('function renderRecords({appendOnly = false} = {})',self.js)
+        self.assertIn('const start = appendOnly ? body.rows.length : 0;',self.js)
+        self.assertIn('if (!appendOnly) body.replaceChildren();',self.js)
+        self.assertIn('for (const item of shown.slice(start))',self.js)
+        self.assertIn('renderRecords({appendOnly:true});',self.js)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('firstRowHandle',smoke)
+
+    def test_controls_stay_disabled_when_verified_ledgers_fail(self):
+        for tag in ('id="search" type="search" autocomplete="off" disabled',
+                    '<select id="group-filter" disabled>',
+                    '<select id="sort" disabled>',
+                    'id="period-20" class="period-button is-active" type="button" disabled'):
+            self.assertIn(tag,self.html)
+        self.assertIn('state.datasets={};',self.js)
+        self.assertIn('state.records=[];',self.js)
+        self.assertIn("$(id).disabled=true;",self.js)
+        self.assertIn("$(id).disabled=false;",self.js)
+        self.assertIn("$(id).textContent='—';",self.js)
+        self.assertIn("$('wp20-note').hidden=true;",self.js)
+
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
                     'wp21-dip-cases','wp21-dip-cases-meta',

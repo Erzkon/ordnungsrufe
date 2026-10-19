@@ -185,8 +185,12 @@ async function main() {
     pass('320px narrow reflow preserves verified totals and horizontal table access');
     await page.screenshot({path:path.join(OUT,'narrow_wp20.png'),fullPage:true});
 
+    const firstRowHandle=await page.$('#records-body tr');
     await page.focus('#load-more');
     await page.keyboard.press('Enter');
+    assert.equal(await page.evaluate(node=>
+      document.querySelector('#records-body tr')===node,firstRowHandle),true);
+    pass('Loading more records preserves the existing table row DOM nodes');
     assert.equal(await textOf(page,'#showing-count'),'30 von 135 Einträgen angezeigt');
     assert.equal(await page.evaluate(()=>document.activeElement?.id),'load-more');
     assert.equal(await textOf(page,'#metric-total'),'135');
@@ -415,6 +419,21 @@ async function main() {
         assert.equal(await textOf(compromised,'#metric-total'),'—');
         assert.equal(await textOf(compromised,'#result-count'),'—');
         assert.match(await textOf(compromised,'#data-error'),/keine ungeprüften Zahlen/);
+        const stateBefore=await compromised.evaluate(()=>({
+          inputs:['search','group-filter','sort','reset','load-more',
+                  'period-20','period-21'].every(id=>document.getElementById(id).disabled),
+          notesHidden:document.querySelector('#wp20-note').hidden&&
+            document.querySelector('#wp21-note').hidden,
+          metric:document.querySelector('#metric-total').textContent.trim()
+        }));
+        assert.equal(stateBefore.inputs,true);
+        assert.equal(stateBefore.notesHidden,true);
+        await compromised.$eval('#search',node=>{
+          node.value='Stephan';
+          node.dispatchEvent(new Event('input',{bubbles:true}));
+        });
+        assert.equal(await textOf(compromised,'#result-count'),'—');
+        assert.equal(await textOf(compromised,'#metric-total'),'—');
         assert.equal(await compromised.$eval('#records-body',el=>
           el.querySelectorAll('a.source-link').length),0);
         pass('Fail-closed verified dataset: '+bad.name);
