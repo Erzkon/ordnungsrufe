@@ -138,6 +138,31 @@ jobs:
                   and d['automatically_approved_new_sanctions']==0
                   and d['definitively_closed_legal_effects']==0)
           PY
+      - name: Fuenf Rechtsfolgenpruefungen sichtbar zusammenfassen
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_later_live/later_effects.json').read_text(encoding='utf-8'))
+          if (d['automatically_approved_new_sanctions']!=0
+                  or d['protected_ledger_changed']
+                  or not d['live_dip_complete_for_exact_five_parents']):
+              raise ValueError('Rechtsfolgenbericht ist nicht sicher')
+          lines=['## Fuenf amtliche DIP-Folgepruefungen', '',
+                 '| Originalperson / Sitzung | DIP-Vorgang | Verfahrenspositionen | Weitere Hinweise |',
+                 '|---|---|---:|---:|']
+          for case in d['cases']:
+              meta=case['dip_parent_metadata_review']
+              lines.append(
+                  f"| {case['person']} / 21/{case['session']:03d} "
+                  f"| [{case['official_dip_parent_id']}]({case['official_dip_parent_url']}) "
+                  f"| {meta['position_count']} | {meta['other_step_review_hints']} |")
+          lines.extend(['',
+              '**Alle Positionen sind nur amtliche Metadaten; keine '
+              'automatisch bestaetigte Rechtswirkung oder Einspruchsfreiheit.**'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+              f.write('\n'.join(lines)+'\n')
+          PY
       - name: Bytegleichheit der bestaetigten Statistiken nach dem Report
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
@@ -155,3 +180,90 @@ jobs:
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
+
+
+  # A narrowly scoped reminder only after a later approved merge, when the
+  # weekly job on main finds extra official position steps. NEVER on PR runs.
+  # Human review is required; the task never modifies sanction counters.
+  new-procedure-alert:
+    name: Neue DIP-Rechtsfolgenpositionen als Pruefhinweis melden
+    needs: review
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: wp21-vier-manuelle-review-buendel
+          path: .
+      - name: Reine Metadaten-Neuigkeiten ohne Doppelmeldungen beobachten
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs');
+            const crypto=require('crypto');
+            const data=JSON.parse(fs.readFileSync(
+              '.audit/wp21_five_later_live/later_effects.json','utf8'));
+            if(data.schema!=='wp21-five-legal-followup-matrix-v1' ||
+               data.cases.length!==5 ||
+               data.automatically_approved_new_sanctions!==0 ||
+               data.protected_ledger_changed!==false ||
+               data.live_dip_parent_status!=='all_five_refreshed'){
+              throw new Error('DIP-Folgequellenreport nicht sicher');
+            }
+            const hints=data.cases.filter(c=>
+              c.dip_parent_metadata_review?.other_step_review_hints>0);
+            if(hints.length===0){
+              core.info('Keine zusätzlichen DIP-Verfahrenspositionen: kein Issue.');
+              return;
+            }
+            const observed=hints.map(c=>({
+              parent:c.official_dip_parent_id,
+              positions:c.dip_parent_metadata_review.positions
+                .filter(p=>p.role_for_review!=='original_grant_step')
+                .map(p=>[p.official_position_id,p.date,p.role_for_review])
+            })).sort((a,b)=>a.parent.localeCompare(b.parent));
+            const digest=crypto.createHash('sha256')
+              .update(JSON.stringify(observed)).digest('hex').slice(0,20);
+            const marker='<!-- wp21-five-procedure-digest:'+digest+' -->';
+            const title='WP21: neue DIP-Verfahrenspositionen zu fünf Ursprungsfällen';
+            const lines=[
+              marker,
+              'Automatisch erkannte amtliche **Verfahrenspositions-Hinweise**, '
+                +'keine neue bestätigte oder rechtlich wirksame Sanktion.',
+              '',
+              'Es besteht Bedarf für individuelle Prüfung des genauen '
+                +'Verfahrensinhalts und möglicher späterer Rechtsfolgen.',
+              '',
+              ...hints.map(c=>' - '+c.person+' / 21/'+
+                String(c.session).padStart(3,'0')+' – '+
+                c.dip_parent_metadata_review.other_step_review_hints+
+                ' zusätzliche Position(en): '+
+                c.dip_parent_metadata_review.positions
+                  .filter(p=>p.role_for_review!=='original_grant_step')
+                  .map(p=>p.official_position_api).join(', ')),
+              '',
+              'Beobachtungsdaten: GitHub Actions '+context.runId+
+                '; **kein** automatischer Eingriff in CSV-/JSON-Zähler.'
+            ];
+            const body=lines.join('\n');
+            const {owner,repo}=context.repo;
+            const issues=await github.paginate(github.rest.issues.listForRepo,{
+              owner,repo,state:'open',per_page:100
+            });
+            const existing=issues.find(issue=>
+              !issue.pull_request && issue.title===title);
+            if(!existing){
+              await github.rest.issues.create({owner,repo,title,body});
+              core.info('Neue amtliche Positionen zur manuellen Prüfung gemeldet');
+            }else if(!(existing.body||'').includes(marker)){
+              await github.rest.issues.update({
+                owner,repo,issue_number:existing.number,body
+              });
+              core.info('Prüfhinweis auf neue amtliche Positionen aktualisiert');
+            }else{
+              core.info('Identische Hinweise bereits gemeldet, kein Duplikat');
+            }
