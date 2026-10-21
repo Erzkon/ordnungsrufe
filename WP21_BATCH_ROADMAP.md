@@ -42,3 +42,25 @@ Beim Abgleich der datierten Stichprobe sind zwei getrennte amtliche Verfahrensbe
 - [Sichert: Einspruch gegen Ordnungsruf aus 21/090 am 08.09.2026 zurückgewiesen](https://www.bundestag.de/dokumente/textarchiv/2026/kw37-de-einspruch-ordnungsruf-1210768). Dieser ursprünglich erteilte Ruf ist bereits in den **acht** bestätigten Einträgen enthalten; die Einspruchsentscheidung erzeugt **keine neue ursprüngliche Erteilung**.
 
 Beide Original-Links sind als getrennte Verfahrensquellen im JSON-Bericht vermerkt. Die Review-Queue erhält **keinen** weiteren Kandidaten und ändert keine Statistik. Keine Aussage über andere, nicht untersuchte Rechtsfolgen wird daraus abgeleitet.
+
+
+## Amtlicher Original-PDF-Abgleich: das erste Bündel ist in Arbeit
+
+Die beiden zunächst priorisierten Mehrfachformulierungen wurden unabhängig
+am tatsächlichen Original-PDF nachgeprüft und als **verschiedenartige
+Beweisprobleme** klassifiziert:
+
+- Frohnmaier 21/051, Seite 6144: [Original](https://dserver.bundestag.de/btp/21/21051.pdf#page=74).
+  Zwei ausgesprochene Formulierungen sind durch eine weitere Äußerung des
+  Adressaten unterbrochen. Deshalb ist offen, ob eine wiederholte Erteilung oder
+  zwei eigenständige Maßnahmen gemeint waren; eine einzelne DIP-Position ist
+  kein sicherer Zählbeweis.
+- Reichardt 21/065, Seite 7785: [Original](https://dserver.bundestag.de/btp/21/21065.pdf#page=25).
+  Die zweite Formulierung folgt innerhalb derselben zusammenhängenden
+  Intervention der Sitzungsleitung. Eine Wiederholung der ersten Erteilung
+  liegt nahe, bleibt jedoch eine Interpretation. Der amtliche
+  [Einspruchsbeschluss vom 20.03.2026](https://www.bundestag.de/dokumente/textarchiv/2026/kw12-de-einspruch-ordnungsruf-1156828)
+  behandelt einen Ordnungsruf.
+
+Die genaue Abgrenzung und nächsten Nachweise stehen in
+`WP21_BATCH_1_ORIGINALNOTIZEN.md`. Beide Fälle bleiben **nichtzählend**.

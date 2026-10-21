@@ -65,6 +65,24 @@ def build(snapshot, known, reviewed_count, appeal_index=None):
             or sum(map(len,ORIGINAL_LINES.values()))!=21):
         raise ValueError("Kuratierte Originalquellen, Referenzfälle oder Einsprüche widersprüchlich")
 
+    original_context={
+        (51,norm('Markus Frohnmaier')):{
+            'official_page':'https://dserver.bundestag.de/btp/21/21051.pdf#page=74',
+            'preliminary_classification':'two_phrases_with_intervening_new_interjection',
+            'separate_legal_grants_verified':False,
+            'next_evidence_step':('Die ursprüngliche Erteilung und den folgenden '
+                'neuen Zwischenruf mit zweiter Erteilungsformel abgrenzen; '
+                'eine DIP-Erteilungsposition reicht nicht als Zahlbeweis'),
+        },
+        (65,norm('Martin Reichardt')):{
+            'official_page':'https://dserver.bundestag.de/btp/21/21065.pdf#page=25',
+            'preliminary_classification':'two_phrases_one_uninterrupted_chair_intervention',
+            'separate_legal_grants_verified':False,
+            'next_evidence_step':('Wiederholung des Ordnungsrufs im selben '
+                'Präsidiumsredeabschnitt gegen den singularen Einspruch vom '
+                '20.03.2026 abgleichen; keine automatische Zweitzaehlung'),
+        },
+    }
     pending=[]
     for row in entries:
         session,person=row['session'],row['person']
@@ -115,6 +133,7 @@ def build(snapshot, known, reviewed_count, appeal_index=None):
                         'P1_einspruch_verknuepfen' if tier==1 else
                         'P2_original_und_rechtsfolge'),
             'manual_next_action':action,
+            'manual_original_context_hint':original_context.get(key),
             'independent_unrelated_proceeding':(
                 dict(UNRELATED_PENALTY_REICHARDT)
                 if key==(65,norm('Martin Reichardt')) else None),
@@ -184,6 +203,18 @@ def markdown(report):
                 f" | {link} | {item['manual_next_action']} |")
         lines.append('')
     lines.extend([
+        '## Erstes Bündel: geprüfte amtliche Originalkontexte', '',
+        '- **21/051 Frohnmaier:** zwei Erteilungsformulierungen mit '
+          'erneutem Zwischenruf dazwischen. '
+          '[Original-PDF S. 6144](https://dserver.bundestag.de/btp/21/21051.pdf#page=74). '
+          'DIP-Teilstichprobe: nur ein Ursprungsvorgang; Zahl getrennter '
+          'Rechtsakte ungeklärt.',
+        '- **21/065 Reichardt:** beide Formulierungen innerhalb einer '
+          'durchgehenden Intervention. '
+          '[Original-PDF S. 7785](https://dserver.bundestag.de/btp/21/21065.pdf#page=25). '
+          'Amtlicher Einspruch/Entscheidung bezieht sich auf einen Ruf. '
+          'Plausible Wiederholung, keine automatische rechtliche Feststellung.',
+        '',
         '## Amtliche Quellen mit ausdrücklich anderer Bedeutung','',
         '- **Martin Reichardt:** [Ordnungsgeld und Einspruch vom 15./16.10.2026]('+
           UNRELATED_PENALTY_REICHARDT['source']+

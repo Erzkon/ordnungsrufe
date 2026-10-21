@@ -93,6 +93,23 @@ class SourceBoundedBatchTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'nur im Verzeichnis'):
                 write(self.result(),folder)
 
+    def test_two_first_batch_originals_keep_intervening_speaker_context_distinct(self):
+        report=self.result()
+        cases={(c['session'],norm(c['person'])):c for c in report['cases']}
+        frohn=cases[(51,norm('Markus Frohnmaier'))]['manual_original_context_hint']
+        reich=cases[(65,norm('Martin Reichardt'))]['manual_original_context_hint']
+        self.assertEqual(
+            frohn['preliminary_classification'],
+            'two_phrases_with_intervening_new_interjection')
+        self.assertEqual(
+            reich['preliminary_classification'],
+            'two_phrases_one_uninterrupted_chair_intervention')
+        self.assertTrue(frohn['official_page'].endswith('21051.pdf#page=74'))
+        self.assertTrue(reich['official_page'].endswith('21065.pdf#page=25'))
+        self.assertFalse(frohn['separate_legal_grants_verified'])
+        self.assertFalse(reich['separate_legal_grants_verified'])
+        self.assertIn('mit',markdown(report))
+
     def test_new_official_penalty_is_not_misclassified_as_old_ordnungsruf(self):
         report=self.result()
         reich=next(c for c in report['cases']
