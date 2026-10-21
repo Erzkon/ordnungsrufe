@@ -5,7 +5,10 @@ on:
     branches: [main]
     paths:
       - 'wp21_batch_review.py'
+      - 'wp21_three_decisions.py'
       - 'tests/test_wp21_batch_review.py'
+      - 'tests/test_wp21_three_decisions.py'
+      - 'WP21_BATCH_1_APPEAL_VOTES.md'
       - 'tests/fixtures/official_dip_wp21_positive_snapshot.json'
       - 'daten/wirksame_ordnungsrufe_21wp.csv'
       - '.github/workflows/wp21_batch_review.yml'
@@ -48,7 +51,7 @@ jobs:
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/confirmed.sha256"
       - name: Pruefe offizielle Referenzen und negative Zaehlergrenzen
-        run: python -m unittest -v tests.test_wp21_batch_review
+        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions
       - name: Erzeuge vier dateigebundene Pruefbuendel
         run: |
           python wp21_batch_review.py --output-dir .audit/wp21_batch_review
@@ -77,6 +80,18 @@ jobs:
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as summary:
             summary.write('\n'.join(lines)+'\n')
           PY
+      - name: Verifiziere drei individuelle Originalerteilungen und Parlamentsvoten
+        run: |
+          python wp21_three_decisions.py --output-dir .audit/wp21_three_decisions
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_three_decisions/crosswalk.json').read_text(encoding='utf-8'))
+          assert (d['individual_origins_checked']==3
+                  and d['individually_linked_parliamentary_appeal_rejections']==3
+                  and d['independently_newly_approved_effective_sanctions']==0
+                  and not d['protected_public_counters_changed'])
+          PY
       - name: Bytegleichheit der bestaetigten Statistiken nach dem Report
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
@@ -85,7 +100,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: wp21-vier-manuelle-review-buendel
-          path: .audit/wp21_batch_review/
+          path: |
+            .audit/wp21_batch_review/
+            .audit/wp21_three_decisions/
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error

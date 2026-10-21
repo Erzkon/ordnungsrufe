@@ -64,3 +64,23 @@ Beweisprobleme** klassifiziert:
 
 Die genaue Abgrenzung und nächsten Nachweise stehen in
 `WP21_BATCH_1_ORIGINALNOTIZEN.md`. Beide Fälle bleiben **nichtzählend**.
+
+## Drei zusätzliche Original- und Abstimmungspaare geprüft (21.10.2026)
+
+Hess (21/052), Przygodda (21/067) und Fahl (21/069) sind anhand der
+**jeweiligen originalen Erteilungsseite**, der **parlamentarischen
+Einspruchsabstimmung in späterer Sitzung** und eines unabhängigen
+Bundestagsberichts als Einzelpersonen zuordenbar. Die konkreten
+Original-PDF-Seiten stehen in `WP21_BATCH_1_APPEAL_VOTES.md`.
+
+Das lesende Modul `wp21_three_decisions.py` verbindet diese Primärquellen
+mit den bisherigen kuratierten XML-Ankern, dem datierten amtlichen
+DIP-Positivsnapshot und den individuellen Einspruchsreferenzen.
+Es exportiert `.audit/wp21_three_decisions/crosswalk.json` und
+`crosswalk.md`, prüft Namens-/Sitzungs-/Quellenkonsistenz und blockiert
+unbelegte Zusatzfreigaben. Die bestehende Bearbeitungsqueue enthält
+die drei konkreten Original-/Abstimmungslinks ebenfalls gesondert.
+
+**Abstimmungsentscheidung** und **endgültiger Stand sämtlicher möglicher
+weiterer Rechtsfolgen** sind unterschiedliche Beweisfragen.
+Auch bei diesen drei Fällen bleiben automatische Zähleränderungen **null**.

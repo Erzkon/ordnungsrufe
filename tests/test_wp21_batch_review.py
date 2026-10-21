@@ -110,6 +110,25 @@ class SourceBoundedBatchTests(unittest.TestCase):
         self.assertFalse(reich['separate_legal_grants_verified'])
         self.assertIn('mit',markdown(report))
 
+    def test_three_official_original_vote_pairs_enrich_existing_queue(self):
+        report=self.result()
+        self.assertEqual(report['independently_crosschecked_original_and_vote_pairs'],3)
+        rows=[c for c in report['cases']
+              if c['independent_original_and_vote_crosscheck']]
+        self.assertEqual([(c['session'],c['person']) for c in rows],
+                         [(52,'Martin Hess'),(67,'Kerstin Przygodda'),
+                          (69,'Fabian Fahl')])
+        self.assertTrue(all(
+            x['independent_original_and_vote_crosscheck']
+             ['confirmed_parliamentary_rejection'] for x in rows))
+        self.assertTrue(all(
+            x['independent_original_and_vote_crosscheck']
+             ['further_legal_outcome_review_required'] for x in rows))
+        self.assertTrue(all(x['independent_original_and_vote_crosscheck']
+                            ['new_effective_sanctions_automatically_approved']==0
+                            for x in rows))
+        self.assertEqual(report['automatic_approved_sanctions'],0)
+
     def test_new_official_penalty_is_not_misclassified_as_old_ordnungsruf(self):
         report=self.result()
         reich=next(c for c in report['cases']
