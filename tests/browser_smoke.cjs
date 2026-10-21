@@ -62,6 +62,15 @@ async function inspectKeyboardFocus(page,period,width){
   const observations=[];
   for(let step=0;step<48;step++){
     await page.keyboard.press('Tab');
+    // Browser smooth scrolling after Tab is asynchronous. Wait for the
+    // focused rectangle to settle into view before declaring it obscured.
+    await page.waitForFunction(()=>{
+      const el=document.activeElement;
+      if(!el||el===document.body)return true;
+      const b=el.getBoundingClientRect();
+      return b.width>0&&b.height>0&&b.left<innerWidth&&b.right>0&&
+        b.top<innerHeight&&b.bottom>0;
+    },{timeout:1800,polling:60}).catch(()=>{});
     const focus=await page.evaluate(()=>{
       const el=document.activeElement;
       if(!el || el===document.body)return null;
