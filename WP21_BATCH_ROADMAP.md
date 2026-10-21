@@ -84,3 +84,21 @@ die drei konkreten Original-/Abstimmungslinks ebenfalls gesondert.
 **Abstimmungsentscheidung** und **endgültiger Stand sämtlicher möglicher
 weiterer Rechtsfolgen** sind unterschiedliche Beweisfragen.
 Auch bei diesen drei Fällen bleiben automatische Zähleränderungen **null**.
+
+
+## Zweites Fünferbündel: fünf weitere Originalerteilungen quellenkritisch überprüft
+
+Im zweiten Bearbeitungsbündel sind nun auch **Reichinnek (21/053),
+Baumann (21/057), von Zons (21/061), Pantisano (21/065) und Gebel
+(21/067)** anhand der ursprünglichen PDF-Seiten nachgewiesen.
+Die exakten Originalseiten und jeweiligen Kontexte stehen in
+`WP21_BATCH_2_ORIGINALNOTIZEN.md` und in dem neuen nichtzählenden
+`wp21_five_origins.py`-Bericht.
+
+Damit sind in diesem Durchgang **acht bisher offene Fälle** auf
+Original-PDF-Seiten erneut geprüft; bei drei davon liegt zusätzlich
+ein Original-Protokollabgleich der parlamentarischen Zurückweisung vor.
+Bei den fünf neuen Fällen ist der spätere individuelle
+Einspruchs-/Aufhebungs-/Wirksamkeitsstatus **ausdrücklich ungeprüft**.
+Es wurden weder weitere bestätigte Maßnahmen noch Veränderungen am
+geschützten Acht-Fälle-Teilbestand erzeugt.

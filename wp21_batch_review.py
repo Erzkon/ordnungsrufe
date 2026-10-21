@@ -11,6 +11,7 @@ from wp21_autopruefung import read_reviewed, norm
 from wp21_dip_kontrolle import reference
 from wp21_einspruchsbelege import validated_index
 from wp21_three_decisions import build as original_vote_crosswalk
+from wp21_five_origins import build as next_five_originals
 from wp21_hochprioritaet_18 import (
     EXPECTED_KEYS, ORIGINAL_LINES, MULTI_PHRASE_EPISODES, validate_scope,
 )
@@ -86,6 +87,8 @@ def build(snapshot, known, reviewed_count, appeal_index=None):
     }
     crosswalk=original_vote_crosswalk(appeals=appeals,snapshot=snapshot,known=known)
     linked_votes={(x['session'],norm(x['person'])):x for x in crosswalk['cases']}
+    five=next_five_originals(snapshot=snapshot,known=known)
+    five_index={(x['session'],norm(x['person'])):x for x in five['cases']}
     pending=[]
     for row in entries:
         session,person=row['session'],row['person']
@@ -136,6 +139,13 @@ def build(snapshot, known, reviewed_count, appeal_index=None):
                         'P1_einspruch_verknuepfen' if tier==1 else
                         'P2_original_und_rechtsfolge'),
             'manual_next_action':action,
+            'additional_original_pdf_crosscheck':(
+                {'original_pdf_url':five_index[key]['original_pdf_url'],
+                 'original_xml_line':five_index[key]['original_xml_line'],
+                 'original_individually_located':True,
+                 'further_legal_outcome_review_required':True,
+                 'new_effective_sanctions_automatically_approved':0}
+                if key in five_index else None),
             'independent_original_and_vote_crosscheck':(
                 {'original_pdf_url':linked_votes[key]['original_pdf_url'],
                  'decision_pdf_url':linked_votes[key]['decision_pdf_url'],
@@ -175,6 +185,7 @@ def build(snapshot, known, reviewed_count, appeal_index=None):
         'curated_original_wording_locations_across_18_cases':21,
         'curated_rejected_appeals_across_18_cases':4,
         'independently_crosschecked_original_and_vote_pairs':len(linked_votes),
+        'independently_located_additional_original_pdfs':len(five_index),
         'separate_preexisting_reviewed_case_appeal':
             dict(PREEXISTING_SICHERT_APPEAL),
         'separate_different_sanction_type':dict(UNRELATED_PENALTY_REICHARDT),
@@ -234,6 +245,15 @@ def markdown(report):
           'in derselben Intervention keine unabhängig freigegebene zweite Maßnahme.',
         '- [Einzelne Quellen- und Abstimmungsstellen](WP21_BATCH_1_APPEAL_VOTES.md) '
           'und die getrennten JSON-/Markdown-Gegenprüfungen im Actions-Artefakt.',
+        '',
+        '## Zweites Bündel: fünf amtliche Ursprungserteilungen lokalisiert', '',
+        '- Reichinnek 21/053, Baumann 21/057, von Zons 21/061, '
+          'Pantisano 21/065 und Gebel 21/067. Fünf eigenständige '
+          'Original-PDF-Fundstellen, bisher **keine vollständige** '
+          'individuelle Rechtsfolgenprüfung.',
+        '- [Genaue PDF-Seiten und Empfänger-Kontext](WP21_BATCH_2_ORIGINALNOTIZEN.md) '
+          'sowie getrennte JSON-/Markdown-Auditquellen. '
+          'Kein Schluss aus fehlenden kuratierten Einsprüchen.',
         '',
         '## Amtliche Quellen mit ausdrücklich anderer Bedeutung','',
         '- **Martin Reichardt:** [Ordnungsgeld und Einspruch vom 15./16.10.2026]('+

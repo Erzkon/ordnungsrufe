@@ -6,6 +6,8 @@ on:
     paths:
       - 'wp21_batch_review.py'
       - 'wp21_three_decisions.py'
+      - 'wp21_five_origins.py'
+      - 'tests/test_wp21_five_origins.py'
       - 'tests/test_wp21_batch_review.py'
       - 'tests/test_wp21_three_decisions.py'
       - 'WP21_BATCH_1_APPEAL_VOTES.md'
@@ -51,7 +53,7 @@ jobs:
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/confirmed.sha256"
       - name: Pruefe offizielle Referenzen und negative Zaehlergrenzen
-        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions
+        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins
       - name: Erzeuge vier dateigebundene Pruefbuendel
         run: |
           python wp21_batch_review.py --output-dir .audit/wp21_batch_review
@@ -92,6 +94,18 @@ jobs:
                   and d['independently_newly_approved_effective_sanctions']==0
                   and not d['protected_public_counters_changed'])
           PY
+      - name: Fuenf weitere amtliche Originalerteilungen einzeln belegen
+        run: |
+          python wp21_five_origins.py --output-dir .audit/wp21_five_origins
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_origins/source_records.json').read_text(encoding='utf-8'))
+          assert (d['origin_issuances_individually_located_in_official_pdfs']==5
+                  and d['individual_effectiveness_reviews_completed']==0
+                  and d['newly_approved_effective_sanctions']==0
+                  and not d['protected_counters_changed'])
+          PY
       - name: Bytegleichheit der bestaetigten Statistiken nach dem Report
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
@@ -103,6 +117,7 @@ jobs:
           path: |
             .audit/wp21_batch_review/
             .audit/wp21_three_decisions/
+            .audit/wp21_five_origins/
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error

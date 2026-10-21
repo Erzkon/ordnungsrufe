@@ -129,6 +129,22 @@ class SourceBoundedBatchTests(unittest.TestCase):
                             for x in rows))
         self.assertEqual(report['automatic_approved_sanctions'],0)
 
+    def test_next_five_original_pdfs_are_separately_verified_but_not_effective(self):
+        report=self.result()
+        self.assertEqual(report['independently_located_additional_original_pdfs'],5)
+        rows=[c for c in report['cases'] if c['additional_original_pdf_crosscheck']]
+        self.assertEqual(
+            [(c['session'],c['person']) for c in rows],
+            [(53,'Heidi Reichinnek'),(57,'Bernd Baumann'),
+             (61,'Ulrich von Zons'),(65,'Luigi Pantisano'),
+             (67,'Kathrin Gebel')])
+        for row in rows:
+            detail=row['additional_original_pdf_crosscheck']
+            self.assertTrue(detail['original_individually_located'])
+            self.assertTrue(detail['further_legal_outcome_review_required'])
+            self.assertEqual(detail['new_effective_sanctions_automatically_approved'],0)
+        self.assertEqual(report['automatic_approved_sanctions'],0)
+
     def test_new_official_penalty_is_not_misclassified_as_old_ordnungsruf(self):
         report=self.result()
         reich=next(c for c in report['cases']
