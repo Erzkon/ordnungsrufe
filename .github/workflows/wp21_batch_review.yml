@@ -1,0 +1,91 @@
+name: WP21 amtliche Quellen-Review-Buendel
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'wp21_batch_review.py'
+      - 'tests/test_wp21_batch_review.py'
+      - 'tests/fixtures/official_dip_wp21_positive_snapshot.json'
+      - 'daten/wirksame_ordnungsrufe_21wp.csv'
+      - '.github/workflows/wp21_batch_review.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '25 7 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: 17 nichtzaehlende Originalquellen-Pruefauftraege
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Installiere Python-Abhaengigkeiten
+        run: python -m pip install -r requirements.txt
+      - name: Bestaetigte Zaehlungen gegen main schuetzen
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for f in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$f" | cmp -s - "$f" || {
+              echo "::error file=$f::Bestaetigte Statistikdatei veraendert"
+              exit 1
+            }
+          done
+      - name: Sichere SHA256 der bestaetigten Dateien
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv \
+            daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json \
+            docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/confirmed.sha256"
+      - name: Pruefe offizielle Referenzen und negative Zaehlergrenzen
+        run: python -m unittest -v tests.test_wp21_batch_review
+      - name: Erzeuge vier dateigebundene Pruefbuendel
+        run: |
+          python wp21_batch_review.py --output-dir .audit/wp21_batch_review
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          report=json.loads(Path('.audit/wp21_batch_review/review_queue.json').read_text(encoding='utf-8'))
+          assert (report['pending_person_session_pairs']==17
+                  and len(report['batches'])==4
+                  and report['automatic_approved_sanctions']==0
+                  and not report['protected_ledgers_changed'])
+          lines=[
+            '## WP21: Vier manuelle Arbeitsbuendel aus amtlicher Teilstichprobe',
+            '',
+            'DIP-Stichprobe '+report['source_snapshot']+
+            ', 17 offene Person/Sitzung-Kombinationen; keine zusaetzlich bestaetigten Massnahmen.',
+            '',
+            '| Buendel | Prioritaet | Originalfall |',
+            '|---|---|---|',
+          ]
+          for item in report['cases'][:5]:
+            lines.append(f"| {item['batch']} | {item['priority']} | "+
+                         f"{item['person']} / 21/{item['session']:03d} |")
+          lines.extend(['','Alle originalen Quellenverweise stehen im separaten '
+                         'Markdown-/CSV-/JSON-Artefakt; bestaetigte Zaehlungen unveraendert.'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as summary:
+            summary.write('\n'.join(lines)+'\n')
+          PY
+      - name: Bytegleichheit der bestaetigten Statistiken nach dem Report
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
+      - name: Archiviere reine Quellen-Pruefauftraege
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-vier-manuelle-review-buendel
+          path: .audit/wp21_batch_review/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
