@@ -80,6 +80,116 @@ class WorkflowOperationalChecks(unittest.TestCase):
         self.assertIn("state:'closed', state_reason:'completed'",wf)
         self.assertIn("steps.health.outcome == 'failure'",wf)
 
+    def test_wcag_axe_audit_blocks_publication(self):
+        workflow=self.workflow
+        browser=workflow.index('node tests/browser_smoke.cjs')
+        accessibility=workflow.index('node tests/accessibility_audit.cjs')
+        publication=workflow.index('      - name: Website-Artefakt zur Veroeffentlichung uebertragen')
+        self.assertLess(browser,accessibility)
+        self.assertLess(accessibility,publication)
+        self.assertIn("AXE_ENFORCE: '1'",workflow)
+        self.assertIn('axe-core@4.14.0',workflow)
+        self.assertNotIn('continue-on-error: true',workflow[browser:publication])
+        pr=Path('.github/workflows/v1_browser_smoke.yml').read_text(encoding='utf-8')
+        self.assertIn("AXE_ENFORCE: '1'",pr)
+        self.assertIn('node tests/accessibility_audit.cjs',pr)
+        self.assertIn('axe-core@4.14.0',pr)
+        self.assertIn('tests/accessibility_audit.cjs',pr)
+        self.assertNotIn('continue-on-error: true',pr)
+
+    def test_reflow_and_reduced_motion_are_part_of_blocking_a11y_gate(self):
+        audit=Path('tests/accessibility_audit.cjs').read_text(encoding='utf-8')
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn("['20',320,720]",audit)
+        self.assertIn("['21',320,720]",audit)
+        self.assertIn("['20',640,900]",audit)
+        self.assertIn("['21',640,900]",audit)
+        self.assertIn('WCAG reflow horizontal document overflow',audit)
+        self.assertIn('prefers-reduced-motion',audit)
+        self.assertIn("320px narrow reflow",smoke)
+        self.assertIn("Keyboard load-more preserves focus",smoke)
+        self.assertIn("AXE_ENFORCE: '1'",self.workflow)
+
+    def test_axe_covers_dynamic_empty_search_and_generated_manifest(self):
+        audit=Path('tests/accessibility_audit.cjs').read_text(encoding='utf-8')
+        pr=Path('.github/workflows/v1_browser_smoke.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('A11Y_FILTERED_STATE_INVALID',audit)
+        self.assertIn('A11Y_FILTERED_AXE_VIOLATIONS',audit)
+        self.assertIn('AXE_DYNAMIC_EMPTY_PASS',audit)
+        self.assertIn('filteredStateChecks',audit)
+        self.assertIn('V1_ACCESSIBILITY_OUT=".audit/browser_smoke/with_manifest/accessibility"',pr)
+        self.assertIn('AXE_ENFORCE=1 V1_BROWSER_DOCROOT="$TMP_DIR/docs"',pr)
+
+    def test_pr_a11y_gate_has_a_fail_closed_negative_control(self):
+        pr=Path('.github/workflows/v1_browser_smoke.yml').read_text(
+            encoding='utf-8')
+        self.assertIn('Prove strict Axe gate rejects an unlabeled control',pr)
+        self.assertIn('axe-negative-control',pr)
+        self.assertIn('AXE_ENFORCE=1',pr)
+        self.assertIn('"id": "button-name"',pr)
+        self.assertIn('AXE_NEGATIVE_CONTROL_PASS',pr)
+        self.assertIn('TMP_DIR="$(mktemp -d)"',pr)
+        self.assertIn("trap 'rm -rf \"$TMP_DIR\"' EXIT",pr)
+        self.assertIn('cp -a docs "$TMP_DIR/docs"',pr)
+        self.assertNotIn('git push',pr)
+
+    def test_chromium_accessibility_tree_checks_are_fail_closed(self):
+        audit=Path('tests/accessibility_audit.cjs').read_text(encoding='utf-8')
+        for text in ('Accessibility.getPartialAXTree','Accessibility.enable',
+                     'ACCESSIBILITY_TREE_MISMATCH','AX_NODE_IGNORED',
+                     'accessibilityTreeChecks','Unvollständige Auswahl',
+                     'Einträge anzeigen','Sitzung'):
+            with self.subTest(token=text):
+                self.assertIn(text,audit)
+        self.assertIn("AXE_ENFORCE: '1'",self.workflow)
+
+    def test_dynamic_a11y_rule_violations_are_saved_before_failing(self):
+        audit=Path('tests/accessibility_audit.cjs').read_text(
+            encoding='utf-8')
+        self.assertIn("state:'empty-search'",audit)
+        self.assertIn('x.filteredState?.violationRules',audit)
+        self.assertIn('A11Y_FILTERED_AXE_VIOLATIONS',audit)
+        self.assertIn('if(ENFORCE&&violations.length)process.exitCode=1',audit)
+
+    def test_actual_browser_simulates_five_source_health_outcomes(self):
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        for token in ("kind:'fresh'","kind:'degraded'","kind:'stale'",
+                      "kind:'invalid'","kind:'future'",
+                      "all_sources_fresh=false","role,'status'",
+                      'DIP-Verfahrensschritte','monitored.addScriptTag'):
+            with self.subTest(token=token):
+                self.assertIn(token,smoke)
+        self.assertIn("assert.equal(result.count,'8')",smoke)
+        self.assertNotIn('public_counter_delta=1',smoke)
+
+    def test_browser_rejects_multiple_independent_dataset_corruptions(self):
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        for token in (
+            'WP20 missing official personal discrepancy',
+            'WP20 unauthorised source origin',
+            'WP21 count and evidence mismatch',
+            'https://example.invalid/fake.pdf#page=1',
+            "payload.meta.count+=1",
+            "el.querySelectorAll('a.source-link').length"
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token,smoke)
+        self.assertIn('Fail-closed verified dataset:',smoke)
+
+    def test_keyboard_evidence_and_unresolved_axe_queue(self):
+        browser=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        axe=Path('tests/accessibility_audit.cjs').read_text(encoding='utf-8')
+        for token in ('KEYBOARD_FOCUS_OBSCURED','KEYBOARD_FOCUS_COVERAGE_MISSING',
+                      'keyboard_focus_evidence.json','focusVisible'):
+            with self.subTest(token=token):
+                self.assertIn(token,browser)
+        for token in ('manual_review_queue.md','inconclusiveTotal',
+                      'incompleteRules'):
+            with self.subTest(token=token):
+                self.assertIn(token,axe)
+        self.assertIn("AXE_ENFORCE",axe)
+
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
         self.assertIn("github.ref == 'refs/heads/main'", self.workflow)

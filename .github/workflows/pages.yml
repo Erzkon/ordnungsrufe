@@ -925,10 +925,15 @@ jobs:
           node-version: '22'
       - name: Vor dem produktiven Pages-Artefakt echten Browser-Smoketest vorbereiten
         if: github.event_name != 'pull_request'
-        run: npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0
+        run: npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0 axe-core@4.14.0
       - name: Produktive Browseransicht und Quellenstatus mit Chrome auf Mobil und Desktop prüfen
         if: github.event_name != 'pull_request'
         run: node tests/browser_smoke.cjs
+      - name: WCAG A/AA und Best-Practice-Audit vor produktiver Veroeffentlichung
+        if: github.event_name != 'pull_request'
+        env:
+          AXE_ENFORCE: '1'
+        run: node tests/accessibility_audit.cjs
       - name: Produktive Browserbilder und Prüfergebnisse getrennt archivieren
         if: ${{ always() && github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v6

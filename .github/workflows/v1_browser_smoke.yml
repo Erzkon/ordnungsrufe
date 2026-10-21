@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/**'
       - 'tests/browser_smoke.cjs'
+      - 'tests/accessibility_audit.cjs'
       - '.github/workflows/v1_browser_smoke.yml'
       - '.github/workflows/pages.yml'
       - 'V1_READINESS.md'
@@ -24,7 +25,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install pinned headless test driver only
-        run: npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0
+        run: npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.20.0 axe-core@4.14.0
       - name: Verify headless Chrome is available on standard Ubuntu runner
         run: |
           if command -v google-chrome >/dev/null; then
@@ -49,6 +50,46 @@ jobs:
           V1_BROWSER_DOCROOT="$TMP_DIR/docs" \
             V1_BROWSER_OUT=".audit/browser_smoke/with_manifest" \
             node tests/browser_smoke.cjs
+          AXE_ENFORCE=1 V1_BROWSER_DOCROOT="$TMP_DIR/docs" \
+            V1_ACCESSIBILITY_OUT=".audit/browser_smoke/with_manifest/accessibility" \
+            node tests/accessibility_audit.cjs
+      - name: Analyze four real Chrome views for WCAG A/AA and best-practice regressions
+        env:
+          AXE_ENFORCE: '1'
+        run: node tests/accessibility_audit.cjs
+      - name: Prove strict Axe gate rejects an unlabeled control
+        shell: bash
+        run: |
+          set -euo pipefail
+          TMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TMP_DIR"' EXIT
+          cp -a docs "$TMP_DIR/docs"
+          python - "$TMP_DIR/docs/index.html" <<'PY'
+          import sys
+          from pathlib import Path
+          target = Path(sys.argv[1])
+          content = target.read_text(encoding='utf-8')
+          assert content.count('</main>') == 1, "Unexpected main markup"
+          content = content.replace(
+              '</main>',
+              '<button id="axe-negative-control" type="button"></button></main>'
+          )
+          target.write_text(content, encoding='utf-8')
+          PY
+          mkdir -p .audit/browser_smoke/negative_control
+          if AXE_ENFORCE=1 V1_BROWSER_DOCROOT="$TMP_DIR/docs" \
+             V1_ACCESSIBILITY_OUT=".audit/browser_smoke/negative_control" \
+             node tests/accessibility_audit.cjs \
+             > .audit/browser_smoke/negative_control/diagnostic.log 2>&1; then
+            echo "::error::Axe wrongly accepted an intentionally nameless button"
+            exit 1
+          fi
+          if ! grep -Fq '"id": "button-name"' \
+            .audit/browser_smoke/negative_control/axe_report.json; then
+            echo "::error::Axe failed for the wrong reason; missing button-name violation"
+            exit 1
+          fi
+          echo "AXE_NEGATIVE_CONTROL_PASS: required button-name violation rejected"
       - name: Preserve exact PR render and machine-readable result for manual review
         if: always()
         uses: actions/upload-artifact@v6

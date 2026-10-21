@@ -16,7 +16,7 @@
   <a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
   <header class="masthead">
     <div class="shell masthead-inner">
-      <a class="brand" href="#start" aria-label="Ordnungsruf-Counter, zur Startseite">
+      <a class="brand" href="#start">
         <span class="brand-mark" aria-hidden="true"><span class="brand-mark-bar"></span><span class="brand-mark-dot"></span></span>
         <span><strong>ORDNUNGS<span class="brand-accent">RUF</span></strong><small>COUNTER</small></span>
       </a>
@@ -35,7 +35,7 @@
         <div class="eyebrow"><span class="eyebrow-line"></span> PARLAMENTARISCHE DATEN · <span id="hero-period">20. WAHLPERIODE</span></div>
         <h1>Wenn im Plenum<br><em>die Ordnung ruft.</em></h1>
         <p>Wer erhielt wann einen Ordnungsruf? Eine nachvollziehbare Auswertung mit Namen, Zugehörigkeiten zum jeweiligen Zeitpunkt und direkten Verweisen auf die Originalprotokolle.</p>
-        <div class="period-switch" role="group" aria-label="Wahlperiode auswählen"><button id="period-20" class="period-button is-active" type="button" aria-pressed="true">20. Wahlperiode <small>2021–2025</small></button><button id="period-21" class="period-button" type="button" aria-pressed="false">21. Wahlperiode <small>seit 2025 · im Aufbau</small></button></div><p id="period-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p><div class="hero-actions"><a class="button button-primary" href="#ranglisten">Ranglisten ansehen <span aria-hidden="true">↗</span></a><a class="button button-outline" href="#eintraege">Alle Maßnahmen durchsuchen <span aria-hidden="true">→</span></a></div>
+        <div class="period-switch" role="group" aria-label="Wahlperiode auswählen"><button id="period-20" class="period-button is-active" type="button" disabled aria-pressed="true">20. Wahlperiode <small>2021–2025</small></button><button id="period-21" class="period-button" type="button" disabled aria-pressed="false">21. Wahlperiode <small>seit 2025 · im Aufbau</small></button></div><p id="period-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p><div class="hero-actions"><a class="button button-primary" href="#ranglisten">Ranglisten ansehen <span aria-hidden="true">↗</span></a><a class="button button-outline" href="#eintraege">Alle Maßnahmen durchsuchen <span aria-hidden="true">→</span></a></div>
         <div class="hero-bottom"><span class="pulse" aria-hidden="true"></span> QUELLENGESTÜTZTE AUSWERTUNG <span class="hero-separator">/</span> <span id="hero-snapshot">DATENSTAND WIRD GELADEN</span></div>
       </div>
       <div class="hero-lines" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
@@ -49,6 +49,8 @@
     </section>
 
     <section class="shell note-section" aria-label="Hinweis zum Datenstand">
+      <p id="data-error" class="source-health" data-state="missing" role="alert" hidden></p>
+      <button id="retry-data" class="button button-more" type="button" hidden>Daten erneut laden ↻</button>
       <div id="wp20-note" class="disclosure"><span class="disclosure-icon" aria-hidden="true">i</span><div><strong>Transparenzhinweis: vorläufiger Personenabgleich</strong><p>Die Summe von 135 stimmt mit der veröffentlichten Gesamtzahl des Bundestages überein. Für Beatrix von Storch weist unsere einzeln belegte Liste 18 Maßnahmen aus, die amtliche Veröffentlichung nennt 19. Ein DIP-Sonderfall aus März 2023 ist noch nicht abschließend geklärt. <a href="#methodik">Mehr zur Methodik <span aria-hidden="true">→</span></a></p></div></div>
       <div id="wp21-note" class="disclosure wp21-disclosure" hidden><span class="disclosure-icon" aria-hidden="true">i</span><div><strong>21. Wahlperiode: dokumentierte Anfangsauswahl – kein vollständiger Counter</strong><p>Die angezeigten Einträge sind eine begrenzte, einzeln belegte Teilmenge aus amtlichen Plenarprotokollen. Weitere Sitzungen, mögliche Rücknahmen und Einsprüche sind noch nicht abschließend ausgewertet. Deshalb sind Gesamtzahl und Ranglisten für diese Wahlperiode <strong>noch nicht repräsentativ</strong>. Automatisch erkannte Textstellen werden niemals ohne Prüfung zur Statistik hinzugefügt. <a href="https://github.com/Erzkon/ordnungsrufe/blob/main/WP21.md" target="_blank" rel="noopener noreferrer">Ablauf und Prüfregeln ↗</a></p></div></div>
       <p id="wp21-health" class="source-health" data-state="missing" role="status" aria-live="polite" hidden>Quellenstatus wird geladen …</p>
@@ -59,7 +61,7 @@
       <div class="activity-head"><div><span class="kicker">AUTOMATISCHER QUELLENCHECK</span><h2>Neue Textstellen zur Prüfung</h2><p id="wp21-activity-meta">Die aktuellen Hinweise werden geladen …</p></div></div>
       <p class="activity-warning"><strong>Keine bestätigten Ordnungsrufe:</strong> Diese Textstellen können tatsächliche Vergaben, Warnungen, Rückblicke, Einsprüche oder Mehrfachnennungen enthalten. Sie fließen nicht in die Ranglisten ein und erhalten keine automatisch angenommene Person oder Fraktion.</p>
       <ol id="wp21-activity-items" class="activity-list"><li class="activity-empty">Quellencheck wird geladen …</li></ol>
-      <div class="activity-dip-cases" aria-labelledby="wp21-dip-cases-title">
+      <div class="activity-dip-cases" role="region" aria-labelledby="wp21-dip-cases-title">
         <div class="activity-head">
           <h3 id="wp21-dip-cases-title">Amtlich verknüpfte Prüffälle</h3>
           <p id="wp21-dip-cases-meta">DIP-Vorgänge und Verfahrensschritte werden geprüft …</p>
@@ -79,8 +81,8 @@
     <section id="ranglisten" class="shell rankings section-gap">
       <div class="section-heading"><div><span class="kicker">01 / AUSWERTUNG</span><h2>Die Ranglisten<span class="accent-period">.</span></h2><p id="ranking-caption">Alle Angaben basieren auf den einzeln belegten, wirksamen Maßnahmen der 20. Wahlperiode.</p></div><span class="section-flag" id="section-period">2021—2025</span></div>
       <div class="ranking-grid">
-        <article class="panel ranking-panel"><div class="panel-head"><div><span class="panel-eyebrow">NACH PERSON</span><h3>Wer erhielt die meisten?</h3></div><span class="panel-symbol" aria-hidden="true">↗</span></div><div id="people-ranking" class="bar-list" aria-live="polite"><p class="loading">Rangliste wird geladen …</p></div><p class="panel-hint">Personen zum Filtern der Maßnahmen anklicken.</p></article>
-        <article class="panel ranking-panel"><div class="panel-head"><div><span class="panel-eyebrow">NACH ZUGEHÖRIGKEIT</span><h3>Fraktionen &amp; Gruppen</h3></div><span class="panel-symbol" aria-hidden="true">↗</span></div><div id="group-ranking" class="bar-list" aria-live="polite"><p class="loading">Rangliste wird geladen …</p></div><p class="panel-hint">Maßgeblich ist die Zugehörigkeit zum Zeitpunkt des Ordnungsrufs. „Die Linke“ fasst Fraktion und Gruppe nur in dieser Übersicht zusammen.</p></article>
+        <article class="panel ranking-panel"><div class="panel-head"><div><span class="panel-eyebrow">NACH PERSON</span><h3>Wer erhielt die meisten?</h3></div><span class="panel-symbol" aria-hidden="true">↗</span></div><div id="people-ranking" class="bar-list"><p class="loading">Rangliste wird geladen …</p></div><p class="panel-hint">Personen zum Filtern der Maßnahmen anklicken.</p></article>
+        <article class="panel ranking-panel"><div class="panel-head"><div><span class="panel-eyebrow">NACH ZUGEHÖRIGKEIT</span><h3>Fraktionen &amp; Gruppen</h3></div><span class="panel-symbol" aria-hidden="true">↗</span></div><div id="group-ranking" class="bar-list"><p class="loading">Rangliste wird geladen …</p></div><p class="panel-hint">Maßgeblich ist die Zugehörigkeit zum Zeitpunkt des Ordnungsrufs. „Die Linke“ fasst Fraktion und Gruppe nur in dieser Übersicht zusammen.</p></article>
       </div>
     </section>
 
@@ -89,14 +91,14 @@
         <div class="section-heading"><div><span class="kicker">02 / QUELLENVERZEICHNIS</span><h2>Jeder Ordnungsruf<span class="accent-period">.</span></h2><p>Suche nach Personen, filtere nach historischer Zugehörigkeit und öffne die amtlichen Plenarprotokolle.</p></div></div>
         <div class="records-panel">
           <div class="filters">
-            <label class="field field-search"><span>PERSON ODER SITZUNG</span><input id="search" type="search" autocomplete="off" placeholder="Name oder Sitzungsnummer suchen …" aria-label="Nach Person oder Sitzungsnummer suchen"></label>
-            <label class="field"><span>ZUGEHÖRIGKEIT</span><select id="group-filter" aria-label="Historische Zugehörigkeit filtern"><option value="">Alle Zugehörigkeiten</option></select></label>
-            <label class="field"><span>SORTIERUNG</span><select id="sort" aria-label="Reihenfolge"><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option><option value="person">Person A–Z</option></select></label>
+            <label class="field field-search"><span>PERSON ODER SITZUNG</span><input id="search" type="search" autocomplete="off" disabled aria-describedby="showing-count" placeholder="Name oder Sitzungsnummer suchen …"></label>
+            <label class="field"><span>ZUGEHÖRIGKEIT</span><select id="group-filter" disabled aria-describedby="showing-count"><option value="">Alle Zugehörigkeiten</option></select></label>
+            <label class="field"><span>SORTIERUNG</span><select id="sort" disabled aria-describedby="showing-count"><option value="newest">Neueste zuerst</option><option value="oldest">Älteste zuerst</option><option value="person">Person A–Z</option></select></label>
           </div>
-          <div class="result-line"><span><strong id="result-count">—</strong> passende Maßnahmen</span><button id="reset" class="text-button" type="button">Filter zurücksetzen ↺</button></div>
-          <div class="table-scroller" role="region" aria-label="Horizontale Maßnahmen-Tabelle" tabindex="0"><table><caption id="records-caption" class="sr-only">Einzeln belegte Ordnungsrufe der 20. Wahlperiode</caption><thead><tr><th scope="col">DATUM</th><th scope="col">PERSON</th><th scope="col">ZUGEHÖRIGKEIT</th><th scope="col">SITZUNG</th><th scope="col">QUELLE</th></tr></thead><tbody id="records-body"><tr><td colspan="5">Einträge werden geladen …</td></tr></tbody></table></div>
+          <div class="result-line"><span><strong id="result-count">—</strong> passende Maßnahmen</span><button id="reset" class="text-button" type="button" disabled>Filter zurücksetzen ↺</button></div>
+          <div class="table-scroller" role="region" aria-label="Horizontale Maßnahmen-Tabelle" aria-busy="true" tabindex="0"><table><caption id="records-caption" class="sr-only">Einzeln belegte Ordnungsrufe der 20. Wahlperiode</caption><thead><tr><th scope="col">DATUM</th><th scope="col">PERSON</th><th scope="col">ZUGEHÖRIGKEIT</th><th scope="col">SITZUNG</th><th scope="col">QUELLE</th></tr></thead><tbody id="records-body"><tr><td colspan="5">Einträge werden geladen …</td></tr></tbody></table></div>
           <div id="empty-state" class="empty-state" hidden>Keine passenden Maßnahmen. Versuche einen anderen Suchbegriff oder setze die Filter zurück.</div>
-          <div class="more-line"><span id="showing-count" aria-live="polite" aria-atomic="true"></span><button type="button" id="load-more" class="button button-more" hidden>Weitere Einträge anzeigen ↓</button></div>
+          <div class="more-line"><span id="showing-count" aria-live="polite" aria-atomic="true"></span><button type="button" id="load-more" class="button button-more" hidden disabled>Weitere Einträge anzeigen ↓</button></div>
         </div>
       </div>
     </section>
@@ -109,7 +111,7 @@
         <div class="method-item"><span class="method-num">03</span><h3>Historische Zugehörigkeit</h3><p>Eine Person kann im Laufe der Wahlperiode die Fraktionszugehörigkeit wechseln oder fraktionslos werden. Wir zählen bei der zum Sitzungstag dokumentierten Zugehörigkeit.</p></div>
         <div class="method-item"><span class="method-num">04</span><h3>Offene Differenzen</h3><p>Bei der 20. Wahlperiode verbleibt die amtliche Differenz von Storch (18 vs. 19). Die 21. Wahlperiode ist zunächst eine unvollständige Anfangsauswahl; ihre Gesamtsumme ist unbekannt.</p></div>
       </div>
-      <div class="sources"><span>WEITERFÜHRENDE QUELLEN</span><a href="https://www.bundestag.de/dokumente/textarchiv/1949-09-20-ordnungsruf-1086652" target="_blank" rel="noopener noreferrer">Deutscher Bundestag <span aria-hidden="true">↗</span></a><a href="https://www.bundestag.de/resource/blob/196296/08d0a21670ca40e45ecfdb242d119d58/Kapitel_07_16_Ordnungsma__nahmen-data.pdf" target="_blank" rel="noopener noreferrer">Datenhandbuch <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe/blob/main/QUELLENABGLEICH.md" target="_blank" rel="noopener noreferrer">Quellenabgleich &amp; offene Punkte <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe/blob/main/OFFENE_EINZELFAELLE.md" target="_blank" rel="noopener noreferrer">Offene Einzelakten <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe/blob/main/WP21.md" target="_blank" rel="noopener noreferrer">21. Wahlperiode &amp; täglicher Prüfprozess <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe" target="_blank" rel="noopener noreferrer">Quellcode auf GitHub <span aria-hidden="true">↗</span></a></div>
+      <div class="sources"><span>WEITERFÜHRENDE QUELLEN</span><a href="https://www.bundestag.de/dokumente/textarchiv/1949-09-20-ordnungsruf-1086652" target="_blank" rel="noopener noreferrer">Deutscher Bundestag <span aria-hidden="true">↗</span></a><a href="https://www.bundestag.de/resource/blob/196296/08d0a21670ca40e45ecfdb242d119d58/Kapitel_07_16_Ordnungsma__nahmen-data.pdf" target="_blank" rel="noopener noreferrer">Datenhandbuch <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe/blob/main/QUELLENABGLEICH.md" target="_blank" rel="noopener noreferrer">Quellenabgleich &amp; offene Punkte <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe/blob/main/OFFENE_EINZELFAELLE.md" target="_blank" rel="noopener noreferrer">Offene Einzelakten <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe/blob/main/ACCESSIBILITY.md" target="_blank" rel="noopener noreferrer">Barrierefreiheit &amp; Tests <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe/blob/main/WP21.md" target="_blank" rel="noopener noreferrer">21. Wahlperiode &amp; täglicher Prüfprozess <span aria-hidden="true">↗</span></a><a href="https://github.com/Erzkon/ordnungsrufe" target="_blank" rel="noopener noreferrer">Quellcode auf GitHub <span aria-hidden="true">↗</span></a></div>
     </section>
   </main>
   <footer class="footer"><div class="shell footer-inner"><div><strong>ORDNUNGSRUF<span>COUNTER</span></strong><small>Unabhängiges, nichtamtliches Transparenzprojekt.</small></div><span id="footer-period">20. WAHLPERIODE · DATENSTAND WIRD GELADEN</span><a href="#start">Nach oben ↑</a></div></footer>

@@ -46,14 +46,14 @@ function ranking(container, entries, kind) {
   entries.forEach(([name, count], index) => {
     const button = el('button', 'bar-row');
     button.type = 'button';
-    button.setAttribute('aria-label', `${name}: ${count} geprüfte Ordnungsrufe. Einträge anzeigen`);
+    // Visible rank, person and count remain part of the accessible button name.
     const heading = el('span', 'bar-heading');
     heading.append(el('span', 'bar-title', `${String(index + 1).padStart(2, '0')}  ${name}`), el('span', 'bar-value', count));
     const rail = el('span', 'bar-rail');
     const fill = el('span', 'bar-fill');
     fill.style.width = `${100 * count / max}%`;
     rail.append(fill);
-    button.append(heading, rail);
+    button.append(heading, rail, el('span', 'sr-only', ' Einträge anzeigen'));
     button.addEventListener('click', () => applyFilterAndScroll(kind === 'person' ? 'search' : 'group-filter', name));
     root.append(button);
   });
@@ -77,7 +77,9 @@ function filteredRecords() {
   });
   return result;
 }
-function renderRecords() {
+function renderRecords({appendOnly = false} = {}) {
+  const tableRegion=document.querySelector('.table-scroller');
+  tableRegion.setAttribute('aria-busy','true');
   const rows = filteredRecords();
   const shown = rows.slice(0,state.visible);
   $('result-count').textContent = String(rows.length);
@@ -85,8 +87,11 @@ function renderRecords() {
   $('load-more').hidden = shown.length >= rows.length;
   $('empty-state').hidden = rows.length !== 0;
   const body = $('records-body');
-  body.replaceChildren();
-  for (const item of shown) {
+  // Keep existing row nodes (and virtual cursor context) when revealing
+  // more records. Filtering/sorting/period changes still fully redraw.
+  const start = appendOnly ? body.rows.length : 0;
+  if (!appendOnly) body.replaceChildren();
+  for (const item of shown.slice(start)) {
     const tr = document.createElement('tr');
     tr.append(el('td','date',dateDE(item.date)),el('td','person',item.person),
       el('td','group',item.group),el('td','session',`${state.period}/${String(item.session).padStart(3,'0')}`));
@@ -95,11 +100,13 @@ function renderRecords() {
     link.href = item.source;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
-    link.setAttribute('aria-label',`Plenarprotokoll ${state.period}/${String(item.session).padStart(3,'0')} für ${item.person} öffnen`);
+    // Keep the visible "Protokoll" label inside the accessible name (WCAG 2.5.3).
+    link.append(el('span','sr-only',` für ${item.person}, Sitzung ${state.period}/${String(item.session).padStart(3,'0')} öffnen`));
     cell.append(link);
     tr.append(cell);
     body.append(tr);
   }
+  tableRegion.setAttribute('aria-busy','false');
 }
 function addOptions(groups) {
   const select = $('group-filter');
@@ -116,7 +123,7 @@ function addOptions(groups) {
     select.append(option);
   }
 }
-function activate(period) {
+function activate(period, {navigation = 'replace'} = {}) {
   const payload = state.datasets[period];
   if (!payload) return;
   state.period = period;
@@ -166,7 +173,13 @@ function activate(period) {
   renderRecords();
   const url = new URL(window.location.href);
   url.searchParams.set('wp',period);
-  window.history.replaceState(null,'',url.pathname+url.search+url.hash);
+  const nextUrl=url.pathname+url.search+url.hash;
+  if (navigation === 'push' &&
+      new URL(window.location.href).searchParams.get('wp') !== period) {
+    window.history.pushState(null,'',nextUrl);
+  } else if (navigation === 'replace') {
+    window.history.replaceState(null,'',nextUrl);
+  }
 }
 async function showSourceHealth() {
   const box = $('wp21-health');
@@ -464,17 +477,46 @@ async function showCoverageAudit() {
 }
 
 function start() {
+  // A retry always reloads both published ledgers from scratch, never from
+  // partially validated cached state.
+  $('retry-data').addEventListener('click',()=>window.location.reload());
   for(const id of ['search','group-filter','sort']) {
-    $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {state.visible=ITEMS_PER_PAGE;renderRecords();});
+    $(id).addEventListener(id === 'search' ? 'input' : 'change',() => {
+      if (!state.datasets['20'] || !state.datasets['21']) return;
+      state.visible=ITEMS_PER_PAGE;
+      renderRecords();
+    });
   }
   $('reset').addEventListener('click',()=>{
+    if (!state.datasets[state.period]) return;
     $('search').value='';$('group-filter').value='';$('sort').value='newest';
     state.visible=ITEMS_PER_PAGE;renderRecords();
   });
-  $('load-more').addEventListener('click',()=>{state.visible+=ITEMS_PER_PAGE;renderRecords();});
+  $('load-more').addEventListener('click',()=>{
+    if (!state.datasets[state.period]) return;
+    const previouslyShown = $('records-body').rows.length;
+    state.visible += ITEMS_PER_PAGE;
+    renderRecords({appendOnly:true});
+    if ($('load-more').hidden) {
+      // When the triggering button disappears, move focus to the first
+      // newly appended row instead of leaving keyboard focus on <body>.
+      const newRow = $('records-body').rows[previouslyShown];
+      if (newRow) {
+        newRow.tabIndex = -1;
+        newRow.focus({preventScroll:false});
+      }
+    }
+  });
   for(const period of ['20','21']) {
-    $(`period-${period}`).addEventListener('click',()=>activate(period));
+    $(`period-${period}`).addEventListener('click',
+      ()=>activate(period,{navigation:'push'}));
   }
+  window.addEventListener('popstate',()=>{
+    if (!state.datasets['20'] || !state.datasets['21']) return;
+    const next=new URL(window.location.href).searchParams.get('wp')==='21'
+      ? '21' : '20';
+    activate(next,{navigation:'none'});
+  });
   Promise.all([
     fetch('./data/ordnungsrufe.json',{cache:'no-cache'}),
     fetch('./data/ordnungsrufe_21.json',{cache:'no-cache'})
@@ -484,6 +526,9 @@ function start() {
     for(const [period,payload] of [['20',twenty],['21',twentyOne]]) {
       state.datasets[period] = validatePublishedDataset(period, payload);
     }
+    // Enable interactive controls only after BOTH ledgers pass verification.
+    for(const id of ['search','group-filter','sort','reset','load-more',
+                     'period-20','period-21']) $(id).disabled=false;
     const initial=new URL(window.location.href).searchParams.get('wp')==='21'?'21':'20';
     activate(initial);
     showSourceHealth();
@@ -497,9 +542,29 @@ function start() {
     showCoverageAudit();
   }).catch(err=>{
     console.error('Daten nicht geladen',err);
+    // Fail closed even if the first ledger was checked before the second
+    // rejected. A filter must never turn a failed load into a false zero.
+    state.datasets={};
+    state.records=[];
+    state.visible=ITEMS_PER_PAGE;
+    for(const id of ['search','group-filter','sort','reset','load-more',
+                     'period-20','period-21']) $(id).disabled=true;
+    for(const id of ['metric-total','metric-events','metric-people',
+                     'metric-rescinded','result-count']) $(id).textContent='—';
+    $('showing-count').textContent='';
+    $('empty-state').hidden=true;
+    $('load-more').hidden=true;
+    $('wp20-note').hidden=true;
+    $('wp21-note').hidden=true;
+    const alert=$('data-error');
+    alert.textContent='Die bestätigten Datensätze konnten nicht sicher geladen werden. '+
+      'Es werden keine ungeprüften Zahlen angezeigt. Bitte die Seite erneut laden.';
+    alert.hidden=false;
+    $('retry-data').hidden=false;
     $('people-ranking').textContent='Die Daten konnten nicht geladen werden.';
     $('group-ranking').textContent='Die Daten konnten nicht geladen werden.';
     $('records-body').replaceChildren();
+    document.querySelector('.table-scroller').setAttribute('aria-busy','false');
     const tr=el('tr','');const td=el('td','','Die Daten konnten nicht geladen werden. Bitte die Seite erneut laden.');
     td.colSpan=5;tr.append(td);$('records-body').append(tr);
   });

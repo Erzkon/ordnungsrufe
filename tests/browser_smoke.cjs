@@ -8,6 +8,7 @@ const os=require('node:os');
 const {execFileSync}=require('node:child_process');
 const assert=require('node:assert/strict');
 const puppeteer=require('puppeteer-core');
+const axe=require('axe-core');
 
 const ROOT=path.resolve(process.env.V1_BROWSER_DOCROOT || path.resolve(__dirname,'..','docs'));
 const OUT=path.resolve(process.env.V1_BROWSER_OUT || '.audit/browser_smoke');
@@ -56,6 +57,53 @@ async function readyCount(page,count) {
     number=>document.querySelector('#metric-total')?.textContent.trim()===number,
     {timeout:12000},String(count));
 }
+async function inspectKeyboardFocus(page,period,width){
+  // Actual Tab traversal in Chrome; not a genuine screenreader session.
+  const observations=[];
+  for(let step=0;step<48;step++){
+    await page.keyboard.press('Tab');
+    // Browser smooth scrolling after Tab is asynchronous. Wait for the
+    // focused rectangle to settle into view before declaring it obscured.
+    await page.waitForFunction(()=>{
+      const el=document.activeElement;
+      if(!el||el===document.body)return true;
+      const b=el.getBoundingClientRect();
+      return b.width>0&&b.height>0&&b.left<innerWidth&&b.right>0&&
+        b.top<innerHeight&&b.bottom>0;
+    },{timeout:1800,polling:60}).catch(()=>{});
+    const focus=await page.evaluate(()=>{
+      const el=document.activeElement;
+      if(!el || el===document.body)return null;
+      const b=el.getBoundingClientRect(),style=getComputedStyle(el);
+      return {id:el.id||null,tag:el.tagName,
+        selector:el.id?'#'+el.id:(el.tagName.toLowerCase()+
+          (typeof el.className==='string'&&el.className.trim()?
+            '.'+el.className.trim().split(' ').join('.'):'')),
+        focusVisible:el.matches(':focus-visible'),
+        inViewport:b.width>0&&b.height>0&&b.left<innerWidth&&
+          b.right>0&&b.top<innerHeight&&b.bottom>0,
+        hidden:style.visibility==='hidden'||style.display==='none',
+        rect:{x:Math.round(b.x),y:Math.round(b.y),
+          width:Math.round(b.width),height:Math.round(b.height)}
+      };
+    });
+    if(!focus)continue;
+    observations.push(focus);
+    if(!focus.inViewport||focus.hidden||!focus.focusVisible)
+      throw new Error('KEYBOARD_FOCUS_OBSCURED '+JSON.stringify({
+        period,width,step,focus
+      }));
+  }
+  if(observations.length<20||
+    !observations.some(x=>x.selector.includes('source-link'))||
+    !observations.some(x=>x.id==='search'))
+      throw new Error('KEYBOARD_FOCUS_COVERAGE_MISSING '+JSON.stringify({
+        period,width,count:observations.length,
+        visited:observations.map(x=>x.selector)
+      }));
+  return {period,width,tabStops:observations.length,observations};
+}
+
 async function main() {
   fs.mkdirSync(OUT,{recursive:true});
   const {server,url}=await startServer();
@@ -66,6 +114,26 @@ async function main() {
   try {
     browser=await puppeteer.launch({headless:true,executablePath:chromePath(),
       args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
+    const keyboardFocusEvidence=[];
+    for(const width of [320,640]){
+      for(const period of ['20','21']){
+        const review=await browser.newPage();
+        try{
+          await review.setViewport({width,height:800,deviceScaleFactor:1,
+            isMobile:false,hasTouch:false});
+          await review.goto(url+'?wp='+period,{waitUntil:'load'});
+          await readyCount(review,period==='20'?135:8);
+          const focus=await inspectKeyboardFocus(review,period,width);
+          keyboardFocusEvidence.push(focus);
+          pass('Visible keyboard focus through 48 Tab stops at '+width+
+            'px in WP'+period);
+        }finally{await review.close();}
+      }
+    }
+    fs.writeFileSync(path.join(OUT,'keyboard_focus_evidence.json'),
+      JSON.stringify({schema:'ordnungsrufe-keyboard-focus-v1',
+        description:'Actual Chrome Tab navigation, not a screenreader test',
+        runs:keyboardFocusEvidence},null,2)+'\n');
     const page=await browser.newPage();
     const browserErrors=[];
     page.on('pageerror',error=>browserErrors.push(error.message));
@@ -77,6 +145,11 @@ async function main() {
     assert.equal(await visible(page,'#wp20-note'),true);
     assert.equal(await visible(page,'#wp21-note'),false);
     pass('Desktop historical baseline 135/123 and dated discrepancy');
+    assert.equal(await page.$eval('.table-scroller',n=>n.getAttribute('aria-busy')),'false');
+    const descriptiveControls=await page.evaluate(()=>
+      ['search','group-filter','sort'].map(id=>document.getElementById(id).getAttribute('aria-describedby')));
+    assert.deepEqual(descriptiveControls,['showing-count','showing-count','showing-count']);
+    pass('Loaded table is marked ready and all filters describe live result totals');
     await page.keyboard.press('Tab');
     assert.equal(await page.evaluate(()=>
       document.activeElement?.classList.contains('skip-link')),true);
@@ -100,6 +173,42 @@ async function main() {
     assert.equal(new URL(page.url()).searchParams.get('wp'),'21');
     pass('Switch to partial WP21 never claims overall count');
 
+    // Browser history is a meaningful navigation affordance: selecting a
+    // period should be reversible without refetching or losing partial scope.
+    const historyPage=await browser.newPage();
+    try{
+      await historyPage.goto(url+'?wp=20',{waitUntil:'load'});
+      await readyCount(historyPage,135);
+      await historyPage.click('#period-21');
+      await readyCount(historyPage,8);
+      assert.equal(new URL(historyPage.url()).searchParams.get('wp'),'21');
+      await historyPage.evaluate(()=>window.history.back());
+      await readyCount(historyPage,135);
+      assert.equal(new URL(historyPage.url()).searchParams.get('wp'),'20');
+      assert.equal(await historyPage.$eval('#period-20',e=>e.getAttribute('aria-pressed')),'true');
+      await historyPage.evaluate(()=>window.history.forward());
+      await readyCount(historyPage,8);
+      assert.equal(new URL(historyPage.url()).searchParams.get('wp'),'21');
+      assert.equal(await historyPage.$eval('#period-21',e=>e.getAttribute('aria-pressed')),'true');
+      assert.match(await textOf(historyPage,'#period-announcement'),
+        /Unvollständige Auswahl, keine Gesamtzahl/);
+      pass('Browser back and forward restore selected period and scope warning');
+    }finally{await historyPage.close();}
+
+    // Avoid announcing two entire dynamically rebuilt rankings on each
+    // legislature change; the concise period status already covers scope.
+    const livePolicy=await page.evaluate(()=>({
+      people:document.querySelector('#people-ranking').getAttribute('aria-live'),
+      groups:document.querySelector('#group-ranking').getAttribute('aria-live'),
+      status:document.querySelector('#period-announcement').getAttribute('role'),
+      showing:document.querySelector('#showing-count').getAttribute('aria-live')
+    }));
+    assert.equal(livePolicy.people,null);
+    assert.equal(livePolicy.groups,null);
+    assert.equal(livePolicy.status,'status');
+    assert.equal(livePolicy.showing,'polite');
+    pass('Concise period and result announcements replace verbose ranking-list chatter');
+
     await page.waitForFunction(states=>{
       const box=document.querySelector('#wp21-health');
       return box && states.includes(box.dataset.state) &&
@@ -119,6 +228,30 @@ async function main() {
     await page.click('#reset');
     assert.equal(await textOf(page,'#result-count'),'8');
     pass('Search, empty state and reset work');
+
+    // Native select controls and sort changes must preserve keyboard focus,
+    // user-visible result counts and the explicit incomplete-WP21 scope.
+    const filteredPage=await browser.newPage();
+    try{
+      await filteredPage.goto(url+'?wp=21',{waitUntil:'load'});
+      await readyCount(filteredPage,8);
+      const choice=await filteredPage.$eval('#group-filter',select=>
+        [...select.options].find(o=>o.value)?.value);
+      assert.ok(choice);
+      await filteredPage.select('#group-filter',choice);
+      const groupCount=Number(await textOf(filteredPage,'#result-count'));
+      assert.ok(groupCount>0 && groupCount<=8);
+      assert.equal(await textOf(filteredPage,'#metric-total'),'8');
+      await filteredPage.focus('#sort');
+      await filteredPage.keyboard.press('ArrowDown');
+      assert.equal(await filteredPage.evaluate(()=>document.activeElement?.id),'sort');
+      assert.equal(Number(await textOf(filteredPage,'#result-count')),groupCount);
+      await filteredPage.focus('#reset');
+      await filteredPage.keyboard.press('Enter');
+      assert.equal(await textOf(filteredPage,'#result-count'),'8');
+      assert.match(await textOf(filteredPage,'#ranking-caption'),/nicht repräsentativ/);
+      pass('Keyboard group filter, sorting and reset preserve the verified WP21 scope');
+    }finally{await filteredPage.close();}
     await page.click('#period-20');
     await readyCount(page,135);
     await page.type('#search','Beatrix von Storch');
@@ -166,6 +299,87 @@ async function main() {
       document.querySelector('.table-scroller').scrollLeft>0,{timeout:4000});
     pass('Mobile horizontal table is keyboard focusable and scrollable');
 
+    await page.setViewport({width:320,height:720,deviceScaleFactor:2,
+      isMobile:true,hasTouch:true});
+    await page.goto(url+'?wp=20',{waitUntil:'load'});
+    await readyCount(page,135);
+    const narrow=await page.evaluate(()=>({
+      viewport:document.documentElement.clientWidth,
+      width:document.documentElement.scrollWidth,
+      tableScroll:document.querySelector('.table-scroller').scrollWidth>
+        document.querySelector('.table-scroller').clientWidth,
+      total:document.querySelector('#metric-total').textContent.trim()
+    }));
+    if(narrow.width>narrow.viewport+3)
+      fail('320px reflow','Unexpected whole-page overflow '+JSON.stringify(narrow));
+    assert.equal(narrow.tableScroll,true);
+    assert.equal(narrow.total,'135');
+    pass('320px narrow reflow preserves verified totals and horizontal table access');
+    await page.screenshot({path:path.join(OUT,'narrow_wp20.png'),fullPage:true});
+
+    const firstRowHandle=await page.$('#records-body tr');
+    await page.focus('#load-more');
+    await page.keyboard.press('Enter');
+    assert.equal(await page.evaluate(node=>
+      document.querySelector('#records-body tr')===node,firstRowHandle),true);
+    pass('Loading more records preserves the existing table row DOM nodes');
+    assert.equal(await textOf(page,'#showing-count'),'30 von 135 Einträgen angezeigt');
+    assert.equal(await page.evaluate(()=>document.activeElement?.id),'load-more');
+    assert.equal(await textOf(page,'#metric-total'),'135');
+    pass('Keyboard load-more preserves focus and verified total');
+    // Complete the remaining pages with Enter. On the final activation,
+    // the button becomes hidden and focus must not disappear.
+    for(let count=45;count<=135;count+=15){
+      await page.keyboard.press('Enter');
+      assert.equal(await textOf(page,'#showing-count'),
+        count+' von 135 Einträgen angezeigt');
+      assert.equal(await textOf(page,'#metric-total'),'135');
+      if(count<135){
+        assert.equal(await page.evaluate(()=>document.activeElement?.id),'load-more');
+      } else {
+        const end=await page.evaluate(()=>({
+          hidden:document.querySelector('#load-more').hidden,
+          focusTag:document.activeElement?.tagName,
+          focusIndex:[...document.querySelectorAll('#records-body tr')]
+            .indexOf(document.activeElement),
+          rowCount:document.querySelectorAll('#records-body tr').length
+        }));
+        assert.equal(end.hidden,true);
+        assert.equal(end.focusTag,'TR');
+        assert.equal(end.focusIndex,120);
+        assert.equal(end.rowCount,135);
+      }
+    }
+    pass('Final keyboard pagination retains focus on first newly revealed row');
+
+    // Microsoft/Windows high-contrast emulation: selected period and focus
+    // must remain distinguishable without relying only on fill colours.
+    // Puppeteer's high-level media API does not expose forced-colors.
+    // DevTools Protocol does; keep test pinned to real Chromium support.
+    const session=await page.createCDPSession();
+    await session.send('Emulation.setEmulatedMedia',{
+      features:[{name:'forced-colors',value:'active'}]
+    });
+    const contrast=await page.evaluate(()=>{
+      const active=document.querySelector('#period-20');
+      const rail=document.querySelector('#people-ranking .bar-rail');
+      return {emulated:matchMedia('(forced-colors: active)').matches,
+        selectedOutline:getComputedStyle(active).outlineStyle,
+        railBorder:getComputedStyle(rail).borderStyle};
+    });
+    assert.equal(contrast.emulated,true);
+    assert.notEqual(contrast.selectedOutline,'none');
+    assert.notEqual(contrast.railBorder,'none');
+    pass('Forced-colors mode distinguishes selected period and chart boundaries');
+    await session.send('Emulation.setEmulatedMedia',{
+      features:[{name:'forced-colors',value:'none'}]
+    });
+    await session.detach();
+
+    await page.setViewport({width:390,height:844,deviceScaleFactor:2,
+      isMobile:true,hasTouch:true});
+    await page.goto(url+'?wp=21',{waitUntil:'load'});
+    await readyCount(page,8);
     const srcs=await page.$$eval('#records-body a.source-link',links=>
       links.map(link=>({href:link.href,target:link.target,rel:link.rel})));
     assert.ok(srcs.length>0);
@@ -173,6 +387,93 @@ async function main() {
       link.target==='_blank' && link.rel.includes('noopener') &&
       link.rel.includes('noreferrer')));
     pass('Displayed official source links open safely');
+
+    // Inject only a source-health response: no published sanctions dataset,
+    // source monitor cache or filesystem input is changed.
+    const sourceIds=[
+      'scan_21.json','autopruefung_21.json','rechtsfolgen_21.json',
+      'dip_live_21.json','dip_positionen_21.json','dip_prueffalle_21.json',
+      'vollstaendigkeit_21.json'
+    ];
+    const syntheticSourceHealth=kind=>{
+      const today=new Date().toISOString().slice(0,10);
+      const sources=Object.fromEntries(sourceIds.map(key=>[
+        key,{state:'fresh',date:today,reason:''}
+      ]));
+      const payload={
+        schema:'wp21-health-v1',all_sources_fresh:true,
+        generated_at_utc:new Date().toISOString(),sources
+      };
+      if(kind==='degraded'){
+        sources['dip_positionen_21.json']={
+          state:'missing',date:'',reason:'Missing workflow artifact'
+        };
+        payload.all_sources_fresh=false;
+      } else if(kind==='stale'){
+        payload.generated_at_utc=new Date(Date.now()-72*3600_000).toISOString();
+      } else if(kind==='invalid'){
+        sources['dip_prueffalle_21.json'].state='unreviewed-as-confirmed';
+      } else if(kind==='future'){
+        payload.generated_at_utc=new Date(Date.now()+3600_000).toISOString();
+      }
+      return payload;
+    };
+    const monitoredScenarios=[
+      {kind:'fresh',state:'fresh',message:/7 von 7/},
+      {kind:'degraded',state:'degraded',message:/DIP-Verfahrensschritte \(fehlt\)/},
+      {kind:'stale',state:'stale',message:/Quellenüberwachung veraltet/},
+      {kind:'invalid',state:'missing',message:/nicht verfügbar/},
+      {kind:'future',state:'missing',message:/nicht verfügbar/}
+    ];
+    for(const scenario of monitoredScenarios){
+      const monitored=await browser.newPage();
+      const payload=syntheticSourceHealth(scenario.kind);
+      try{
+        await monitored.setRequestInterception(true);
+        monitored.on('request',req=>{
+          if(req.url().endsWith('/data/quellenstatus_21.json')){
+            req.respond({status:200,contentType:'application/json',
+              body:JSON.stringify(payload)});
+          }else req.continue();
+        });
+        await monitored.goto(url+'?wp=21',{waitUntil:'load'});
+        await readyCount(monitored,8);
+        await monitored.waitForFunction((wanted)=>{
+          const status=document.querySelector('#wp21-health');
+          return status?.dataset.state===wanted &&
+            !status.hidden && !status.textContent.includes('wird geladen') &&
+            status.textContent.length>40;
+        },{timeout:12000},scenario.state);
+        const result=await monitored.evaluate(()=>({
+          state:document.querySelector('#wp21-health').dataset.state,
+          message:document.querySelector('#wp21-health').textContent,
+          live:document.querySelector('#wp21-health').getAttribute('aria-live'),
+          role:document.querySelector('#wp21-health').getAttribute('role'),
+          count:document.querySelector('#metric-total').textContent.trim(),
+          disclaimer:document.querySelector('#ranking-caption').textContent
+        }));
+        assert.equal(result.state,scenario.state);
+        assert.match(result.message,scenario.message);
+        assert.equal(result.live,'polite');
+        assert.equal(result.role,'status');
+        assert.equal(result.count,'8');
+        assert.match(result.disclaimer,/nicht repräsentativ/);
+        if(scenario.kind==='degraded'||scenario.kind==='invalid'){
+          await monitored.addScriptTag({content:axe.source});
+          const audit=await monitored.evaluate(async()=>{
+            const result=await window.axe.run(document,{
+              runOnly:{type:'tag',values:[
+                'wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa','best-practice'
+              ]},
+              resultTypes:['violations']
+            });
+            return result.violations.map(v=>({id:v.id,nodes:v.nodes.length}));
+          });
+          assert.deepEqual(audit,[]);
+        }
+        pass('Simulated '+scenario.kind+' source monitor stays truthful and counter-safe');
+      }finally{await monitored.close();}
+    }
 
     // Deliberately tamper the partial-term JSON in network transit to verify
     // fail-closed UI behavior: no historical or current number may be shown.
@@ -190,18 +491,194 @@ async function main() {
       ()=>document.querySelector('#people-ranking')?.textContent.includes('Daten konnten nicht geladen werden'),
       {timeout:12000});
     assert.equal(await textOf(broken,'#metric-total'),'—');
-    pass('Tampered unlabelled WP21 input blocks both rankings');
+    assert.equal(await visible(broken,'#data-error'),true);
+    assert.equal(await broken.$eval('#data-error',node=>node.getAttribute('role')),'alert');
+    assert.match(await textOf(broken,'#data-error'),/keine ungeprüften Zahlen/);
+    await broken.addScriptTag({content:axe.source});
+    const tamperedViolations=await broken.evaluate(async()=>{
+      const report=await window.axe.run(document,{
+        runOnly:{type:'tag',values:[
+          'wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa','best-practice'
+        ]},resultTypes:['violations']
+      });
+      return report.violations.map(v=>v.id);
+    });
+    assert.deepEqual(tamperedViolations,[]);
+    pass('Tampered unlabelled WP21 input raises an accessible alert and blocks counts');
     await broken.close();
+
+    // Simulated slow network: until both ledgers are verified, all interactive
+    // controls must be disabled and no public count may be implied.
+    const delayed=await browser.newPage();
+    let unblock;
+    const delayedRequest=new Promise(resolve=>{unblock=resolve;});
+    try{
+      await delayed.setRequestInterception(true);
+      delayed.on('request',async req=>{
+        if(req.url().endsWith('/data/ordnungsrufe_21.json')){
+          await delayedRequest;
+        }
+        await req.continue();
+      });
+      await delayed.goto(url+'?wp=20',{waitUntil:'load'});
+      const waiting=await delayed.evaluate(()=>({
+        count:document.querySelector('#metric-total').textContent.trim(),
+        result:document.querySelector('#result-count').textContent.trim(),
+        waiting:document.querySelector('#records-body').textContent.includes('Einträge werden geladen'),
+        locked:['search','group-filter','sort','reset','load-more',
+                'period-20','period-21'].every(id=>document.getElementById(id).disabled)
+      }));
+      assert.equal(waiting.count,'—');
+      assert.equal(waiting.result,'—');
+      assert.equal(waiting.waiting,true);
+      assert.equal(waiting.locked,true);
+      assert.equal(await delayed.$eval('.table-scroller',n=>n.getAttribute('aria-busy')),'true');
+      unblock();
+      await readyCount(delayed,135);
+      assert.equal(await delayed.$eval('.table-scroller',n=>n.getAttribute('aria-busy')),'false');
+      assert.equal(await delayed.evaluate(()=>
+        ['search','group-filter','sort','reset','load-more',
+         'period-20','period-21'].every(id=>!document.getElementById(id).disabled)),true);
+      pass('Delayed verified dataset keeps controls locked and counts blank until ready');
+    }finally{
+      unblock();
+      await delayed.close();
+    }
+
+    // Real HTTP fetch failure must not be treated as a valid empty dataset.
+    const missing=await browser.newPage();
+    try{
+      await missing.setRequestInterception(true);
+      missing.on('request',req=>{
+        if(req.url().endsWith('/data/ordnungsrufe_20.json') ||
+           req.url().endsWith('/data/ordnungsrufe.json')){
+          req.respond({status:503,contentType:'text/plain',
+            body:'Temporary test-only failure'});
+        }else req.continue();
+      });
+      await missing.goto(url+'?wp=20',{waitUntil:'load'});
+      await missing.waitForFunction(()=>!document.querySelector('#data-error').hidden,
+        {timeout:10000});
+      const blocked=await missing.evaluate(()=>({
+        total:document.querySelector('#metric-total').textContent.trim(),
+        result:document.querySelector('#result-count').textContent.trim(),
+        sourceLinks:document.querySelectorAll('#records-body a.source-link').length,
+        locked:['search','group-filter','sort','reset','load-more',
+                'period-20','period-21'].every(id=>document.getElementById(id).disabled)
+      }));
+      assert.equal(blocked.total,'—');
+      assert.equal(blocked.result,'—');
+      assert.equal(blocked.sourceLinks,0);
+      assert.equal(blocked.locked,true);
+      assert.equal(await missing.$eval('.table-scroller',n=>n.getAttribute('aria-busy')),'false');
+      pass('HTTP source outage fails closed without zero counts or official links');
+    }finally{await missing.close();}
+
+    // These are temporary interception-only mutations, never writes to
+    // either protected published dataset. Prove failures in each legislature.
+    const immutableInputs=[
+      {
+        name:'WP20 missing official personal discrepancy',
+        path:'ordnungsrufe.json',
+        tamper:payload=>{
+          payload.meta.official_beatrix_von_storch=
+            payload.meta.verified_beatrix_von_storch;
+        }
+      },
+      {
+        name:'WP20 unauthorised source origin',
+        path:'ordnungsrufe.json',
+        tamper:payload=>{
+          payload.records[0].source='https://example.invalid/fake.pdf#page=1';
+        }
+      },
+      {
+        name:'WP21 count and evidence mismatch',
+        path:'ordnungsrufe_21.json',
+        tamper:payload=>{payload.meta.count+=1;}
+      }
+    ];
+    for(const bad of immutableInputs){
+      const compromised=await browser.newPage();
+      const tampered=JSON.parse(fs.readFileSync(
+        path.join(ROOT,'data',bad.path),'utf8'));
+      bad.tamper(tampered);
+      try{
+        await compromised.setRequestInterception(true);
+        compromised.on('request',req=>{
+          if(req.url().endsWith('/data/'+bad.path)){
+            req.respond({status:200,contentType:'application/json',
+              body:JSON.stringify(tampered)});
+          } else req.continue();
+        });
+        await compromised.goto(url+'?wp='+(
+          bad.path==='ordnungsrufe.json'?'20':'21'),{waitUntil:'load'});
+        await compromised.waitForFunction(()=>
+          !document.querySelector('#data-error').hidden,{timeout:10000});
+        assert.equal(await textOf(compromised,'#metric-total'),'—');
+        assert.equal(await textOf(compromised,'#result-count'),'—');
+        assert.match(await textOf(compromised,'#data-error'),/keine ungeprüften Zahlen/);
+        const stateBefore=await compromised.evaluate(()=>({
+          inputs:['search','group-filter','sort','reset','load-more',
+                  'period-20','period-21'].every(id=>document.getElementById(id).disabled),
+          notesHidden:document.querySelector('#wp20-note').hidden&&
+            document.querySelector('#wp21-note').hidden,
+          metric:document.querySelector('#metric-total').textContent.trim()
+        }));
+        assert.equal(stateBefore.inputs,true);
+        assert.equal(stateBefore.notesHidden,true);
+        await compromised.$eval('#search',node=>{
+          node.value='Stephan';
+          node.dispatchEvent(new Event('input',{bubbles:true}));
+        });
+        assert.equal(await textOf(compromised,'#result-count'),'—');
+        assert.equal(await textOf(compromised,'#metric-total'),'—');
+        assert.equal(await compromised.$eval('#records-body',el=>
+          el.querySelectorAll('a.source-link').length),0);
+        pass('Fail-closed verified dataset: '+bad.name);
+      }finally{await compromised.close();}
+    }
+    // HTTP failure only on the first request; a user-triggered retry must
+    // revalidate BOTH untouched ledgers and restore the partial-WP21 warning.
+    const recovered=await browser.newPage();
+    let failFirst=true;
+    try{
+      await recovered.setRequestInterception(true);
+      recovered.on('request',req=>{
+        if(failFirst&&req.url().endsWith('/data/ordnungsrufe_21.json')){
+          failFirst=false;
+          req.respond({status:503,contentType:'text/plain',body:'Temporary outage'});
+        }else req.continue();
+      });
+      await recovered.goto(url+'?wp=21',{waitUntil:'load'});
+      await recovered.waitForFunction(()=>
+        !document.querySelector('#retry-data').hidden,{timeout:12000});
+      assert.equal(await textOf(recovered,'#metric-total'),'—');
+      assert.equal(await visible(recovered,'#data-error'),true);
+      await Promise.all([
+        recovered.waitForNavigation({waitUntil:'load',timeout:12000}),
+        recovered.click('#retry-data')
+      ]);
+      await readyCount(recovered,8);
+      assert.equal(await visible(recovered,'#retry-data'),false);
+      assert.equal(await visible(recovered,'#data-error'),false);
+      assert.match(await textOf(recovered,'#ranking-caption'),/nicht repräsentativ/);
+      assert.equal(await recovered.$eval('#records-body',el=>
+        el.querySelectorAll('a.source-link').length),8);
+      pass('Accessible data reload recovers only after both ledgers validate');
+    }finally{await recovered.close();}
     assert.deepEqual(browserErrors,[],'Uncaught browser JavaScript exceptions');
     pass('No uncaught JavaScript errors in valid views');
     const report={schema:'ordnungsrufe-v1-browser-smoke-v1',
       result:'pass',checks:steps,
-      viewports:['1366x900 desktop WP20','390x844 mobile WP21'],
+      viewports:['1366x900 desktop WP20','390x844 mobile WP21',
+        '320x720 narrow WP20'],
       legal_effect_inferred:false,counter_files_changed:false,
-      screenshots:['desktop_wp20.png','mobile_wp21.png'],
+      screenshots:['desktop_wp20.png','mobile_wp21.png','narrow_wp20.png'],
       source_health_on_render:HAS_PUBLISHED_HEALTH
         ? 'generated_manifest_displayed' : 'missing_manifest_disclosed_in_PR_preview',
-      publication:'none_PR_only'};
+      publication:'none_PR_only',
+      keyboardFocusEvidence:'keyboard_focus_evidence.json'};
     fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify(report,null,2)+'\n');
     console.log('V1_BROWSER_SMOKE_PASS',steps.length,'checks',
       'no publication, 135/123 historical, 8 partial 21st');

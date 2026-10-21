@@ -34,3 +34,22 @@
 4. Änderungen an bestätigten Statistiken nur über einen eigenen quellenbelegten, explizit freigegebenen Pull Request – niemals durch diesen Review oder automatische Quellenwache.
 
 **Status:** Keiner der vier Komplexe wird durch diese Priorisierung als endgültig geklärt erklärt. Das Projekt bleibt eine unabhängige, nichtamtliche Auswertung.
+
+## Verifizierte amtliche Originalstellen zur Entscheidungstrennung (18. Oktober 2026)
+
+Diese Quellensichtung bestätigt **keine neue Maßnahme**; sie präzisiert, welche Aussagen in den vier Akten jeweils unmittelbar aus den offiziellen Dokumenten folgen:
+
+- **Gottschalk:** Im [vollständigen amtlichen Plenarprotokoll 21/040](https://dserver.bundestag.de/btp/21/21040.pdf) folgt auf die namentliche Anrede „Herr Kollege Gottschalk“ zunächst ein Ruf wegen „pfui“ und unmittelbar anschließend der **zweite Ordnungsruf** wegen einer vorherigen Gleichsetzung mit dem Nationalsozialismus. Im [amtlichen Beschlussprotokoll 21/042, S. 2, Zusatzpunkt 4](https://www.bundestag.de/resource/blob/1127824/amtpr21042.pdf) ist dagegen **ein** Gottschalk-Einspruch ohne Unterscheidung von „erstem“ oder „zweitem“ Ruf zurückgewiesen. Der [Bundestagsbericht vom 25.11.2025](https://www.bundestag.de/dokumente/textarchiv/2025/kw48-de-einspruch-ordnungsruf-1127758) gibt dessen Einwand gegen das Wort „Pfui“ wieder. **Ein Rückschluss auf die gesonderte Rechtsfolge des zweiten Rufs bleibt unzulässig.**
+- **Mixl:** Derselbe amtliche [Originalvolltext 21/040](https://dserver.bundestag.de/btp/21/21040.pdf) enthält im Stenografiekommentar „Reinhard Mixl [AfD]: Pfui!“. Die Präsidentin erklärt beim anschließenden Ruf ausdrücklich, dass sie **nicht weiß, wer gerufen hat**; der Kommentar unmittelbar danach lautet „Reinhard Mixl [AfD]: Ich war’s!“. Die redaktionelle Urheberangabe belegt **nicht automatisch einen von der Sitzungsleitung namentlich adressierten, später bestandskräftigen Ordnungsruf**.
+- **Janich:** [Amtliches Beschlussprotokoll 21/042, S. 2, Zusatzpunkte 2 und 3](https://www.bundestag.de/resource/blob/1127824/amtpr21042.pdf) bezeichnet explizit **ersten und zweiten** Janich-Ordnungsruf und deren getrennte Einspruchszurückweisungen. Das ist ein unabhängiger Nachweis zweier Entscheidungen, **nicht** der bislang fehlenden unbedingten Formulierung der ersten ursprünglichen Erteilung in der Sitzung 21/040.
+- **Von Storch:** [Bundestagsübersicht](https://www.bundestag.de/dokumente/textarchiv/1949-09-20-ordnungsruf-1086652) nennt 19 gegenüber 18 einzeln belegten Maßnahmen. Dieser Übersichts-Widerspruch wird **nicht** durch die Übernahme einer zusätzlichen ungesicherten DIP-Position aufgelöst.
+
+**Nächste gezielte Quellenarbeit:** Für Janich die Art des ursprünglichen Vermerks in einem weiteren amtlichen Dokumenttyp untersuchen; für Gottschalk und Mixl unabhängig datierte spätere Einspruchs-/Beschlussveröffentlichungen suchen; für von Storch eine **vollständig eigene konkrete weitere Erteilung** statt nur einer statistischen Gesamtangabe identifizieren. Bis dahin ausschließlich Prüfnachweise, keine bestätigten Zähleränderungen.
+
+## Nachtrag: unabhängige amtliche Video-Metadaten zu Janich (18.10.2026)
+
+Die [Original-Mediathekseite zur sitzungsleitenden Andrea Lindholz, Sitzung 21/040, TOP 19](https://www.bundestag.de/mediathek/video?videoid=7644769) enthält eine **redaktionelle Bemerkung des Bundestages**, die den **zweiten Ordnungsruf während der Rede Martin Sicherts** ausdrücklich dem Abgeordneten **Steffen Janich** zuordnet. Die redaktionelle Empfängerangabe ist ein **separater amtlicher Kontextbeleg** für die bereits dokumentierte zweite Erteilung und stützt die Zuordnung der im Original ohne namentliche Anrede gesprochenen Passage in [21/040](https://dserver.bundestag.de/btp/21/21040.pdf).
+
+Der [amtliche Bundestagsbericht über die Zurückweisung am 25.11.2025](https://www.bundestag.de/dokumente/textarchiv/2025/kw48-de-einspruch-ordnungsruf-1127758) erläutert außerdem Janichs **eigene Einspruchsbegründung**: Er habe nach Sicherts Erteilung wegen seines Lachens eine zweite Maßnahme bekommen. Die Darstellung belegt, wie Janich die Ereignisabfolge selbst schilderte; sie ist **keine stenografische Originalwiedergabe der bisher fehlenden ersten Erteilungsformel**.
+
+**Erkenntnisfortschritt:** Zuordnung des **zweiten** ursprünglichen Janich-Rufs zusätzlich amtlich abgesichert; die **erste unbedingte Erteilung und ihre exakte gesprochene Fundstelle bleiben weiterhin ungeklärt**. Keine Änderung an bestätigten Maßnahmenzahlen und keine automatische rechtswirksame Einordnung.

@@ -43,7 +43,7 @@ class TestWebsiteContract(unittest.TestCase):
         self.assertIn('<main id="inhalt" tabindex="-1">',self.html)
         self.assertIn('class="skip-link" href="#inhalt"',self.html)
         self.assertIn('class="table-scroller" role="region"',self.html)
-        self.assertIn('aria-label="Horizontale Maßnahmen-Tabelle" tabindex="0"',self.html)
+        self.assertIn('aria-label="Horizontale Maßnahmen-Tabelle" aria-busy="true" tabindex="0"',self.html)
         self.assertIn('id="records-caption" class="sr-only"',self.html)
         self.assertIn('id="period-announcement" class="sr-only" role="status"',self.html)
         self.assertIn('aria-live="polite" aria-atomic="true"',self.html)
@@ -57,6 +57,134 @@ class TestWebsiteContract(unittest.TestCase):
     def test_manual_case_review_link_keeps_no_automatic_counting(self):
         self.assertIn('/blob/main/OFFENE_EINZELFAELLE.md',self.html)
         self.assertIn('nicht repräsentativ',self.html)
+
+    def test_dynamic_accessible_names_include_visible_label(self):
+        self.assertNotIn('aria-label="Ordnungsruf-Counter',self.html)
+        self.assertNotIn("button.setAttribute('aria-label'",self.js)
+        self.assertIn("el('span', 'sr-only', ' Einträge anzeigen')",self.js)
+
+    def test_axe_contrast_patches_are_kept(self):
+        stylesheet=(ROOT/'styles.css').read_text(encoding='utf-8')
+        self.assertIn('--muted:#53616b',stylesheet)
+        self.assertIn('--gold-dark:#84531d',stylesheet)
+        self.assertIn('color:#58646e',stylesheet)
+
+    def test_provenance_links_have_label_in_name_without_unsafely_changing_urls(self):
+        self.assertNotIn("link.setAttribute('aria-label'",self.js)
+        self.assertIn("link.append(el('span','sr-only'",self.js)
+        self.assertIn("link.rel = 'noopener noreferrer'",self.js)
+
+    def test_native_form_labels_and_mobile_legibility(self):
+        self.assertNotIn('aria-label="Nach Person oder Sitzungsnummer suchen"',self.html)
+        self.assertNotIn('aria-label="Historische Zugehörigkeit filtern"',self.html)
+        self.assertNotIn('aria-label="Reihenfolge"',self.html)
+        for text in ('PERSON ODER SITZUNG','ZUGEHÖRIGKEIT','SORTIERUNG'):
+            self.assertIn(f'<span>{text}</span>',self.html)
+        stylesheet=(ROOT/'styles.css').read_text(encoding='utf-8')
+        self.assertIn('.metric-label{font-size:11px',stylesheet)
+        self.assertIn('.metric-foot{font-size:12px',stylesheet)
+        self.assertIn('@media(forced-colors:active)',stylesheet)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn("name:'forced-colors',value:'active'",smoke)
+
+    def test_empty_search_notice_keeps_readable_contrast(self):
+        style=(ROOT/'styles.css').read_text(encoding='utf-8')
+        self.assertIn('.empty-state{text-align:center;color:#53616b',style)
+        self.assertNotIn('.empty-state{text-align:center;color:#70818d',style)
+
+    def test_last_page_focus_after_load_button_disappears(self):
+        self.assertIn("const previouslyShown = $('records-body').rows.length;",self.js)
+        self.assertIn("const newRow = $('records-body').rows[previouslyShown];",self.js)
+        self.assertIn('newRow.tabIndex = -1;',self.js)
+        self.assertIn('newRow.focus({preventScroll:false});',self.js)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('Final keyboard pagination retains focus',smoke)
+        self.assertIn('count<=135',smoke)
+
+    def test_invalid_published_dataset_shows_accessible_error_without_numbers(self):
+        self.assertIn('id="data-error"',self.html)
+        self.assertIn('role="alert" hidden',self.html)
+        self.assertIn("const alert=$('data-error');",self.js)
+        self.assertIn("alert.hidden=false;",self.js)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn("getAttribute('role')),'alert'",smoke)
+        self.assertIn("tamperedViolations",smoke)
+
+    def test_progressive_table_append_without_replacing_existing_nodes(self):
+        self.assertIn('function renderRecords({appendOnly = false} = {})',self.js)
+        self.assertIn('const start = appendOnly ? body.rows.length : 0;',self.js)
+        self.assertIn('if (!appendOnly) body.replaceChildren();',self.js)
+        self.assertIn('for (const item of shown.slice(start))',self.js)
+        self.assertIn('renderRecords({appendOnly:true});',self.js)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('firstRowHandle',smoke)
+
+    def test_controls_stay_disabled_when_verified_ledgers_fail(self):
+        for tag in ('id="search" type="search" autocomplete="off" disabled aria-describedby="showing-count"',
+                    '<select id="group-filter" disabled aria-describedby="showing-count">',
+                    '<select id="sort" disabled aria-describedby="showing-count">',
+                    'id="period-20" class="period-button is-active" type="button" disabled'):
+            self.assertIn(tag,self.html)
+        self.assertIn('state.datasets={};',self.js)
+        self.assertIn('state.records=[];',self.js)
+        self.assertIn("$(id).disabled=true;",self.js)
+        self.assertIn("$(id).disabled=false;",self.js)
+        self.assertIn("$(id).textContent='—';",self.js)
+        self.assertIn("$('wp20-note').hidden=true;",self.js)
+
+    def test_slow_and_unavailable_http_ledgers_never_display_false_zero(self):
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('Delayed verified dataset keeps controls locked',smoke)
+        self.assertIn('HTTP source outage fails closed',smoke)
+        self.assertIn("status:503,contentType:'text/plain'",smoke)
+        self.assertIn('new Promise(resolve=>{unblock=resolve;})',smoke)
+        self.assertIn("assert.equal(blocked.total,'—')",smoke)
+
+    def test_failed_verification_offers_safe_explicit_retry(self):
+        self.assertIn('id="retry-data" class="button button-more"',self.html)
+        self.assertIn("$('retry-data').addEventListener('click',()=>window.location.reload());",self.js)
+        self.assertIn("$('retry-data').hidden=false;",self.js)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn("failFirst&&req.url().endsWith('/data/ordnungsrufe_21.json')",smoke)
+        self.assertIn('Accessible data reload recovers only after both ledgers validate',smoke)
+
+    def test_period_switch_has_actual_browser_back_forward_navigation(self):
+        self.assertIn("function activate(period, {navigation = 'replace'} = {})",self.js)
+        self.assertIn("window.history.pushState(null,'',nextUrl)",self.js)
+        self.assertIn("window.history.replaceState(null,'',nextUrl)",self.js)
+        self.assertIn("window.addEventListener('popstate'",self.js)
+        self.assertIn("activate(next,{navigation:'none'})",self.js)
+        browser=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('Browser back and forward restore selected period',browser)
+        self.assertIn('window.history.back()',browser)
+        self.assertIn('window.history.forward()',browser)
+
+    def test_concise_screenreader_status_instead_of_entire_live_rankings(self):
+        self.assertIn('id="period-announcement" class="sr-only" role="status"',self.html)
+        self.assertIn('id="showing-count" aria-live="polite"',self.html)
+        self.assertIn('id="people-ranking" class="bar-list"',self.html)
+        self.assertIn('id="group-ranking" class="bar-list"',self.html)
+        self.assertNotIn('id="people-ranking" class="bar-list" aria-live',self.html)
+        self.assertNotIn('id="group-ranking" class="bar-list" aria-live',self.html)
+        browser=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('Concise period and result announcements',browser)
+        self.assertIn('Keyboard group filter, sorting and reset',browser)
+
+    def test_table_busy_semantics_and_described_filter_results(self):
+        self.assertIn('aria-busy="true" tabindex="0"',self.html)
+        for token in (
+            'id="search" type="search" autocomplete="off" disabled aria-describedby="showing-count"',
+            '<select id="group-filter" disabled aria-describedby="showing-count">',
+            '<select id="sort" disabled aria-describedby="showing-count">'
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token,self.html)
+        self.assertIn("tableRegion.setAttribute('aria-busy','true')",self.js)
+        self.assertIn("tableRegion.setAttribute('aria-busy','false')",self.js)
+        self.assertIn("document.querySelector('.table-scroller').setAttribute('aria-busy','false')",self.js)
+        smoke=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        self.assertIn('Loaded table is marked ready',smoke)
+        self.assertIn("['showing-count','showing-count','showing-count']",smoke)
 
     def test_independent_dip_sections_exist(self):
         for id_ in ('wp21-activity','wp21-dip-live','wp21-dip-detail',
