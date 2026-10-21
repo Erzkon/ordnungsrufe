@@ -1,0 +1,269 @@
+name: WP21 amtliche Quellen-Review-Buendel
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'wp21_batch_review.py'
+      - 'wp21_three_decisions.py'
+      - 'wp21_five_origins.py'
+      - 'wp21_five_rechtsfolgen.py'
+      - 'tests/test_wp21_five_rechtsfolgen.py'
+      - 'tests/test_wp21_five_origins.py'
+      - 'tests/test_wp21_batch_review.py'
+      - 'tests/test_wp21_three_decisions.py'
+      - 'WP21_BATCH_1_APPEAL_VOTES.md'
+      - 'tests/fixtures/official_dip_wp21_positive_snapshot.json'
+      - 'daten/wirksame_ordnungsrufe_21wp.csv'
+      - '.github/workflows/wp21_batch_review.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '25 7 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: 17 nichtzaehlende Originalquellen-Pruefauftraege
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Installiere Python-Abhaengigkeiten
+        run: python -m pip install -r requirements.txt
+      - name: Bestaetigte Zaehlungen gegen main schuetzen
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for f in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$f" | cmp -s - "$f" || {
+              echo "::error file=$f::Bestaetigte Statistikdatei veraendert"
+              exit 1
+            }
+          done
+      - name: Sichere SHA256 der bestaetigten Dateien
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv \
+            daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json \
+            docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/confirmed.sha256"
+      - name: Pruefe offizielle Referenzen und negative Zaehlergrenzen
+        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins tests.test_wp21_five_rechtsfolgen
+      - name: Erzeuge vier dateigebundene Pruefbuendel
+        run: |
+          python wp21_batch_review.py --output-dir .audit/wp21_batch_review
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          report=json.loads(Path('.audit/wp21_batch_review/review_queue.json').read_text(encoding='utf-8'))
+          assert (report['pending_person_session_pairs']==17
+                  and len(report['batches'])==4
+                  and report['automatic_approved_sanctions']==0
+                  and not report['protected_ledgers_changed'])
+          lines=[
+            '## WP21: Vier manuelle Arbeitsbuendel aus amtlicher Teilstichprobe',
+            '',
+            'DIP-Stichprobe '+report['source_snapshot']+
+            ', 17 offene Person/Sitzung-Kombinationen; keine zusaetzlich bestaetigten Massnahmen.',
+            '',
+            '| Buendel | Prioritaet | Originalfall |',
+            '|---|---|---|',
+          ]
+          for item in report['cases'][:5]:
+            lines.append(f"| {item['batch']} | {item['priority']} | "+
+                         f"{item['person']} / 21/{item['session']:03d} |")
+          lines.extend(['','Alle originalen Quellenverweise stehen im separaten '
+                         'Markdown-/CSV-/JSON-Artefakt; bestaetigte Zaehlungen unveraendert.'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as summary:
+            summary.write('\n'.join(lines)+'\n')
+          PY
+      - name: Verifiziere drei individuelle Originalerteilungen und Parlamentsvoten
+        run: |
+          python wp21_three_decisions.py --output-dir .audit/wp21_three_decisions
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_three_decisions/crosswalk.json').read_text(encoding='utf-8'))
+          assert (d['individual_origins_checked']==3
+                  and d['individually_linked_parliamentary_appeal_rejections']==3
+                  and d['independently_newly_approved_effective_sanctions']==0
+                  and not d['protected_public_counters_changed'])
+          PY
+      - name: Fuenf weitere amtliche Originalerteilungen einzeln belegen
+        run: |
+          python wp21_five_origins.py --output-dir .audit/wp21_five_origins
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_origins/source_records.json').read_text(encoding='utf-8'))
+          assert (d['origin_issuances_individually_located_in_official_pdfs']==5
+                  and d['individual_effectiveness_reviews_completed']==0
+                  and d['newly_approved_effective_sanctions']==0
+                  and not d['protected_counters_changed'])
+          PY
+      - name: Fuenf Ursprungsvorgaenge mit begrenzten Einspruchssammlungen abgleichen
+        run: |
+          python wp21_five_rechtsfolgen.py --offline --output-dir .audit/wp21_five_later_offline
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_later_offline/later_effects.json').read_text(encoding='utf-8'))
+          assert (d['original_cases']==5
+                  and d['curated_rejected_objections_scanned']==17
+                  and d['definitively_closed_legal_effects']==0
+                  and d['automatically_approved_new_sanctions']==0
+                  and not d['live_dip_complete_for_exact_five_parents'])
+          PY
+      - name: Fuenf exakt verankerte DIP-Vorgaenge und ihre Positionen frisch abfragen
+        timeout-minutes: 8
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_five_rechtsfolgen.py --output-dir .audit/wp21_five_later_live
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_later_live/later_effects.json').read_text(encoding='utf-8'))
+          assert (d['live_dip_parent_status']=='all_five_refreshed'
+                  and d['live_dip_complete_for_exact_five_parents']
+                  and all(x['dip_parent_metadata_review']['automatic_count_change']==0
+                          for x in d['cases'])
+                  and d['automatically_approved_new_sanctions']==0
+                  and d['definitively_closed_legal_effects']==0)
+          PY
+      - name: Fuenf Rechtsfolgenpruefungen sichtbar zusammenfassen
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_later_live/later_effects.json').read_text(encoding='utf-8'))
+          if (d['automatically_approved_new_sanctions']!=0
+                  or d['protected_ledger_changed']
+                  or not d['live_dip_complete_for_exact_five_parents']):
+              raise ValueError('Rechtsfolgenbericht ist nicht sicher')
+          lines=['## Fuenf amtliche DIP-Folgepruefungen', '',
+                 '| Originalperson / Sitzung | DIP-Vorgang | Verfahrenspositionen | Weitere Hinweise |',
+                 '|---|---|---:|---:|']
+          for case in d['cases']:
+              meta=case['dip_parent_metadata_review']
+              lines.append(
+                  f"| {case['person']} / 21/{case['session']:03d} "
+                  f"| [{case['official_dip_parent_id']}]({case['official_dip_parent_url']}) "
+                  f"| {meta['position_count']} | {meta['other_step_review_hints']} |")
+          lines.extend(['',
+              '**Alle Positionen sind nur amtliche Metadaten; keine '
+              'automatisch bestaetigte Rechtswirkung oder Einspruchsfreiheit.**'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+              f.write('\n'.join(lines)+'\n')
+          PY
+      - name: Bytegleichheit der bestaetigten Statistiken nach dem Report
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
+      - name: Archiviere reine Quellen-Pruefauftraege
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-vier-manuelle-review-buendel
+          path: |
+            .audit/wp21_batch_review/
+            .audit/wp21_three_decisions/
+            .audit/wp21_five_origins/
+            .audit/wp21_five_later_offline/
+            .audit/wp21_five_later_live/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+
+
+  # A narrowly scoped reminder only after a later approved merge, when the
+  # weekly job on main finds extra official position steps. NEVER on PR runs.
+  # Human review is required; the task never modifies sanction counters.
+  new-procedure-alert:
+    name: Neue DIP-Rechtsfolgenpositionen als Pruefhinweis melden
+    needs: review
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: wp21-vier-manuelle-review-buendel
+          path: .audit
+      - name: Reine Metadaten-Neuigkeiten ohne Doppelmeldungen beobachten
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs');
+            const crypto=require('crypto');
+            const data=JSON.parse(fs.readFileSync(
+              '.audit/wp21_five_later_live/later_effects.json','utf8'));
+            if(data.schema!=='wp21-five-legal-followup-matrix-v1' ||
+               data.cases.length!==5 ||
+               data.automatically_approved_new_sanctions!==0 ||
+               data.protected_ledger_changed!==false ||
+               data.live_dip_parent_status!=='all_five_refreshed'){
+              throw new Error('DIP-Folgequellenreport nicht sicher');
+            }
+            const hints=data.cases.filter(c=>
+              c.dip_parent_metadata_review?.other_step_review_hints>0);
+            if(hints.length===0){
+              core.info('Keine zusätzlichen DIP-Verfahrenspositionen: kein Issue.');
+              return;
+            }
+            const observed=hints.map(c=>({
+              parent:c.official_dip_parent_id,
+              positions:c.dip_parent_metadata_review.positions
+                .filter(p=>p.role_for_review!=='original_grant_step')
+                .map(p=>[p.official_position_id,p.date,p.role_for_review])
+            })).sort((a,b)=>a.parent.localeCompare(b.parent));
+            const digest=crypto.createHash('sha256')
+              .update(JSON.stringify(observed)).digest('hex').slice(0,20);
+            const marker='<!-- wp21-five-procedure-digest:'+digest+' -->';
+            const title='WP21: neue DIP-Verfahrenspositionen zu fünf Ursprungsfällen';
+            const lines=[
+              marker,
+              'Automatisch erkannte amtliche **Verfahrenspositions-Hinweise**, '
+                +'keine neue bestätigte oder rechtlich wirksame Sanktion.',
+              '',
+              'Es besteht Bedarf für individuelle Prüfung des genauen '
+                +'Verfahrensinhalts und möglicher späterer Rechtsfolgen.',
+              '',
+              ...hints.map(c=>' - '+c.person+' / 21/'+
+                String(c.session).padStart(3,'0')+' – '+
+                c.dip_parent_metadata_review.other_step_review_hints+
+                ' zusätzliche Position(en): '+
+                c.dip_parent_metadata_review.positions
+                  .filter(p=>p.role_for_review!=='original_grant_step')
+                  .map(p=>p.official_position_api).join(', ')),
+              '',
+              'Beobachtungsdaten: GitHub Actions '+context.runId+
+                '; **kein** automatischer Eingriff in CSV-/JSON-Zähler.'
+            ];
+            const body=lines.join('\n');
+            const {owner,repo}=context.repo;
+            const issues=await github.paginate(github.rest.issues.listForRepo,{
+              owner,repo,state:'open',per_page:100
+            });
+            const existing=issues.find(issue=>
+              !issue.pull_request && issue.title===title);
+            if(!existing){
+              await github.rest.issues.create({owner,repo,title,body});
+              core.info('Neue amtliche Positionen zur manuellen Prüfung gemeldet');
+            }else if(!(existing.body||'').includes(marker)){
+              await github.rest.issues.update({
+                owner,repo,issue_number:existing.number,body
+              });
+              core.info('Prüfhinweis auf neue amtliche Positionen aktualisiert');
+            }else{
+              core.info('Identische Hinweise bereits gemeldet, kein Duplikat');
+            }
