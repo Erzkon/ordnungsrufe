@@ -66,7 +66,7 @@ class FiveOriginalProofsTests(unittest.TestCase):
 
     def test_never_conclude_absent_appeal_or_add_approved_counter(self):
         d=build()
-        self.assertIn('kein Schluss',d['warning'].lower())
+        self.assertIn('kein schluss',d['warning'].lower())
         self.assertEqual(d['newly_approved_effective_sanctions'],0)
         with self.assertRaises(ValueError):
             markdown({**d,'newly_approved_effective_sanctions':1})
