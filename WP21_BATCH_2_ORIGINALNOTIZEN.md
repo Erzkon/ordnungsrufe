@@ -71,3 +71,19 @@ Zähleränderungen: **null**.
 
 Der JSON-/Markdown-Nachweis unter `.audit/wp21_five_origins/`
 wird im gesonderten Forschungs-Workflow archiviert.
+
+
+## Kontrollierte Folgeprüfung (21.10.2026)
+
+Die neuen individuellen DIP-IDs und die Live-Positionenprüfung stehen
+in [WP21_FIVE_LATER_EFFECTS.md](WP21_FIVE_LATER_EFFECTS.md).
+Der begrenzte Bestand von 17 kuratierten Einspruchszurückweisungen
+enthält bisher keinen exakten Personen-/Ursprungsdatum-Treffer zu diesen
+fünf neuen Fällen. Das beweist **keinesfalls**, dass kein Einspruch,
+keine spätere Entscheidung oder keine Aufhebung existiert.
+
+Besonders sorgfältig getrennt werden Pantisanos Einspruch aus **2025**
+(anderer ursprünglicher Ruf), Erwähnungen Gebels in anderen
+parlamentarischen Vorgängen und ältere Baumann-Fälle aus der
+**19. Wahlperiode**. Bis zur gesonderten Rechtsfolgenprüfung bleiben
+sämtliche fünf Wirkungsbewertungen offen und die bestätigten Zähler unverändert.

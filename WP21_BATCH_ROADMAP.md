@@ -102,3 +102,32 @@ Bei den fünf neuen Fällen ist der spätere individuelle
 Einspruchs-/Aufhebungs-/Wirksamkeitsstatus **ausdrücklich ungeprüft**.
 Es wurden weder weitere bestätigte Maßnahmen noch Veränderungen am
 geschützten Acht-Fälle-Teilbestand erzeugt.
+
+
+## Fünf spätere Rechtsfolgenfälle jetzt als präziser DIP-Abgleich (21.10.2026)
+
+Die fünf bereits originalbelegten Fälle erhalten eigenständige amtliche
+DIP-Vorgangs-IDs und eine **gezielte frische Live-Prüfung nur dieser fünf
+Vorgänge und ihrer vollständigen Verfahrenspositionen**, ohne die gesamte
+WP21-DIP-API ständig neu abzufragen. Das neue
+`wp21_five_rechtsfolgen.py` vergleicht sie zusätzlich mit der begrenzten
+Sammlung von **13 weiteren und vier zuvor separat geprüften
+Einspruchszurückweisungen**. Nur ein exaktes Person- und Ursprungsdatum-
+Paar ist zuordenbar; der Pantisano-Einspruch aus Juni **2025** darf
+nicht zum Pantisano-Ordnungsruf aus März **2026** wechseln.
+
+Ein Name als bloße Erwähnung in einem anderen Bundestagsbericht
+(z. B. Kathrin Gebel in der Entscheidung über Przygodda oder über
+Reichardts späteres Ordnungsgeld) ist **kein Beleg, dass gegen Gebel
+ein Einspruch entschieden wurde**. Ein alter Baumann-Einspruch aus der
+19. Wahlperiode ist ebenso keine Rechtsfolge aus 21/057.
+
+**Negative Feststellung verboten:** Weder das Fehlen eines
+Einspruchs in diesen 17 Berichten noch eine DIP-Positionenliste ohne
+Abstimmung schließt weitere Einsprüche, Korrekturen, spätere
+Rücknahmen oder Verfahrenshandlungen außerhalb dieses einzelnen
+Originalvorgangs aus. Der Workflow archiviert
+`later_effects.json` / `later_effects.md` gesondert unter
+`.audit/wp21_five_later_offline/` und `.audit/wp21_five_later_live/`.
+Vollständig abgefragte DIP-Positionen sind **Quellenmetadaten**,
+nicht bestätigte rechtswirksame Maßnahmen.

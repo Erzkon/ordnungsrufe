@@ -145,6 +145,20 @@ class SourceBoundedBatchTests(unittest.TestCase):
             self.assertEqual(detail['new_effective_sanctions_automatically_approved'],0)
         self.assertEqual(report['automatic_approved_sanctions'],0)
 
+    def test_five_originals_have_independent_noncounting_legal_followup_tasks(self):
+        report=self.result()
+        self.assertEqual(report['individual_later_effect_review_tasks_for_five_origins'],5)
+        self.assertTrue(report['curated_objection_matches_not_global_no_appeal_proof'])
+        rows=[c for c in report['cases'] if c['later_effects_review']]
+        self.assertEqual(len(rows),5)
+        for c in rows:
+            self.assertFalse(c['later_effects_review']['legal_effects_proven'])
+            self.assertFalse(c['later_effects_review']['historical_appeal_coverage_complete'])
+            self.assertTrue(c['later_effects_review']['manual_review_pending'])
+            self.assertEqual(c['later_effects_review']
+                             ['new_effective_sanctions_automatically_approved'],0)
+        self.assertEqual(report['automatic_approved_sanctions'],0)
+
     def test_new_official_penalty_is_not_misclassified_as_old_ordnungsruf(self):
         report=self.result()
         reich=next(c for c in report['cases']

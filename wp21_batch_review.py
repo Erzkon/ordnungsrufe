@@ -12,6 +12,7 @@ from wp21_dip_kontrolle import reference
 from wp21_einspruchsbelege import validated_index
 from wp21_three_decisions import build as original_vote_crosswalk
 from wp21_five_origins import build as next_five_originals
+from wp21_five_rechtsfolgen import historical_crosscheck as five_legal_followup
 from wp21_hochprioritaet_18 import (
     EXPECTED_KEYS, ORIGINAL_LINES, MULTI_PHRASE_EPISODES, validate_scope,
 )
@@ -89,6 +90,10 @@ def build(snapshot, known, reviewed_count, appeal_index=None):
     linked_votes={(x['session'],norm(x['person'])):x for x in crosswalk['cases']}
     five=next_five_originals(snapshot=snapshot,known=known)
     five_index={(x['session'],norm(x['person'])):x for x in five['cases']}
+    followups=five_legal_followup(
+        originals=five['cases'],snapshot=snapshot,known=known)
+    followup_index={(x['session'],norm(x['person'])):x
+                    for x in followups['cases']}
     pending=[]
     for row in entries:
         session,person=row['session'],row['person']
@@ -139,6 +144,14 @@ def build(snapshot, known, reviewed_count, appeal_index=None):
                         'P1_einspruch_verknuepfen' if tier==1 else
                         'P2_original_und_rechtsfolge'),
             'manual_next_action':action,
+            'later_effects_review':(
+                {'parent_id':followup_index[key]['official_dip_parent_id'],
+                 'bounded_appeals_exact_match_count':0,
+                 'historical_appeal_coverage_complete':False,
+                 'legal_effects_proven':False,
+                 'manual_review_pending':True,
+                 'new_effective_sanctions_automatically_approved':0}
+                if key in followup_index else None),
             'additional_original_pdf_crosscheck':(
                 {'original_pdf_url':five_index[key]['original_pdf_url'],
                  'original_xml_line':five_index[key]['original_xml_line'],
@@ -186,6 +199,8 @@ def build(snapshot, known, reviewed_count, appeal_index=None):
         'curated_rejected_appeals_across_18_cases':4,
         'independently_crosschecked_original_and_vote_pairs':len(linked_votes),
         'independently_located_additional_original_pdfs':len(five_index),
+        'individual_later_effect_review_tasks_for_five_origins':len(followup_index),
+        'curated_objection_matches_not_global_no_appeal_proof':True,
         'separate_preexisting_reviewed_case_appeal':
             dict(PREEXISTING_SICHERT_APPEAL),
         'separate_different_sanction_type':dict(UNRELATED_PENALTY_REICHARDT),
@@ -254,6 +269,17 @@ def markdown(report):
         '- [Genaue PDF-Seiten und Empfänger-Kontext](WP21_BATCH_2_ORIGINALNOTIZEN.md) '
           'sowie getrennte JSON-/Markdown-Auditquellen. '
           'Kein Schluss aus fehlenden kuratierten Einsprüchen.',
+        '',
+        '## Fünf originale DIP-Vorgänge für spätere Rechtsfolgen gezielt prüfen','',
+        '- Reichinnek, Baumann, von Zons, Pantisano und Gebel haben '
+          'je eine separat geprüfte Original-DIP-Vorgangs-ID. '
+          'In der begrenzten 17er-Einspruchsauswahl ist für die fünf '
+          'kein exaktes Person-/Ursprungsdatum-Paar enthalten. '
+          '**Dies beweist nicht, dass kein Einspruch oder keine '
+          'spätere Aufhebung existiert.**',
+        '- [Quellen-/Identitätsmatrix](WP21_FIVE_LATER_EFFECTS.md) und '
+          'getrennte Live-DIP-Verfahrenspositionsprüfung; '
+          'DIP-Metadaten sind keine rechtskräftigen Einzelfallzähler.',
         '',
         '## Amtliche Quellen mit ausdrücklich anderer Bedeutung','',
         '- **Martin Reichardt:** [Ordnungsgeld und Einspruch vom 15./16.10.2026]('+

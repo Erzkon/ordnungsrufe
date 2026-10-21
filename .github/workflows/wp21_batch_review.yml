@@ -7,6 +7,8 @@ on:
       - 'wp21_batch_review.py'
       - 'wp21_three_decisions.py'
       - 'wp21_five_origins.py'
+      - 'wp21_five_rechtsfolgen.py'
+      - 'tests/test_wp21_five_rechtsfolgen.py'
       - 'tests/test_wp21_five_origins.py'
       - 'tests/test_wp21_batch_review.py'
       - 'tests/test_wp21_three_decisions.py'
@@ -53,7 +55,7 @@ jobs:
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/confirmed.sha256"
       - name: Pruefe offizielle Referenzen und negative Zaehlergrenzen
-        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins
+        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins tests.test_wp21_five_rechtsfolgen
       - name: Erzeuge vier dateigebundene Pruefbuendel
         run: |
           python wp21_batch_review.py --output-dir .audit/wp21_batch_review
@@ -106,6 +108,36 @@ jobs:
                   and d['newly_approved_effective_sanctions']==0
                   and not d['protected_counters_changed'])
           PY
+      - name: Fuenf Ursprungsvorgaenge mit begrenzten Einspruchssammlungen abgleichen
+        run: |
+          python wp21_five_rechtsfolgen.py --offline --output-dir .audit/wp21_five_later_offline
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_later_offline/later_effects.json').read_text(encoding='utf-8'))
+          assert (d['original_cases']==5
+                  and d['curated_rejected_objections_scanned']==17
+                  and d['definitively_closed_legal_effects']==0
+                  and d['automatically_approved_new_sanctions']==0
+                  and not d['live_dip_complete_for_exact_five_parents'])
+          PY
+      - name: Fuenf exakt verankerte DIP-Vorgaenge und ihre Positionen frisch abfragen
+        timeout-minutes: 8
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_five_rechtsfolgen.py --output-dir .audit/wp21_five_later_live
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_later_live/later_effects.json').read_text(encoding='utf-8'))
+          assert (d['live_dip_parent_status']=='all_five_refreshed'
+                  and d['live_dip_complete_for_exact_five_parents']
+                  and all(x['dip_parent_metadata_review']['automatic_count_change']==0
+                          for x in d['cases'])
+                  and d['automatically_approved_new_sanctions']==0
+                  and d['definitively_closed_legal_effects']==0)
+          PY
       - name: Bytegleichheit der bestaetigten Statistiken nach dem Report
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
@@ -118,6 +150,8 @@ jobs:
             .audit/wp21_batch_review/
             .audit/wp21_three_decisions/
             .audit/wp21_five_origins/
+            .audit/wp21_five_later_offline/
+            .audit/wp21_five_later_live/
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
