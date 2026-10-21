@@ -93,6 +93,23 @@ class SourceBoundedBatchTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'nur im Verzeichnis'):
                 write(self.result(),folder)
 
+    def test_new_official_penalty_is_not_misclassified_as_old_ordnungsruf(self):
+        report=self.result()
+        reich=next(c for c in report['cases']
+                   if c['session']==65 and c['person']=='Martin Reichardt')
+        different=reich['independent_unrelated_proceeding']
+        self.assertEqual(different['sanction_type'],'ordnungsgeld_not_ordnungsruf')
+        self.assertEqual(different['date_of_sanction'],'2026-10-15')
+        self.assertFalse(different['counts_as_21_065_ordnungsruf'])
+        self.assertFalse(different['changes_protected_ledger'])
+        self.assertIn('kw42-de-einspruch-ordnungsgeld',different['source'])
+        sichert=report['separate_preexisting_reviewed_case_appeal']
+        self.assertEqual(sichert['session'],90)
+        self.assertFalse(sichert['creates_another_ordnungsruf'])
+        self.assertFalse(any(c['session']==90 for c in report['cases']))
+        self.assertIn('Ordnungsgeld',markdown(report))
+        self.assertEqual(report['automatic_approved_sanctions'],0)
+
     def test_corrupt_positive_control_and_ledger_fail_closed(self):
         sample=copy.deepcopy(self.snapshot)
         sample['entries'].pop()
@@ -119,7 +136,7 @@ class SourceBoundedBatchTests(unittest.TestCase):
         self.assertEqual(len([c for c in report['cases']
                               if c['official_appeal_decision'] is None]),13)
         self.assertIn('nicht',report['warning'].lower())
-        self.assertIn('fehlen',markdown(report).lower()) if False else None
+        self.assertIn('Kein kuratierter Entscheidungsbeleg',markdown(report))
 
 
 if __name__=='__main__':

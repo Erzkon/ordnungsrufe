@@ -32,3 +32,13 @@ Es entstehen nur drei gesonderte Prüfarbeitsprodukte: `review_queue.json`, `rev
 5. Danach die vier Bearbeitungsbündel mit unabhängigen Original- und Rechtsfolgenbelegen abarbeiten. Bereits geprüfte Fälle müssen in einem separaten, ausdrücklich freigegebenen Statistik-PR landen.
 
 Die unabhängigen offenen Akten **von Storch, Janich, Gottschalk und Mixl** bleiben daneben in `OFFENE_EINZELFAELLE.md` dokumentiert. Diese Arbeitsliste löst sie nicht automatisch auf.
+
+
+## Zusätzlicher amtlicher Rechtsquellenabgleich am 21. Oktober 2026
+
+Beim Abgleich der datierten Stichprobe sind zwei getrennte amtliche Verfahrensbelege explizit **nicht** als neue Ordnungsrufe aufgenommen worden:
+
+- [Reichardt: Einspruch gegen ein Ordnungsgeld zurückgewiesen am 16.10.2026](https://www.bundestag.de/dokumente/textarchiv/2026/kw42-de-einspruch-ordnungsgeld-1225202). Das Ordnungsgeld wurde am **15.10.2026** verhängt. Es ist ein **anderer Maßnahmentyp** und kein Beleg für einen zweiten Ordnungsruf oder für den Rechtsstatus von Reichardts Ursprungsvorgang **21/065** aus März.
+- [Sichert: Einspruch gegen Ordnungsruf aus 21/090 am 08.09.2026 zurückgewiesen](https://www.bundestag.de/dokumente/textarchiv/2026/kw37-de-einspruch-ordnungsruf-1210768). Dieser ursprünglich erteilte Ruf ist bereits in den **acht** bestätigten Einträgen enthalten; die Einspruchsentscheidung erzeugt **keine neue ursprüngliche Erteilung**.
+
+Beide Original-Links sind als getrennte Verfahrensquellen im JSON-Bericht vermerkt. Die Review-Queue erhält **keinen** weiteren Kandidaten und ändert keine Statistik. Keine Aussage über andere, nicht untersuchte Rechtsfolgen wird daraus abgeleitet.

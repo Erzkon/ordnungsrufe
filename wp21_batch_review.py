@@ -18,6 +18,27 @@ ROOT=Path(__file__).resolve().parent
 POSITIVE=ROOT/'tests/fixtures/official_dip_wp21_positive_snapshot.json'
 LEDGER=ROOT/'daten/wirksame_ordnungsrufe_21wp.csv'
 FROZEN_LIMIT="dated_2026_10_15_dip_partial_sample_NOT_term_total"
+# Independently sourced, different procedural type. October penalty is not
+# another March Ordnungsruf and must never inflate this review queue.
+UNRELATED_PENALTY_REICHARDT={
+    'date_of_sanction':'2026-10-15',
+    'decision_date':'2026-10-16',
+    'sanction_type':'ordnungsgeld_not_ordnungsruf',
+    'source':'https://www.bundestag.de/dokumente/textarchiv/2026/'
+             'kw42-de-einspruch-ordnungsgeld-1225202',
+    'counts_as_21_065_ordnungsruf':False,
+    'changes_protected_ledger':False,
+}
+# Separately documented procedural decision for a previously approved case;
+# not a new grant and thus not added to the 17 open review cases.
+PREEXISTING_SICHERT_APPEAL={
+    'session':90, 'person':'Martin Sichert',
+    'decision_date':'2026-09-08',
+    'source':'https://www.bundestag.de/dokumente/textarchiv/2026/'
+             'kw37-de-einspruch-ordnungsruf-1210768',
+    'decision':'einspruch_zurueckgewiesen',
+    'creates_another_ordnungsruf':False,
+}
 WARNING=("DIP-Originalerteilungen sind keine bestätigten wirksamen Ordnungsrufe. "
          "Ungeprüfte Mehrfachformulierungen, Einsprüche und spätere Rechtsfolgen "
          "bleiben einzeln und manuell zu prüfen. Fehlende Einspruchsquellen "
@@ -93,7 +114,11 @@ def build(snapshot, known, reviewed_count, appeal_index=None):
             'priority':('P0_mehrfachformulierung' if tier==0 else
                         'P1_einspruch_verknuepfen' if tier==1 else
                         'P2_original_und_rechtsfolge'),
-            'manual_next_action':action,'_tier':tier,
+            'manual_next_action':action,
+            'independent_unrelated_proceeding':(
+                dict(UNRELATED_PENALTY_REICHARDT)
+                if key==(65,norm('Martin Reichardt')) else None),
+            '_tier':tier,
         })
     if (len(pending)!=17 or
             sum(v['reported_but_not_individually_verified'] for v in pending)!=17):
@@ -120,6 +145,9 @@ def build(snapshot, known, reviewed_count, appeal_index=None):
         'reported_original_grants_not_in_confirmed_partial_ledger':17,
         'curated_original_wording_locations_across_18_cases':21,
         'curated_rejected_appeals_across_18_cases':4,
+        'separate_preexisting_reviewed_case_appeal':
+            dict(PREEXISTING_SICHERT_APPEAL),
+        'separate_different_sanction_type':dict(UNRELATED_PENALTY_REICHARDT),
         'automatic_approved_sanctions':0,
         'automatic_rescinded_sanctions':0,
         'protected_ledgers_changed':False,
@@ -155,6 +183,18 @@ def markdown(report):
                     f"L{line}" for line in item['original_xml_lines'])+
                 f" | {link} | {item['manual_next_action']} |")
         lines.append('')
+    lines.extend([
+        '## Amtliche Quellen mit ausdrücklich anderer Bedeutung','',
+        '- **Martin Reichardt:** [Ordnungsgeld und Einspruch vom 15./16.10.2026]('+
+          UNRELATED_PENALTY_REICHARDT['source']+
+          ') sind weder ein weiterer Ordnungsruf noch ein Beleg zur '
+          'Rechtsfolge der Originalerteilung aus 21/065.',
+        '- **Martin Sichert:** [Zurückgewiesener Einspruch vom 08.09.2026]('+
+          PREEXISTING_SICHERT_APPEAL['source']+
+          ') betrifft einen bereits in der acht Fälle umfassenden Teilmenge '
+          'belegten Ordnungsruf aus 21/090; kein weiterer Ursprungseintrag.',
+        '',
+    ])
     lines.extend(['**Keine automatische Zählerfreigabe, keine Schlussfolgerung '
                   'aus fehlenden Einspruchshinweisen.**',''])
     return '\n'.join(lines)
