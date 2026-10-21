@@ -175,6 +175,19 @@ class FiveLegalFollowupTests(unittest.TestCase):
         self.assertIn('noch nicht frisch abgefragt',render(report))
         self.assertIn('17er-Auswahl',render(report))
 
+    def test_weekly_issue_notification_never_executes_on_pull_request(self):
+        workflow=(ROOT/'.github/workflows/wp21_batch_review.yml').read_text(
+            encoding='utf-8')
+        self.assertIn("if: github.event_name == 'schedule'",workflow)
+        self.assertIn('new-procedure-alert:',workflow)
+        self.assertIn('issues: write',workflow)
+        self.assertIn('wp21-five-procedure-digest:',workflow)
+        self.assertIn("if(hints.length===0)",workflow)
+        self.assertIn('actions/download-artifact@v7',workflow)
+        self.assertIn("path: .audit",workflow)
+        self.assertIn('automatic_count_change',workflow)
+        self.assertNotIn('github.rest.issues.create({owner,repo,title,body,labels:',workflow)
+
     def test_save_only_nonpublic_artifacts_no_counters(self):
         report=combine(self.base)
         (ROOT/'.audit').mkdir(exist_ok=True)
