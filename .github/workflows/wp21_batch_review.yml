@@ -198,7 +198,7 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: wp21-vier-manuelle-review-buendel
-          path: .
+          path: .audit
       - name: Reine Metadaten-Neuigkeiten ohne Doppelmeldungen beobachten
         uses: actions/github-script@v8
         with:
