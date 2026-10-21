@@ -115,3 +115,10 @@ Die Personen- und Fraktionsranglisten enthalten jeweils zahlreiche interaktive S
 ## Ladestatus und Beziehung zu Filterergebnissen
 
 Die horizontal scrollbare Tabellenregion trägt `aria-busy=true`, bis die beiden bestätigten Datensätze geladen und die Tabelle aufgebaut sind. Beim Filter- oder Paginierungswechsel ist sie während des DOM-Updates kurz als beschäftigt markiert und danach wieder `false`. **Auch im sicheren Fehlerzustand wird die Region als nicht mehr beschäftigt gekennzeichnet**, während der eigenständige `role=alert`-Hinweis den Fehler erklärt. Suche, Zugehörigkeit und Sortierung verweisen über `aria-describedby` auf den vorhandenen, dynamischen Ergebniszähler (`showing-count`), damit ihre Auswirkungen zusätzlich als Beschreibung abrufbar sind. Der echte Browser-Test kontrolliert den Zustand vor, während und nach dem Ladevorgang einschließlich HTTP-Ausfall.
+
+
+## Tastaturfokus und manuelle axe-Nachbereitung
+
+Eine neue Chrome-Prüfung führt auf **320 und 640 CSS-Pixeln für beide Wahlperioden** jeweils 48 reale Tab-Tasten-Ereignisse aus. Sie erfasst, ob der Fokus sichtbar, innerhalb des Bildschirmausschnitts und nicht verborgen ist. Die Artefaktdatei `keyboard_focus_evidence.json` dokumentiert die tatsächlich erreichten Elemente; sie ersetzt ausdrücklich keine NVDA-/VoiceOver-Prüfung.
+
+Zusätzlich erstellt der Axe-Lauf `manual_review_queue.md` aus **allen nicht automatisch entscheidbaren** Ergebnissen inklusive dynamischer Leerzustände. Diese Fälle gelten nicht als bestanden und sollen mit echten Hilfstechniken, Hochkontrast und Browserzoom nachvollzogen werden.

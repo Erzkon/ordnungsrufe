@@ -242,9 +242,17 @@ async function main(){
         period:x.period,viewport:x.viewport,state:'empty-search',...v
       }))
     ]);
+    const inconclusive=results.flatMap(x=>[
+      ...x.incomplete.map(v=>({period:x.period,viewport:x.viewport,
+        state:'base',...v})),
+      ...(x.filteredState?.incompleteRules||[]).map(v=>({
+        period:x.period,viewport:x.viewport,state:'empty-search',...v
+      }))
+    ]);
     const report={schema:'ordnungsrufe-axe-accessibility-v1',enforce:ENFORCE,
       analysis_only:true,statistic_files_changed:false,
       ruleTags:TAGS,views:results,violationsTotal:violations.length,
+      inconclusiveTotal:inconclusive.length,
       reflowChecks:results.length,
       reducedMotionChecks:results.filter(x=>x.reflow.reducedMotion).length,
       accessibilityTreeChecks:results.reduce((n,x)=>n+
@@ -264,12 +272,31 @@ async function main(){
       'These automated results do not establish WCAG conformance or replace manual screen-reader testing.'
     ];
     fs.writeFileSync(path.join(OUT,'summary.md'),summary.join('\n')+'\n');
+    const manualQueue=[
+      '# Noch manuell zu prüfende axe-Befunde',
+      '',
+      'Diese nicht automatisch entscheidbaren Prüfungen sind **nicht bestanden**.',
+      'Echte Screenreader-, Zoom- und Kontrastdesign-Abnahmen bleiben ausstehend.',
+      '',
+      'Regel-/Ansichtskombinationen: '+inconclusive.length,
+      '',
+      ...inconclusive.map(v=>
+        '- **'+v.id+'** ('+v.state+', WP'+v.period+', '+v.viewport+'): '+
+        v.count+' Treffer: '+v.nodes.map(n=>
+          '`'+n.target.join(' ')+'`').join(', ')+
+        (v.helpUrl?' – '+v.helpUrl:'')),
+      '',
+      'Kein Nachweis vollständiger WCAG-Konformität.'
+    ];
+    fs.writeFileSync(path.join(OUT,'manual_review_queue.md'),
+      manualQueue.join('\n')+'\n');
     console.log('AXE_AUDIT_SUMMARY',JSON.stringify({
       views:results.length,reflowChecks:report.reflowChecks,
       reducedMotionChecks:report.reducedMotionChecks,
       accessibilityTreeChecks:report.accessibilityTreeChecks,
       filteredStateChecks:report.filteredStateChecks,
       violations:report.violationsTotal,
+      inconclusive:report.inconclusiveTotal,
       nodes:report.violationNodes,enforced:ENFORCE
     }));
     if(ENFORCE&&violations.length)process.exitCode=1;

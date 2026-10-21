@@ -177,6 +177,19 @@ class WorkflowOperationalChecks(unittest.TestCase):
                 self.assertIn(token,smoke)
         self.assertIn('Fail-closed verified dataset:',smoke)
 
+    def test_keyboard_evidence_and_unresolved_axe_queue(self):
+        browser=Path('tests/browser_smoke.cjs').read_text(encoding='utf-8')
+        axe=Path('tests/accessibility_audit.cjs').read_text(encoding='utf-8')
+        for token in ('KEYBOARD_FOCUS_OBSCURED','KEYBOARD_FOCUS_COVERAGE_MISSING',
+                      'keyboard_focus_evidence.json','focusVisible'):
+            with self.subTest(token=token):
+                self.assertIn(token,browser)
+        for token in ('manual_review_queue.md','inconclusiveTotal',
+                      'incompleteRules'):
+            with self.subTest(token=token):
+                self.assertIn(token,axe)
+        self.assertIn("AXE_ENFORCE",axe)
+
     def test_main_only_and_no_pr_publication(self):
         self.assertIn("always() && github.event_name != 'pull_request'", self.workflow)
         self.assertIn("github.ref == 'refs/heads/main'", self.workflow)

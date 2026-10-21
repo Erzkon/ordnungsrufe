@@ -39,3 +39,8 @@ Die aktuellen Axe-Berichte listen im Feld `incomplete` einzelne Kontrastkonstell
 | Noch nicht geprüft | – | – | – | Offen | – |
 
 **Keine der Prüfungen erlaubt Änderungen an den bestätigten vier Statistikdateien oder automatische Aussagen über offene Ordnungsruf-Rechtsfolgen.**
+
+
+## Neue automatisierte Vorprüfungsartefakte
+
+In `v1-actual-browser-preview-<run_id>` finden sich `keyboard_focus_evidence.json` (Tastatur-Fokusstationen) und `accessibility/manual_review_queue.md` (unentschiedene Axe-Befunde). Beides sind nur Hinweise für eine **weiterhin nicht durchgeführte** manuelle NVDA-/VoiceOver-/Zoom-Prüfung. Versionen von Browser, Betriebssystem und Hilfstechniken sind bei der echten Abnahme einzutragen.

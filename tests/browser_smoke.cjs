@@ -57,6 +57,44 @@ async function readyCount(page,count) {
     number=>document.querySelector('#metric-total')?.textContent.trim()===number,
     {timeout:12000},String(count));
 }
+async function inspectKeyboardFocus(page,period,width){
+  // Actual Tab traversal in Chrome; not a genuine screenreader session.
+  const observations=[];
+  for(let step=0;step<48;step++){
+    await page.keyboard.press('Tab');
+    const focus=await page.evaluate(()=>{
+      const el=document.activeElement;
+      if(!el || el===document.body)return null;
+      const b=el.getBoundingClientRect(),style=getComputedStyle(el);
+      return {id:el.id||null,tag:el.tagName,
+        selector:el.id?'#'+el.id:(el.tagName.toLowerCase()+
+          (typeof el.className==='string'&&el.className.trim()?
+            '.'+el.className.trim().split(' ').join('.'):'')),
+        focusVisible:el.matches(':focus-visible'),
+        inViewport:b.width>0&&b.height>0&&b.left<innerWidth&&
+          b.right>0&&b.top<innerHeight&&b.bottom>0,
+        hidden:style.visibility==='hidden'||style.display==='none',
+        rect:{x:Math.round(b.x),y:Math.round(b.y),
+          width:Math.round(b.width),height:Math.round(b.height)}
+      };
+    });
+    if(!focus)continue;
+    observations.push(focus);
+    if(!focus.inViewport||focus.hidden||!focus.focusVisible)
+      throw new Error('KEYBOARD_FOCUS_OBSCURED '+JSON.stringify({
+        period,width,step,focus
+      }));
+  }
+  if(observations.length<20||
+    !observations.some(x=>x.selector.includes('source-link'))||
+    !observations.some(x=>x.id==='search'))
+      throw new Error('KEYBOARD_FOCUS_COVERAGE_MISSING '+JSON.stringify({
+        period,width,count:observations.length,
+        visited:observations.map(x=>x.selector)
+      }));
+  return {period,width,tabStops:observations.length,observations};
+}
+
 async function main() {
   fs.mkdirSync(OUT,{recursive:true});
   const {server,url}=await startServer();
@@ -67,6 +105,26 @@ async function main() {
   try {
     browser=await puppeteer.launch({headless:true,executablePath:chromePath(),
       args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
+    const keyboardFocusEvidence=[];
+    for(const width of [320,640]){
+      for(const period of ['20','21']){
+        const review=await browser.newPage();
+        try{
+          await review.setViewport({width,height:800,deviceScaleFactor:1,
+            isMobile:false,hasTouch:false});
+          await review.goto(url+'?wp='+period,{waitUntil:'load'});
+          await readyCount(review,period==='20'?135:8);
+          const focus=await inspectKeyboardFocus(review,period,width);
+          keyboardFocusEvidence.push(focus);
+          pass('Visible keyboard focus through 48 Tab stops at '+width+
+            'px in WP'+period);
+        }finally{await review.close();}
+      }
+    }
+    fs.writeFileSync(path.join(OUT,'keyboard_focus_evidence.json'),
+      JSON.stringify({schema:'ordnungsrufe-keyboard-focus-v1',
+        description:'Actual Chrome Tab navigation, not a screenreader test',
+        runs:keyboardFocusEvidence},null,2)+'\n');
     const page=await browser.newPage();
     const browserErrors=[];
     page.on('pageerror',error=>browserErrors.push(error.message));
@@ -610,7 +668,8 @@ async function main() {
       screenshots:['desktop_wp20.png','mobile_wp21.png','narrow_wp20.png'],
       source_health_on_render:HAS_PUBLISHED_HEALTH
         ? 'generated_manifest_displayed' : 'missing_manifest_disclosed_in_PR_preview',
-      publication:'none_PR_only'};
+      publication:'none_PR_only',
+      keyboardFocusEvidence:'keyboard_focus_evidence.json'};
     fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify(report,null,2)+'\n');
     console.log('V1_BROWSER_SMOKE_PASS',steps.length,'checks',
       'no publication, 135/123 historical, 8 partial 21st');
