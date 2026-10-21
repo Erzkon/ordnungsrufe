@@ -111,6 +111,9 @@ def build(source_cases=SOURCE_CASES, appeals=None, snapshot=None, known=None):
                 or not 6000<=row['decision_page']<=9000
                 or not re.fullmatch(r'https://www\.bundestag\.de/dokumente/textarchiv/2026/kw\d{2}-de-einspruch-ordnungsruf-\d+',official['source'])):
             raise ValueError('Nichtamtlicher Ursprung oder Entscheidungsbeleg')
+        # Normalize immutable source tuples into JSON-native arrays so the
+        # generated crosswalk agrees with the public review-data contract.
+        row['original_xml_lines']=list(row['original_xml_lines'])
         out.append({
             **row,'original_pdf_url':original_link,
             'original_xml_url':f'https://dserver.bundestag.de/btp/21/21{row["session"]:03d}.xml',
