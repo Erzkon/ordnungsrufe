@@ -11,6 +11,9 @@ on:
       - 'wp21_all17_followups.py'
       - 'wp21_new_dip_candidates.py'
       - 'wp21_existing_2025_crosswalk.py'
+      - 'wp21_priority_xml_scout.py'
+      - 'tests/test_wp21_priority_xml_scout.py'
+      - 'WP21_PRIORITY_ORIGINALS.md'
       - 'tests/test_wp21_existing_2025_crosswalk.py'
       - 'WP21_EXISTING_2025_CROSSWALK.md'
       - 'tests/test_wp21_new_dip_candidates.py'
@@ -70,7 +73,7 @@ jobs:
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/confirmed.sha256"
       - name: Pruefe offizielle Referenzen und negative Zaehlergrenzen
-        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins tests.test_wp21_five_rechtsfolgen tests.test_wp21_all17_followups tests.test_wp21_new_dip_candidates tests.test_wp21_existing_2025_crosswalk
+        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins tests.test_wp21_five_rechtsfolgen tests.test_wp21_all17_followups tests.test_wp21_new_dip_candidates tests.test_wp21_existing_2025_crosswalk tests.test_wp21_priority_xml_scout
       - name: Erzeuge vier dateigebundene Pruefbuendel
         run: |
           python wp21_batch_review.py --output-dir .audit/wp21_batch_review
@@ -345,6 +348,35 @@ jobs:
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as stream:
               stream.write('\n'.join(lines)+'\n')
           PY
+      - name: Originale Plenar-XMLs 21/014 und 21/043 fuer die drei priorisierten DIP-Eltern sichten
+        timeout-minutes: 8
+        run: |
+          python wp21_priority_xml_scout.py \
+            --output-dir .audit/wp21_priority_originals
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path('.audit/wp21_priority_originals/original_contexts.json')
+          r=json.loads(p.read_text(encoding='utf-8'))
+          assert (r['schema']=='wp21-reichardt-keuter-official-xml-scout-v1'
+                  and r['official_positions_expected']==4
+                  and len(r['sessions'])==2
+                  and [s['session'] for s in r['sessions']]==[14,43]
+                  and all(s['source_is_full_original_spoken_xml'] is True
+                          and s['position_to_specific_spoken_paragraph_conclusively_verified'] is False
+                          and s['person_context_candidates']>0
+                          for s in r['sessions'])
+                  and r['confirmed_independent_new_grants']==0
+                  and r['automatically_confirmed_effective_sanctions']==0
+                  and r['protected_statistics_changed'] is False)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as h:
+              h.write('\n## WP21 21/014 Reichardt und 21/043 Keuter – echte Plenar-XML-Kontexte\n')
+              for s in r['sessions']:
+                  h.write(f"- 21/{s['session']:03d}: "
+                          f"{s['spoken_paragraphs_checked']} gesprochene Absätze, "
+                          f"{s['person_context_candidates']} Namenskontexte. "
+                          'Keine ursprüngliche wirksame Sanktion automatisch bestätigt.\n')
+          PY
       - name: Bytegleichheit der bestaetigten Statistiken nach dem Report
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
@@ -362,6 +394,7 @@ jobs:
             .audit/wp21_all17_offline/
             .audit/wp21_all17_live/
             .audit/wp21_dip_discovery/
+            .audit/wp21_priority_originals/
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
