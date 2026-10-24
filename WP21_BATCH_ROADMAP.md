@@ -184,3 +184,38 @@ ausschließlich unter `.audit/`. Sämtliche bestätigten
 Statistikdateien und individuellen Rechtsfolgen bleiben unverändert.
 
 Methodik, Grenzen und lokale Tests: [WP21_DIP_DISCOVERY.md](WP21_DIP_DISCOVERY.md).
+
+
+## Quellendubletten zwischen 2025er DIP-Discovery und individuellen Altakten
+
+Die amtliche erste vollständige DIP-Aktualisierung seit 25.03.2025
+hat 19.400 Metadatensätze und 43 potenzielle Original-Elternvorgänge
+außerhalb der 18 fest verankerten IDs geliefert. Sechs davon sind
+bereits Teil der datierten Positivstichprobe; weitere 37
+Elternvorgänge stammen aus 2025. Das neue
+[Zehnerdossier-Crosswalk](WP21_EXISTING_2025_CROSSWALK.md)
+identifiziert **zehn** von diesen 37 exakt mit den schon
+einzeln erforschten 2025er DIP-Ursprungsakten (zwölf ursprüngliche
+Erteilungen, elf personengebundene Einspruchszurückweisungen –
+**keine bestätigten wirksamen Zähler**).
+
+Damit werden diese zehn nicht erneut als neue Aufgaben ausgerollt.
+Eine nach Priorität sortierte, maximal fünf Vorgänge große
+**bereinigte Folge-Queue für die übrigen 27** entsteht unter
+`.audit/wp21_dip_discovery/existing_2025_dossiers/`.
+Sie bewahrt die vorhandenen Ursprungs-PDF-Belege, ordnet sie nicht
+automatisch einer rechtswirksamen Maßnahme zu und verweist auf
+mögliche spätere Verfahrenspositionen.
+
+Höchste Originalquellen-Priorität: Keuters zwei DIP-Erteilungspositionen
+in 21/043 und die parallelen DIP-Eltern-IDs 322921/322922 für
+Reichardt in 21/014. Die eindeutige Original-XML-Abgrenzung fehlt
+hier weiterhin. Außerdem bleiben Janichs erste wörtliche
+Originalerteilung und Gottschalks zweite Rechtsfolgenakte aus dem
+bestehenden Zehnerdossier explizit offen.
+
+**Nächstes Fachpaket:** Die 27 noch nicht im Zehnerdossier
+dokumentierten DIP-Eltern-IDs systematisch mit den übrigen
+XML-/Personenakten abgleichen, zuerst die Kollisions- und
+Mehrfachfälle. Eine echte Zählerfreigabe bleibt einem gesonderten,
+explizit genehmigten Statistik-PR vorbehalten.
