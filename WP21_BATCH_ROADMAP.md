@@ -238,3 +238,39 @@ an andere Personen gerichtete und nachträglich berichtende
 Protokollpassagen werden technisch getrennt. Eine nachfolgende
 Rechtsfolgen-/Einspruchsprüfung und individuelle Zählerfreigabe
 sind weiterhin zwingend erforderlich.
+
+
+## Nächster Nachweisbereich: spätere Rechtsfolgen zu Reichardt/Keuter
+
+Die getrennten Original-XML-Prüfungen und amtlichen DIP-Positionen
+für **322921, 322922 und 328596** sind nun mit dem
+[Rechtsfolgen-Quellenbericht](WP21_PRIORITY_LATER_EFFECTS.md) verbunden.
+Der letzte Live-Abruf fand insgesamt vier exakt verankerte
+Ursprungs-Positionsquellen, aber **keine weitere Verfahrensposition
+innerhalb dieser drei Eltern-IDs**. Das bleibt ausdrücklich eine
+*begrenzte* amtliche Quellenbeobachtung, kein Beweis, dass kein
+anderer Einspruch oder eine spätere Aufhebung existiert.
+
+Ein zusätzlicher einmaliger historische Vollzeitraum-Abgleich seit
+25.03.2025 hat sechs **andere** namentlich passende Reichardt-
+Original-Elternvorgänge und ein getrenntes Reichardt-Ordnungsgeld
+gefunden. Dieselbe Person in einem anderen Vorgang ist keine
+Identität der angegriffenen ursprünglichen Maßnahme.
+
+Der Workflow nutzt zukünftig weiter kurze 45-Tage-PR-/Wochenfenster
+und einen Vollzeitraum-Abgleich am ersten Montag des Monats.
+**Erst nach explizit freigegebenem Merge** darf eine planmäßige
+GitHub-Issue-Benachrichtigung neue, personengebundene mögliche
+Rechtsfolgequellen für menschliche Prüfung vorschlagen. Andere
+Ordnungsruf-Erteilungen und Ordnungsgelder werden davon nicht
+als Einspruchsfälle mitgezählt. Jede Benachrichtigung ist über
+einen stabilen Quellen-Hash entdoppelt, automatisch bestätigte
+Sanktionszahlen bleiben unverändert.
+
+**Nächste fachliche Aufgabe:** Unabhängig von den drei DIP-Elternakten
+publizierte parlamentarische oder weitere amtliche
+Einspruchs-/Rücknahmeentscheidungen eindeutig auf die
+*einzelnen* Erteilungsstellen Reichardt 21/014, Keuter 21/014 und
+Keuter 21/043 (zweimal) beziehen. Insbesondere die falsch mit
+Reichardt beschriftete DIP-Elternakte **322921** darf niemals
+ohne Originalpersonenprüfung freigegeben werden.
