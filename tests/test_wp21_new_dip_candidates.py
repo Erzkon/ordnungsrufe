@@ -8,7 +8,8 @@ from pathlib import Path
 
 from wp21_dip_monitor import START, iso
 from wp21_new_dip_candidates import (
-    AUDIT_ROOT, build, corroborate_original_positions, classify, markdown, run, save,
+    AUDIT_ROOT, build, corroborate_original_positions, classify,
+    make_manual_review_batches, markdown, review_markdown, run, save,
 )
 
 NOW = datetime(2026,10,24,12,0,tzinfo=timezone.utc)
@@ -144,6 +145,8 @@ class OutsidePinsDiscoveryTests(unittest.TestCase):
             self.assertEqual(stored['automatically_confirmed_new_sanctions'],0)
             self.assertIn('Keine bestätigten neuen Maßnahmen',
                           (dest/'outside_pins.md').read_text())
+            self.assertTrue((dest/'review_queue.json').is_file())
+            self.assertTrue((dest/'review_queue.md').is_file())
 
     def test_incomplete_api_pages_do_not_produce_report(self):
         AUDIT_ROOT.mkdir(exist_ok=True)
@@ -219,6 +222,47 @@ class OutsidePinsDiscoveryTests(unittest.TestCase):
             corroborate_original_positions(
                 {**base,'automatically_confirmed_new_sanctions':1},
                 key='test',fetch=lambda p,k:[position(p,801005,90,'2026-07-10')])
+
+    def test_only_unmatched_origins_go_into_manual_work_bundles(self):
+        docs=[
+            doc(337160,'Erteilung eines Ordnungsrufes an den Abg Martin Sichert',
+                date='2026-09-08'),
+            doc(345901,'Erteilung von zwei Ordnungsrufen an Abg Beispiel',
+                date='2026-10-01'),
+        ]
+        base=build(docs,since=SINCE,now=NOW,pages=1)
+        def fetch(parent,key):
+            if parent=='337160':
+                return [position(parent,802001,90,'2026-07-10')]
+            return [
+                position(parent,802002,102,'2026-10-01'),
+                position(parent,802003,103,'2026-10-02',step='Abstimmung'),
+            ]
+        linked=corroborate_original_positions(base,key='test',fetch=fetch)
+        queue=make_manual_review_batches(linked)
+        self.assertEqual(queue['pending_parent_review_tasks'],1)
+        self.assertEqual(len(queue['batches']),1)
+        self.assertEqual(queue['batches'][0][0]['official_dip_parent_id'],'345901')
+        self.assertEqual(queue['batches'][0][0]['priority'],'hoch')
+        self.assertEqual(queue['automatic_counted_new_sanctions'],0)
+        self.assertFalse(queue['protected_ledgers_changed'])
+        self.assertIn('keine',review_markdown(queue).lower())
+        with self.assertRaises(ValueError):
+            review_markdown({**queue,'automatic_counted_new_sanctions':1})
+
+    def test_zero_unmatched_queue_does_not_invent_manual_tasks(self):
+        base=build([
+            doc(337160,'Erteilung eines Ordnungsrufes an Martin Sichert',
+                date='2026-09-08')],
+            since=SINCE,now=NOW,pages=1)
+        linked=corroborate_original_positions(
+            base,key='test',fetch=lambda parent,key:[
+                position(parent,802004,90,'2026-07-10')])
+        q=make_manual_review_batches(linked)
+        self.assertEqual(q['pending_parent_review_tasks'],0)
+        self.assertEqual(q['batches'],[])
+        self.assertEqual(q['automatic_counted_new_sanctions'],0)
+        self.assertIn('Offene DIP-Elternvorgänge: 0',review_markdown(q))
 
     def test_outside_audit_and_unsafely_modified_count_rejected(self):
         report=build([],since=SINCE,now=NOW,pages=1)
