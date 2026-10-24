@@ -224,9 +224,11 @@ jobs:
         run: |
           set -euo pipefail
           args=(--days 45)
-          # During initial development backfill, PR also probes the WHOLE term.\n          # Every first Monday (weekly schedule) rechecks the WHOLE term:
+          # During initial development backfill, PR also probes the WHOLE term.
+          # Every first Monday (weekly schedule) rechecks the WHOLE term:
           # old backdated DIP changes would be missed by a 45-day window.
-          if [[ "${{ github.event_name }}" == "pull_request" ]] ||\n             [[ "${{ github.event_name }}" == "schedule" && "$(date -u +%d)" -le 7 ]] ||
+          if [[ "${{ github.event_name }}" == "pull_request" ]] ||
+             [[ "${{ github.event_name }}" == "schedule" && "$(date -u +%d)" -le 7 ]] ||
              [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.full_term_discovery }}" == "true" ]]; then
             args=(--full-term)
           fi
