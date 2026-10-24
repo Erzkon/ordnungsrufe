@@ -124,3 +124,46 @@ Neue Hinweise müssen weiterhin mit Quellen und Rechtsfolgen einzeln
 abgeglichen werden. Die bisherige Acht-Fälle-Auswahl bleibt
 ausdrücklich unvollständig.
 
+
+## Erstmaliger Vollzeitraum-Liveabgleich (24.10.2026)
+
+[Quellenlauf 40115113903](https://github.com/Erzkon/ordnungsrufe/actions/runs/40115113903)
+hat **19.400 DIP-Vorgänge auf 194 vollständig paginierten Seiten**
+mit dem amtlichen 21.-WP-Aktualisierungsfilter seit **25.03.2025**
+geprüft. **43** Titel deuten außerhalb der 18 fest verankerten
+Eltern-IDs auf ursprüngliche Ordnungsruf-Erteilungen. Für alle 43
+wurden zusätzlich ihre konkreten amtlichen DIP-Verfahrenspositionen
+vollständig je Elternvorgang abgefragt.
+
+- **Sechs** Elternvorgänge sind anhand ihrer ursprünglichen
+  Protokollposition in der **bereits bekannten datierten
+  24er-Positivstichprobe** und in der bestätigten Acht-Fälle-Vorschau
+  wiedergefunden; kein neuer Fall allein wegen anderer DIP-ID.
+- **37 weitere DIP-Elternvorgänge** liegen außerhalb dieser datierten
+  Stichprobe, mit originaler Erteilungsfundstelle jeweils **2025**.
+  Viele überschneiden sich mit älteren separaten Forschungsakten des
+  Projekts; es sind keine 37 neu bestätigten Sanktionen.
+- Bei **36 von 37** ist eine ursprüngliche DIP-Erteilungsposition
+  vorhanden; beim Vorgang **328596 (Keuter, 21/043)** gibt es
+  **zwei** amtliche Erteilungspositionen. Der Wortlaut „zwei
+  Ordnungsrufe“ in anderen DIP-Titeln ist ebenfalls **kein
+  automatischer Beleg zweier selbständiger wirksamer Sanktionen**.
+- **Zehn** der 37 Elternvorgänge enthalten insgesamt **elf
+  zusätzliche Verfahrenspositionen**. Das sind Metadaten für spätere
+  Entscheidungen/Verfahrensschritte, keine automatischen
+  Einspruchszurückweisungs- oder Wirksamkeitsfeststellungen.
+
+Die neu ergänzte, ausschließlich unter `.audit/` archivierte
+`review_queue.json` / `review_queue.md` stellt solche nicht
+durch die datierte Stichprobe bereits zugeordneten DIP-Vorgänge in
+**Fünfer-Arbeitsbündeln** bereit: Für diese erste Vollzeitraum-Stichprobe
+sind das **37 manuelle Elternvorgangs-Aufgaben in acht Bündeln**,
+darunter elf mit besonderem Quellenklärungsbedarf (mehrere
+Originalpositionen oder zusätzliche Verfahrensschritte).
+
+Die Queue nimmt nichts in bestätigte CSVs oder öffentliche Statistiken
+auf, erzeugt kein Pull-Request-Merge und entscheidet keine Rechtsfolge.
+Ein wirklich belastbarer Zählerzuwachs erfordert die Prüfung der
+konkreten einzelnen Erteilung, ihrer Unabhängigkeit und all ihrer
+späteren möglichen Rechtsfolgen. DIP-Titel allein genügen nicht.
+
