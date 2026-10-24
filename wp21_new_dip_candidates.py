@@ -24,8 +24,10 @@ ROOT = Path(__file__).resolve().parent
 AUDIT_ROOT = ROOT / '.audit'
 DEFAULT_DAYS = 45
 ORIGINAL = re.compile(
-    r'\b(?:erteilung (?:eines|von|zweier|mehrerer) ordnungsruf\w*|'
-    r'ordnungsruf\w* (?:an|gegen|für|fuer)\b)', re.I)
+    r'\b(?:erteilung\s+(?:eines(?:\s+(?:zweiten|weiteren|erneuten))?|'
+    r'einer|zweier|dreier|mehrerer|von(?:\s+(?:zwei|drei|mehreren))?)'
+    r'\s+ordnungsruf\w*|'
+    r'ordnungsruf\w*\s+(?:an|gegen|für|fuer)\b)', re.I)
 FOLLOWUP = re.compile(
     r'\b(?:einspruch\w*|beschwerde\w*|zurückgenomm\w*|aufheb\w*|'
     r'zurückgewiesen\w*|ordnungsgeld\w*)', re.I)
