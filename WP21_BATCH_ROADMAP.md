@@ -159,3 +159,28 @@ immer wieder bekannte Metadaten einzeln aufzusuchen.
 Die genaue Durchführung, Beweisgrenzen und Workflow-Artefakte sind
 in `WP21_ALL17_DIP_REVIEW.md` dokumentiert. Für die produktive
 wöchentliche Ausführung ist eine spätere ausdrückliche Merge-Freigabe nötig.
+
+
+## Nächster Quellenbereich: DIP-Vorgänge außerhalb der 18 bekannten Eltern-IDs (24.10.2026)
+
+Das read-only Modul `wp21_new_dip_candidates.py` gleicht die
+**vollständig paginierten amtlichen DIP-Vorgänge eines ausgewiesenen
+Aktualisierungsfensters** mit den 18 fest verankerten DIP-Eltern-IDs ab.
+Es erzeugt getrennte Listen mit möglichen ursprünglichen
+Erteilungs-Metadaten und sonstigen Einspruchs-, Ordnungsgeld- oder
+Ordnungsruf-Bezügen.
+
+Die Einstufung ist **nur ein Recherchefilter**. Nicht verankerte
+DIP-IDs können insbesondere auch bekannte Maßnahmen der acht
+bestätigten Beispiele oder der datierten 24er-Stichprobe enthalten.
+Ein vorsichtiger Abgleich gegen Person und Ursprungsdatum weist auf
+mögliche Überschneidungen hin, dedupliziert aber nicht rechtsverbindlich.
+
+Ein wöchentlicher 45-Tage-Liveabgleich sowie ein monatlicher
+Vollzeitraum-Abgleich am ersten Montag werden erst nach späterer
+ausdrücklicher Merge-Freigabe auf `main` produktiv. Auf PRs
+erfolgt lediglich die read-only-Liveprobe, die Daten landen
+ausschließlich unter `.audit/`. Sämtliche bestätigten
+Statistikdateien und individuellen Rechtsfolgen bleiben unverändert.
+
+Methodik, Grenzen und lokale Tests: [WP21_DIP_DISCOVERY.md](WP21_DIP_DISCOVERY.md).
