@@ -207,7 +207,7 @@ def corroborate_original_positions(report, *, key=None, fetch=fetch_positions,
                 person=norm(item['person'])
                 if (item['session']==session
                         and datetime.strptime(item['date'],'%d.%m.%Y').date().isoformat()==day
-                        and re.search(r'(?<!\\w)'+re.escape(person)+r'(?!\\w)',title)):
+                        and re.search(r'(?<!\w)'+re.escape(person)+r'(?!\w)',title)):
                     reference_matches.append({
                         'session':session,'person':item['person'],
                         'original_date':day,
@@ -297,6 +297,7 @@ def save(report, folder):
 
 
 def run(*, since=None, now=None, key=None, load=request_page,
+        fetch=fetch_positions,
         output_dir=AUDIT_ROOT/'wp21_dip_discovery', max_pages=1200):
     now = now or datetime.now(timezone.utc)
     since = since or max(START, now - timedelta(days=DEFAULT_DAYS))
@@ -305,7 +306,7 @@ def run(*, since=None, now=None, key=None, load=request_page,
     api_key=key or os.getenv('DIP_API_KEY') or PUBLIC_KEY
     docs, pages = paginate(since, api_key, load=load, max_pages=max_pages)
     report = build(docs,since=since,now=now,pages=pages)
-    report = corroborate_original_positions(report,key=api_key,fetch=fetch_positions)
+    report = corroborate_original_positions(report,key=api_key,fetch=fetch)
     save(report, output_dir)
     return report
 
