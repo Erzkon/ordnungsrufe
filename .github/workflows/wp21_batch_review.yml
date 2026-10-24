@@ -9,6 +9,9 @@ on:
       - 'wp21_five_origins.py'
       - 'wp21_five_rechtsfolgen.py'
       - 'wp21_all17_followups.py'
+      - 'wp21_new_dip_candidates.py'
+      - 'tests/test_wp21_new_dip_candidates.py'
+      - 'WP21_DIP_DISCOVERY.md'
       - 'tests/test_wp21_all17_followups.py'
       - 'WP21_ALL17_DIP_REVIEW.md'
       - 'tests/test_wp21_five_rechtsfolgen.py'
@@ -20,6 +23,12 @@ on:
       - 'daten/wirksame_ordnungsrufe_21wp.csv'
       - '.github/workflows/wp21_batch_review.yml'
   workflow_dispatch:
+    inputs:
+      full_term_discovery:
+        description: 'Auch ältere WP21-DIP-Änderungen vollständig neu abfragen (nur Prüfhilfen)'
+        type: boolean
+        required: false
+        default: false
   schedule:
     - cron: '25 7 * * 1'
 
@@ -30,7 +39,7 @@ jobs:
   review:
     name: 17 nichtzaehlende Originalquellen-Pruefauftraege
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -58,7 +67,7 @@ jobs:
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/confirmed.sha256"
       - name: Pruefe offizielle Referenzen und negative Zaehlergrenzen
-        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins tests.test_wp21_five_rechtsfolgen tests.test_wp21_all17_followups
+        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins tests.test_wp21_five_rechtsfolgen tests.test_wp21_all17_followups tests.test_wp21_new_dip_candidates
       - name: Erzeuge vier dateigebundene Pruefbuendel
         run: |
           python wp21_batch_review.py --output-dir .audit/wp21_batch_review
@@ -207,6 +216,48 @@ jobs:
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
             f.write('\n'.join(lines)+'\n')
           PY
+      - name: Weitere DIP-Ursprungshinweise ausserhalb der 18 verankerten Eltern-IDs suchen
+        timeout-minutes: 25
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--days 45)
+          # Every first Monday (weekly schedule) recheck the WHOLE term:
+          # old backdated DIP changes would be missed by a 45-day window.
+          if [[ "${{ github.event_name }}" == "schedule" && "$(date -u +%d)" -le 7 ]] ||
+             [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.full_term_discovery }}" == "true" ]]; then
+            args=(--full-term)
+          fi
+          python wp21_new_dip_candidates.py "${args[@]}" \
+            --output-dir .audit/wp21_dip_discovery
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          report=json.loads(Path('.audit/wp21_dip_discovery/outside_pins.json').read_text(encoding='utf-8'))
+          assert (report['schema']=='wp21-dip-outside-pins-discovery-v1'
+                  and report['status']=='source_discovery_only_no_effectiveness_decision'
+                  and report['api_pages_completely_fetched']>=1
+                  and report['automatically_confirmed_new_sanctions']==0
+                  and report['automatically_rescinded_sanctions']==0
+                  and report['protected_counters_changed'] is False
+                  and report['possible_original_parent_ids_outside_18_pins']
+                      ==len(report['possible_originals_for_individual_review']))
+          lines=['## WP21: weitere DIP-Quellen ausserhalb der 18 festen Eltern-IDs', '',
+                 'Vollstaendige Ergebnispaginierung im gewaehlten Aenderungsfenster; '
+                 '**keine WP21-Vollerhebung oder automatisch bestaetigten Sanktionen**.',
+                 '', '| DIP-Dokumente | Seiten | Moegliche Originalvorgaenge ausserhalb Pins | '
+                 'Weitere Metadaten |', '|---:|---:|---:|---:|',
+                 f"| {report['total_dip_documents_in_update_window']} "
+                 f"| {report['api_pages_completely_fetched']} "
+                 f"| {report['possible_original_parent_ids_outside_18_pins']} "
+                 f"| {report['other_relevant_parent_ids_outside_18_pins']} |",
+                 '', 'Detailquellen: nichtzaehlendes Archiv outside_pins.json/md; '
+                 'keine Zaehlungsfreigabe.']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as handle:
+              handle.write('\n'.join(lines)+'\n')
+          PY
       - name: Bytegleichheit der bestaetigten Statistiken nach dem Report
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
@@ -223,6 +274,7 @@ jobs:
             .audit/wp21_five_later_live/
             .audit/wp21_all17_offline/
             .audit/wp21_all17_live/
+            .audit/wp21_dip_discovery/
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error
