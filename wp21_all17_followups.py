@@ -24,6 +24,15 @@ from wp21_five_rechtsfolgen import (
 from wp21_dip_positionen import fetch_positions
 from wp21_three_decisions import ROOT
 
+# Four independently reviewed appeal-vote positions, pinned to their exact
+# official DIP identifiers. Matching dates/text alone must never suppress a
+# different or subsequently added position from human review.
+CURATED_VOTE_POSITION_IDS={
+    (65,norm('Martin Reichardt')):'689075',
+    (52,norm('Martin Hess')):'684717',
+    (67,norm('Kerstin Przygodda')):'689680',
+    (69,norm('Fabian Fahl')):'690689',
+}
 OUT=ROOT/'.audit/wp21_all17_followups'
 WARNING=(
     'Das vollständige Abrufen der Verfahrenspositionen von 17 exakt bekannten '
@@ -86,6 +95,10 @@ def sources(snapshot=None, known=None):
         raise ValueError('Nicht genau zwölf ergänzende originalverankerte DIP-IDs')
     if sum(bool(c['individually_curated_appeal_decision']) for c in remaining)!=4:
         raise ValueError('Vier separat belegte Einsprüche unter den zwölf fehlen')
+    curated_keys={(c['session'],norm(c['person'])) for c in remaining
+                  if c['individually_curated_appeal_decision']}
+    if curated_keys!=set(CURATED_VOTE_POSITION_IDS):
+        raise ValueError('Amtliche Identitaeten der vier kuratierten Voten geändert')
     if len({(c['session'],norm(c['person'])) for c in remaining}|five_keys)!=17:
         raise ValueError('Nicht alle 17 Person-/Sitzungsfälle separat zugeordnet')
     return {
@@ -164,6 +177,8 @@ def combine(base,results=None,five_live=None,refreshed_at=None):
                 continue
             preexisting=bool(
                 curated and p['role_for_review']=='unadjudicated_appeal_vote_metadata_candidate'
+                and p['official_position_id']==CURATED_VOTE_POSITION_IDS.get(
+                    (c['session'],norm(c['person'])))
                 and p['date']==curated['date']
                 and p['official_plenary_session'] is not None
                 and p['official_plenary_session']>c['session']
