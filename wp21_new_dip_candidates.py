@@ -267,16 +267,27 @@ def markdown(report):
         'Vollständige Wahlperioden-Zeitspanne als Filter: ' +
         ('ja' if report['full_legislative_period_update_window'] else 'nein'),
         '',
-        '| DIP-Eltern-ID | Amtlicher Vorgangstitel | Vorläufige Einordnung |',
-        '|---|---|---|',
+        '| DIP-Eltern-ID | Amtlicher Vorgangstitel | Vorläufige Einordnung | '
+        'Originalprotokoll | Bereits in der datierten Stichprobe? |',
+        '|---|---|---|---|---|',
     ]
     for c in (report['possible_originals_for_individual_review'] +
               report['other_metadata_for_individual_review']):
         title = c['title'].replace('|','\\|').replace('\n',' ')[:180]
+        sources=c.get('original_position_sources',[])
+        original=', '.join(
+            '[21/'+str(p['official_plenary_session'])+']('+
+            p['official_plenary_pdf_url']+')' for p in sources
+        ) if sources else 'keine quellengebundene Originalposition'
+        overlaps=c.get('matched_dated_positive_sample_by_original_position',[])
+        previous=', '.join(
+            '21/'+str(m['session'])+' '+m['person'] for m in overlaps
+        ) if overlaps else 'keine exakt zugeordnete Stichprobenquelle'
         lines.append(
             '| [' + c['official_dip_parent_id'] + '](' +
             c['official_dip_parent_url'] + ') | ' + title + ' | ' +
-            c['classification_for_manual_review'] + ' |')
+            c['classification_for_manual_review'] + ' | ' + original + ' | ' +
+            previous + ' |')
     lines.extend(['', report['warning'], '',
                   '**Keine Änderungen bestätigter CSV-/JSON-Daten.**', ''])
     return '\n'.join(lines)
