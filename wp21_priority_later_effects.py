@@ -357,15 +357,97 @@ def render(report):
     return '\n'.join(lines)
 
 
+
+def review_alerts(report):
+    """Only new official metadata for manual issue notices after approved merge.
+
+    No occurrence/absence of an appeal is decided by this classifier.
+    """
+    if (not isinstance(report,dict)
+            or report.get('schema')!='wp21-2025-three-priority-legal-followups-v1'
+            or report.get('automatically_approved_new_sanctions')!=0
+            or report.get('automatically_rescinded_sanctions')!=0
+            or report.get('protected_counter_files_modified') is not False
+            or report.get('official_parents_refreshed')!=3):
+        raise ValueError('Quelle für GitHub-Reviewmeldung unzureichend')
+    hints=[];seen=set()
+    for case in report['pinned_parent_cases']:
+        parent=case['official_dip_parent_id']
+        if parent not in EXPECTED or not case['all_parent_positions_fetched']:
+            raise ValueError('DIP-Elternaktensicherung vor Alerts fehlt')
+        for step in case['later_parent_positions_for_individual_review']:
+            ident=step['official_position_id']
+            key=('position',ident)
+            if (key in seen or
+                    not re.fullmatch(r'[1-9]\\d{0,11}',ident) or
+                    step['source_url']!=
+                    'https://search.dip.bundestag.de/api/v1/vorgangsposition/'+ident or
+                    step['source_cannot_confirm_final_legal_effect'] is not True or
+                    step['newly_confirmed_effective_sanctions']!=0):
+                raise ValueError('Unzulässige DIP-Reviewposition in Quellenalarm')
+            seen.add(key)
+            hints.append({
+                'kind':'new_parent_procedure_position',
+                'official_parent_id':parent,
+                'official_position_id':ident,
+                'source_url':step['source_url'],
+                'source_date':step['date'],
+                'label':step['source_class'],
+                'case_link_and_legal_outcome_still_require_manual_review':True,
+                'automatic_count_delta':0,
+            })
+    for item in report['possible_other_parent_sources'][
+            'named_other_parent_metadata_candidates']:
+        # Do NOT turn an unrelated grant or separately regulated fine into
+        # an appeal alert. Even a literal "Einspruch" with the same name is
+        # only a source candidate, not necessarily the same original grant.
+        if item['source_class']!='procedure_keyword_possible_related_metadata':
+            continue
+        ident=item['official_parent_id']
+        key=('parent',ident)
+        if (key in seen or ident in EXPECTED or
+                not re.fullmatch(r'[1-9]\\d{0,11}',ident) or
+                item['source']!='https://dip.bundestag.de/vorgang/'+ident or
+                item['exact_original_case_link_verified'] is not False or
+                item['appeal_outcome_or_current_effectiveness_verified'] is not False):
+            raise ValueError('Fremdvorgang ohne sichere negative Quellenabgrenzung')
+        seen.add(key)
+        hints.append({
+            'kind':'other_parent_name_and_procedure_keyword_only',
+            'official_parent_id':ident,
+            'official_position_id':None,
+            'source_url':item['source'],
+            'source_date':item['source_date'],
+            'label':item['title'],
+            'case_link_and_legal_outcome_still_require_manual_review':True,
+            'automatic_count_delta':0,
+        })
+    hints.sort(key=lambda x:(x['kind'],int(x['official_parent_id']),
+                             int(x['official_position_id'] or 0)))
+    return {
+        'schema':'wp21-priority-legal-review-alerts-v1',
+        'status':'review_hints_not_verified_appeals',
+        'current_parent_sources_completely_refreshed':True,
+        'other_source_window_is_bounded':True,
+        'hint_count':len(hints),
+        'hints':hints,
+        'automatically_approved_sanctions':0,
+        'protected_counters_modified':False,
+        'absence_of_hints_means_no_appeal':False,
+    }
+
+
 def save(report,directory):
     base=AUDIT_ROOT.resolve()
     path=Path(directory).resolve()
     if path==base or base not in path.parents or path.is_symlink():
         raise ValueError('Rechtsfolgenprüfungen nur im nichtöffentlichen Audit-Unterordner')
     path.mkdir(parents=True,exist_ok=True)
+    alert=review_alerts(report)
     for name,body in (
         ('priority_later_effects.json',json.dumps(report,ensure_ascii=False,indent=2)+'\n'),
-        ('priority_later_effects.md',render(report))):
+        ('priority_later_effects.md',render(report)),
+        ('priority_review_alerts.json',json.dumps(alert,ensure_ascii=False,indent=2)+'\n')):
         temporary=path/(name+'.tmp')
         temporary.write_text(body,encoding='utf-8')
         temporary.replace(path/name)
