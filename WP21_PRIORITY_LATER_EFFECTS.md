@@ -113,3 +113,50 @@ dieser Prüfung wie bisher byteweise und per SHA256 verglichen.
   aus dem Originalprotokoll abgleichen.
 - Erst nach vollständiger separater Einzelfall- und
   Rechtsfolgenprüfung über mögliche statistische Freigabe entscheiden.
+
+
+## Ergebnis der ersten Live-Abgleiche vom 24.10.2026
+
+Die [erste Echtzeitprüfung](https://github.com/Erzkon/ordnungsrufe/actions/runs/40127706929)
+hat **alle drei offiziellen DIP-Elternakten** und ihre vollständigen
+Positionenlisten frisch eingelesen: **322921: 1 Original/0 weitere
+Positionen**, **322922: 1/0**, **328596: 2/0**.
+Der Testlauf bestand **94 spezialisierte Python-Tests** und prüfte
+die vier geschützten CSV-/JSON-Zählerdateien bytegleich.
+
+Ein zusätzlich ausgeführter [historischer Live-Abgleich ab
+25.03.2025](https://github.com/Erzkon/ordnungsrufe/actions/runs/40127919630)
+hat die drei Eltern erneut exakt gleich vorgefunden und unter den
+namentlich gefilterten, übrigen DIP-Elternakten **sieben** weitere
+Metadatenquellen gefunden: **sechs** andere ursprüngliche
+Reichardt-Ordnungsruf-Elternvorgänge (**323646, 325925, 328036,
+328595, 329551, 334727**) sowie das getrennte **Ordnungsgeld
+340550**. **Keiner dieser sieben Vorgänge ist ein individueller
+Beleg für eine Einspruchsentscheidung zu 322921, 322922 oder 328596.**
+
+Das ist ausdrücklich **keine abschließende Negativauskunft**:
+Der Discovery-Filter berücksichtigt nur bestimmte DIP-Titel/
+Abstract-Schlüsselwörter und ist auf Vorgänge außerhalb
+der bisher kuratierten 18 Eltern-IDs eingeschränkt. Auch eine über
+die ganze laufende Wahlperiode vollständig paginierte
+Aktualisierungsabfrage ersetzt keine Prüfung anderer
+parlamentarischer Verfahren oder gerichtlicher Unterlagen.
+
+### Automatische Warnungen – nur bei künftig tatsächlich neuen Quellen
+
+Der zusätzliche Bericht `priority_review_alerts.json` archiviert
+*nichtzählende* manuelle Quellenhinweise. Eine Benachrichtigung
+kommt nach einer später **separat genehmigten Merge-Freigabe** nur
+im geplanten Lauf infrage, falls entweder eine neue amtliche
+Verfahrensposition bei einer der drei Eltern-IDs erscheint oder
+ein anderer namensgleicher DIP-Elternvorgang ausdrücklich ein
+einspruchs-/rechtsfolgenbezogenes Stichwort im Titel trägt.
+
+Namensgleiche ursprüngliche Erteilungsakten oder Ordnungsgelder
+erzeugen **keinen solchen Einspruchs-Alarm**. Eine Prüfung erfolgt
+über ein stabiles Prüfhash im vorhandenen GitHub-Issue; es wird
+nicht bei jedem Lauf ein Duplikat eröffnet. Pull Requests erstellen
+keine Issues und verändern keine bestätigten Zähler.
+
+Auch ein leerer Quellenalarm bleibt im Schema als
+`absence_of_hints_means_no_appeal=false` kodiert.
