@@ -171,6 +171,40 @@ def crosswalk(discovery, queue, *, cases=CASES, appeals=None):
                 'possibly_in_other_existing_project_dossiers':True,
                 'newly_approved_sanctions':0,
             })
+    # Identical recipient-title, original sitting and day can still be
+    # TWO official DIP parents. Never silently deduplicate them or assume
+    # either one is a separate effective sanction without the original words.
+    by_context={}
+    for c in other:
+        if c['original_sources']:
+            p=c['original_sources'][0]
+            token=(p['official_plenary_session'],p['date'],norm(c['title']))
+            by_context.setdefault(token,[]).append(c)
+    collisions=[]
+    for (session,day,title),group in by_context.items():
+        if len(group)<2:
+            continue
+        ids=sorted((x['official_dip_parent_id'] for x in group),key=int)
+        collisions.append({
+            'official_original_session':session,
+            'original_day':day,
+            'same_normalized_parent_title':title,
+            'distinct_official_parent_ids':ids,
+            'independent_original_grants_verified_from_this_overlap':False,
+        })
+        for c in group:
+            c['other_dip_parents_same_original_context']=[
+                ident for ident in ids if ident!=c['official_dip_parent_id']]
+            c['review_priority']='hoch'
+            c['collision_requires_separate_original_xml_issuance_review']=True
+    for c in other:
+        c.setdefault('other_dip_parents_same_original_context',[])
+        c.setdefault('collision_requires_separate_original_xml_issuance_review',False)
+    collisions.sort(key=lambda row:(row['official_original_session'],row['original_day']))
+    if len({p['official_position_id'] for c in prior+other
+            for p in c['original_sources']})!=sum(len(c['original_sources'])
+                                                     for c in prior+other):
+        raise ValueError('Doppelte amtliche Original-DIP-Position zwischen Elternakten')
     prior.sort(key=lambda c:(c['original_day'], c['official_dip_parent_id']))
     other.sort(key=lambda c:(
         0 if c['review_priority']=='hoch' else 1,
@@ -191,6 +225,9 @@ def crosswalk(discovery, queue, *, cases=CASES, appeals=None):
             sum(x['reported_initial_grants_from_independent_dossier'] for x in prior),
         'independently_reported_rejected_appeals_in_matched_dossiers':
             sum(x['independently_documented_rejected_objections'] for x in prior),
+        'possible_cross_parent_original_context_collisions':collisions,
+        'parents_needing_collision_review':sum(
+            bool(c['other_dip_parents_same_original_context']) for c in other),
         'special_prior_cases_still_open':[
             c['official_dip_parent_id'] for c in prior
             if c['original_xml_status']!=
@@ -238,6 +275,15 @@ def markdown(report):
             ') | '+str(len(c['original_sources']))+
             ' | '+str(len(c['other_procedure_position_sources']))+
             ' | '+c['remaining_source_problem']+' |')
+    if report['possible_cross_parent_original_context_collisions']:
+        lines.extend(['','## Getrennte DIP-Eltern mit gleichem Originalkontext',
+                      '**Nicht automatisch zusammenfassen oder doppelt zählen.**',''])
+        for collision in report['possible_cross_parent_original_context_collisions']:
+            ids=', '.join('[DIP '+ident+'](https://dip.bundestag.de/vorgang/'+ident+')'
+                          for ident in collision['distinct_official_parent_ids'])
+            lines.append('- Sitzung 21/'+str(collision['official_original_session'])+
+                         ', '+collision['original_day']+': '+ids+
+                         ' – unabhängige Originalerteilungen im XML manuell abgrenzen')
     lines.extend(['',report['warning'],'',
                   '**Ausschließlich Forschungsdossier, keine Änderung an bestätigten CSV/JSON.**',''])
     return '\n'.join(lines)
