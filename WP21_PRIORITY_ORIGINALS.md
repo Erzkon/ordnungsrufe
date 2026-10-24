@@ -77,3 +77,47 @@ Maßnahme zu. Auch nach positivem Absatzfund bleiben
 Erteilungsstellen werden in separaten Fallakten überprüft; rechtliche
 Wirksamkeit und statistische Freigabe bleiben einem ausdrücklich
 kontrollierten Prozess vorbehalten.
+
+## Ergebnis der erstmaligen gesonderten Original-XML-Prüfung (24.10.2026)
+
+Der amtliche Live-Scan der vollständigen Sitzungs-XMLs hat die folgenden
+**einzeln am gesprochenen Originalwortlaut und der unveränderten XML-Zeile**
+verorteten Angaben geliefert. Die unabhängige Kontrolle erfolgt im
+neuen Modul `wp21_priority_xml_verify.py`, das elf genaue
+Original-/Negativtexte prüft.
+
+| Sitzung | Original-XML-Zeile | Aussage und fachliche Grenze |
+|---|---:|---|
+| 21/014 | **2311** | Aktuelle Erteilung durch die Vorsitzende nach dem Zwischenruf „Schwätzer“; [PDF-Seite 1133](https://dserver.bundestag.de/btp/21/21014.pdf#P.1133) ordnet den Zwischenruf Reichardt zu |
+| 21/014 | **5693** | Vorsitzende benennt den Ordnungsruf, erklärt aber ausdrücklich, den Rufer noch nicht sicher zu kennen; keine vorgezogene Personenfreigabe |
+| 21/014 | **5705** | Spätere ausdrückliche Klarstellung: **Empfänger Keuter**. Dadurch gerät die Zuordnung des auf [PDF 1221](https://dserver.bundestag.de/btp/21/21014.pdf#P.1221) verweisenden DIP-Titels **322921 (Reichardt)** in Konflikt mit dem Originalprotokoll |
+| 21/014 | **5779** | Nur Androhung eines weiteren späteren Ordnungsrufs; nicht zählen |
+| 21/043 | **2393** | Bloß theoretischer Ordnungsruf, der an dieser Stelle gerade **nicht** erteilt wird |
+| 21/043 | **2396** | Tatsächliche Erteilungsformulierung an **Reichardt** (anderer Quellenfall) |
+| 21/043 | **2405** | Aktuelle Erteilungsformulierung an Keuter; das nachfolgende Protokoll identifiziert den Empfänger ausdrücklich |
+| 21/043 | **2418** | Nachträgliche ausdrückliche Klarstellung, dass die zweite in dieser Sequenz ausgesprochene Maßnahme an **Keuter** ging; das ist **nicht** bereits Keuters späterer zweiter Ordnungsruf |
+| 21/043 | **3495** | **Weitere aktuelle Erteilungsformulierung an Keuter**, ausdrücklich als dessen zweiter Ordnungsruf bezeichnet; [PDF-Seite 5015](https://dserver.bundestag.de/btp/21/21043.pdf#P.5015) |
+| 21/043 | **3493/3497** | Andere bzw. zunächst unbenannte Empfänger; keine weiteren Keuter-Erteilungen daraus ableiten |
+
+**Neue Quellenkorrektur:** Der [DIP-Elternvorgang 322921](https://dip.bundestag.de/vorgang/322921)
+zeigt Metadaten mit dem Namen Reichardt, aber im amtlichen
+[Original-PDF auf Seite 1222](https://dserver.bundestag.de/btp/21/21014.pdf#P.1222)
+wird der zugehörige Ordnungsruf ausdrücklich **Keuter** zugeordnet.
+Es wäre falsch, aus 322921 und 322922 zwei zweifelsfrei bestätigte
+**Reichardt**-Ordnungsrufe zu machen. Der Rechercheauftrag für 322921
+bleibt als **manuell zu klärender DIP-/Originalpersonen-Konflikt** offen.
+
+Die DIP-Position 681904 zu Keuter verweist auf die
+[vorherige PDF-Seite 4996](https://dserver.bundestag.de/btp/21/21043.pdf#P.4996),
+während die konkrete erste ausgesprochene Keuter-Erteilung in derselben
+fortlaufenden Debatte auf
+[Seite 4997](https://dserver.bundestag.de/btp/21/21043.pdf#P.4997)
+steht. Der im Protokoll ebenfalls genannte Reichardt-Ordnungsruf und
+der nur theoretisch angedrohte Ruf sind nicht mit dieser Keuter-Erteilung
+zu verwechseln.
+
+**Wichtig:** Die drei ausdrücklich abgegrenzten Originalformulierungen
+(eine Reichardt 21/014, zwei Keuter 21/043) sind **Quellenbefunde**, keine
+neuen statistisch freigegebenen rechtswirksamen Sanktionen. Rechtsfolgen
+und mögliche spätere Aufhebungen müssen getrennt geprüft werden.
+
