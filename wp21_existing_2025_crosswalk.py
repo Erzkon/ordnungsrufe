@@ -124,6 +124,18 @@ def crosswalk(discovery, queue, *, cases=CASES, appeals=None):
                     or any(e['decision_date'] not in {p['date'] for p in followups}
                            for e in matched_votes)):
                 raise ValueError('Zehner-Altakte: unabhängige Einspruchsquelle fehlt')
+            decision_dates={e['decision_date'] for e in matched_votes}
+            official_votes=[
+                p for p in followups
+                if p['step']=='Abstimmung'
+                and p['official_plenary_session']==decision_session
+                and p['date'] in decision_dates
+                and re.fullmatch(r'[1-9]\\d{0,11}',p['official_position_id'])
+            ]
+            if (len(official_votes)<votes
+                    or len({p['official_position_id'] for p in official_votes})
+                        !=len(official_votes)):
+                raise ValueError('Amtliche Einspruchspositionen nicht person-/sitzungsscharf')
             anchors=LOCATIONS.get((session,norm(person)))
             if bool(anchors)!=(session!=40):
                 raise ValueError('Historische Original-XML-Anker nicht konsistent')
@@ -144,6 +156,9 @@ def crosswalk(discovery, queue, *, cases=CASES, appeals=None):
                 'source_grant_dip_position_count':len(origins),
                 'independently_documented_rejected_objections':votes,
                 'decision_sitting':decision_session,
+                'matched_appeal_vote_dip_position_ids':[
+                    p['official_position_id'] for p in official_votes],
+                'vote_positions_do_not_imply_ordinal_mapping_without_abstract':True,
                 'official_objection_reports':[
                     {'individual_objection_ordinal':e['individual_objection_ordinal'],
                      'decision_date':e['decision_date'],'source':e['source'],
