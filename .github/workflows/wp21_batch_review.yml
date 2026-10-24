@@ -242,6 +242,11 @@ jobs:
                   and report['automatically_confirmed_new_sanctions']==0
                   and report['automatically_rescinded_sanctions']==0
                   and report['protected_counters_changed'] is False
+                  and report['original_position_enrichment_status']=='all_possible_parents_positions_refreshed'
+                  and report['fully_refreshed_possible_parent_count']==report['possible_original_parent_ids_outside_18_pins']
+                  and report['candidates_matched_to_existing_positive_sample']+
+                      report['candidates_without_positive_sample_original_match']==
+                      report['possible_original_parent_ids_outside_18_pins']
                   and report['possible_original_parent_ids_outside_18_pins']
                       ==len(report['possible_originals_for_individual_review']))
           lines=['## WP21: weitere DIP-Quellen ausserhalb der 18 festen Eltern-IDs', '',
@@ -253,8 +258,19 @@ jobs:
                  f"| {report['api_pages_completely_fetched']} "
                  f"| {report['possible_original_parent_ids_outside_18_pins']} "
                  f"| {report['other_relevant_parent_ids_outside_18_pins']} |",
+                 '', 'Mit exakter Originalprotokoll-Position bereits in datierter Stichprobe: '
+                 +str(report['candidates_matched_to_existing_positive_sample'])+
+                 '; noch ohne solche Zuordnung: '
+                 +str(report['candidates_without_positive_sample_original_match']),
+                 '', 'Die DIP-Datumsanzeige kann den letzten Verfahrensschritt statt '
+                 'der urspruenglichen Erteilung bezeichnen.',
                  '', 'Detailquellen: nichtzaehlendes Archiv outside_pins.json/md; '
                  'keine Zaehlungsfreigabe.']
+          for case in report['possible_originals_for_individual_review'][:12]:
+              linked=case['matched_dated_positive_sample_by_original_position']
+              label=(', '.join('21/'+str(m['session'])+' '+m['person'] for m in linked)
+                     if linked else 'weitere manuelle Originalquellenpruefung offen')
+              lines.append('- [DIP '+case['official_dip_parent_id']+']('+case['official_dip_parent_url']+') – '+label)
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as handle:
               handle.write('\n'.join(lines)+'\n')
           PY
