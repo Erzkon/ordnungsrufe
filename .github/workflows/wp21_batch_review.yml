@@ -315,6 +315,18 @@ jobs:
                       r['previously_curated_ten_parent_dossier_matches']
                   and len(r['remaining_parent_cases_for_individual_review'])==
                       r['remaining_outside_ten_parent_dossier_tasks'])
+          next_queue=json.loads((root/'existing_2025_dossiers/next_review_queue.json').read_text(encoding='utf-8'))
+          assert (next_queue['schema']=='wp21-2025-after-dossier-noncounting-queue-v1'
+                  and next_queue['total_parent_tasks']==
+                      r['remaining_outside_ten_parent_dossier_tasks']
+                  and next_queue['automatic_counter_change']==0
+                  and next_queue['previous_ten_parent_dossiers_are_not_repeated_as_new_tasks'] is True
+                  and sum(len(b) for b in next_queue['batches'])==
+                      next_queue['total_parent_tasks']
+                  and all(1<=len(b)<=5 for b in next_queue['batches'])
+                  and r['parents_needing_collision_review']==
+                      sum(bool(c['other_dip_parents_same_original_context'])
+                          for c in r['remaining_parent_cases_for_individual_review']))
           lines=['## WP21: historische zehn Originalakten bereits vorgeprüft', '',
                  '| Offene DIP-Eltern in Zeitfenster | Im dokumentierten Zehnerdossier | '
                  'Andere weiterhin zu recherchierende Eltern |',
@@ -322,6 +334,10 @@ jobs:
                  f"| {r['all_unmatched_dip_parent_tasks']} "
                  f"| {r['previously_curated_ten_parent_dossier_matches']} "
                  f"| {r['remaining_outside_ten_parent_dossier_tasks']} |",
+                 'Bereinigte nächste Prüfbündel: '+str(len(next_queue['batches']))+
+                 ', hohe Priorität: '+str(next_queue['high_priority_parent_tasks'])+
+                 ', mögliche elternübergreifende Originalkontexte: '
+                 +str(len(r['possible_cross_parent_original_context_collisions'])),
                  '', 'Historisch separat belegte ursprüngliche Erteilungen und Einspruchs-'
                  'abstimmungen sind **keine rechtswirksame Gesamtzaehlung**.',
                  'Janichs erste wortgetreue Erteilung und Gottschalks '
