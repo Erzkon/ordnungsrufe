@@ -85,6 +85,20 @@ class OutsidePinsDiscoveryTests(unittest.TestCase):
         self.assertFalse(cand['original_issue_individually_verified'])
         self.assertTrue(report['full_legislative_period_update_window'])
 
+    def test_two_distinct_wording_variants_are_hints_not_two_approved_grants(self):
+        variants=[
+            'Erteilung von zwei Ordnungsrufen an die Abg Test',
+            'Erteilung zweier Ordnungsrufe an den Abg Test',
+            'Erteilung eines weiteren Ordnungsrufes an den Abg Test',
+            'Erteilung von drei Ordnungsrufen an den Abg Test',
+        ]
+        for idx,title in enumerate(variants,start=1):
+            with self.subTest(title=title):
+                report=build([doc(347000+idx,title)],
+                             since=SINCE,now=NOW,pages=1)
+                self.assertEqual(report['possible_original_parent_ids_outside_18_pins'],1)
+                self.assertEqual(report['automatically_confirmed_new_sanctions'],0)
+
     def test_title_absent_relevant_abstract_still_reviewed_not_grant(self):
         item=doc(345300,'Parlamentarischer Vorgang')
         item['abstract']='Erwähnung eines Ordnungsrufes'
