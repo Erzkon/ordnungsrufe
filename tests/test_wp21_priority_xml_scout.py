@@ -19,7 +19,8 @@ def root(session, replacements=None):
         speech=etree.SubElement(course,'rede')
         p=etree.SubElement(speech,'p')
         p.text=(replacements or {}).get(i,'Parlamentarischer Wortbeitrag ohne Maßnahmen.')
-    return base
+    # lxml sourceline is populated only after parsing serialized XML.
+    return etree.fromstring(etree.tostring(base,encoding='utf-8',pretty_print=True))
 
 
 class PriorityOfficialOriginalReviewTests(unittest.TestCase):
