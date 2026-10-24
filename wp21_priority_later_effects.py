@@ -379,7 +379,7 @@ def review_alerts(report):
             ident=step['official_position_id']
             key=('position',ident)
             if (key in seen or
-                    not re.fullmatch(r'[1-9]\\d{0,11}',ident) or
+                    not re.fullmatch(r'[1-9]\d{0,11}',ident) or
                     step['source_url']!=
                     'https://search.dip.bundestag.de/api/v1/vorgangsposition/'+ident or
                     step['source_cannot_confirm_final_legal_effect'] is not True or
@@ -406,7 +406,7 @@ def review_alerts(report):
         ident=item['official_parent_id']
         key=('parent',ident)
         if (key in seen or ident in EXPECTED or
-                not re.fullmatch(r'[1-9]\\d{0,11}',ident) or
+                not re.fullmatch(r'[1-9]\d{0,11}',ident) or
                 item['source']!='https://dip.bundestag.de/vorgang/'+ident or
                 item['exact_original_case_link_verified'] is not False or
                 item['appeal_outcome_or_current_effectiveness_verified'] is not False):
