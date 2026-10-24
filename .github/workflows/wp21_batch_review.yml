@@ -249,6 +249,14 @@ jobs:
                       report['possible_original_parent_ids_outside_18_pins']
                   and report['possible_original_parent_ids_outside_18_pins']
                       ==len(report['possible_originals_for_individual_review']))
+          queue=json.loads(Path('.audit/wp21_dip_discovery/review_queue.json').read_text(encoding='utf-8'))
+          assert (queue['schema']=='wp21-dip-unmatched-manual-review-queue-v1'
+                  and queue['pending_parent_review_tasks']==
+                      report['candidates_without_positive_sample_original_match']
+                  and queue['automatic_counted_new_sanctions']==0
+                  and queue['protected_ledgers_changed'] is False
+                  and sum(len(b) for b in queue['batches'])==
+                      queue['pending_parent_review_tasks'])
           lines=['## WP21: weitere DIP-Quellen ausserhalb der 18 festen Eltern-IDs', '',
                  'Vollstaendige Ergebnispaginierung im gewaehlten Aenderungsfenster; '
                  '**keine WP21-Vollerhebung oder automatisch bestaetigten Sanktionen**.',
@@ -262,6 +270,9 @@ jobs:
                  +str(report['candidates_matched_to_existing_positive_sample'])+
                  '; noch ohne solche Zuordnung: '
                  +str(report['candidates_without_positive_sample_original_match']),
+                 'Ungeklaerte Original-Elternakten in rein manuellen Arbeitsbuendeln: '
+                 +str(queue['pending_parent_review_tasks'])+
+                 ' (Bündel '+str(len(queue['batches']))+').',
                  '', 'Die DIP-Datumsanzeige kann den letzten Verfahrensschritt statt '
                  'der urspruenglichen Erteilung bezeichnen.',
                  '', 'Detailquellen: nichtzaehlendes Archiv outside_pins.json/md; '
