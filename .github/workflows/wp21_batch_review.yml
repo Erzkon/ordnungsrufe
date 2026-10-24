@@ -229,7 +229,10 @@ jobs:
           args=(--days 45)
           # First Monday of each month: complete term refresh catches
           # old, backdated DIP updates missing from the 45-day PR/week window.
-          if [[ "${{ github.event_name }}" == "schedule" && "$(date -u +%d)" -le 7 ]] ||
+          # One-time crosswalk validation against the full historical window.
+          # After the verified audit, restore the normal 45-day PR scan.
+          if [[ "${{ github.event_name }}" == "pull_request" ]] ||
+             [[ "${{ github.event_name }}" == "schedule" && "$(date -u +%d)" -le 7 ]] ||
              [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.full_term_discovery }}" == "true" ]]; then
             args=(--full-term)
           fi
