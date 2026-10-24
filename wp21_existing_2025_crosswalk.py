@@ -130,7 +130,7 @@ def crosswalk(discovery, queue, *, cases=CASES, appeals=None):
                 if p['step']=='Abstimmung'
                 and p['official_plenary_session']==decision_session
                 and p['date'] in decision_dates
-                and re.fullmatch(r'[1-9]\\d{0,11}',p['official_position_id'])
+                and re.fullmatch(r'[1-9]\d{0,11}',p['official_position_id'])
             ]
             if (len(official_votes)<votes
                     or len({p['official_position_id'] for p in official_votes})
