@@ -444,6 +444,19 @@ jobs:
                   and r['automatically_rescinded_sanctions']==0
                   and r['protected_counter_files_modified'] is False
                   and r['no_complete_cross_document_legal_exhaustiveness_claim'] is True)
+          alerts=json.loads(Path('.audit/wp21_priority_later_effects/priority_review_alerts.json')
+                            .read_text(encoding='utf-8'))
+          assert (alerts['schema']=='wp21-priority-legal-review-alerts-v1'
+                  and alerts['status']=='review_hints_not_verified_appeals'
+                  and alerts['current_parent_sources_completely_refreshed'] is True
+                  and alerts['other_source_window_is_bounded'] is True
+                  and alerts['hint_count']==len(alerts['hints'])
+                  and alerts['automatically_approved_sanctions']==0
+                  and alerts['protected_counters_modified'] is False
+                  and alerts['absence_of_hints_means_no_appeal'] is False
+                  and all(x['case_link_and_legal_outcome_still_require_manual_review'] is True
+                          and x['automatic_count_delta']==0
+                          for x in alerts['hints']))
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
               f.write('\n## WP21: Reichardt/Keuter individuelle Rechtsfolgen-Metadaten\n')
               f.write('Die drei amtlichen DIP-Elternvorgänge sind einzeln '
@@ -580,4 +593,79 @@ jobs:
               core.info('Prüfhinweis auf neue amtliche Positionen aktualisiert');
             }else{
               core.info('Identische Hinweise bereits gemeldet, kein Duplikat');
+            }
+
+      - name: Zusätzliche Rechtsfolgen-Hinweise zu drei Prioritätsakten ohne Dopplung melden
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs');
+            const crypto=require('crypto');
+            const source=JSON.parse(fs.readFileSync(
+              '.audit/wp21_priority_later_effects/priority_review_alerts.json','utf8'));
+            if(source.schema!=='wp21-priority-legal-review-alerts-v1' ||
+               source.status!=='review_hints_not_verified_appeals' ||
+               source.current_parent_sources_completely_refreshed!==true ||
+               source.other_source_window_is_bounded!==true ||
+               source.hint_count!==source.hints?.length ||
+               source.automatically_approved_sanctions!==0 ||
+               source.protected_counters_modified!==false ||
+               source.absence_of_hints_means_no_appeal!==false ||
+               !source.hints.every(h=>
+                 h.case_link_and_legal_outcome_still_require_manual_review===true &&
+                 h.automatic_count_delta===0 &&
+                 /^https:\/\/search\.dip\.bundestag\.de\/api\/v1\/vorgangsposition\/\d+$|^https:\/\/dip\.bundestag\.de\/vorgang\/\d+$/.test(h.source_url))){
+              throw new Error('Unzulässiger DIP-Rechtsfolgenalarm für Prioritätsakten');
+            }
+            if(source.hints.length===0){
+              core.info('Keine neuen amtlichen Hinweisquellen für die drei Prioritätsakten.');
+              return;
+            }
+            const ids=source.hints.map(h=>({
+              kind:h.kind,
+              parent:h.official_parent_id,
+              position:h.official_position_id,
+              date:h.source_date,
+              source:h.source_url
+            })).sort((a,b)=>a.parent.localeCompare(b.parent) ||
+                            String(a.position||'').localeCompare(String(b.position||'')) ||
+                            a.kind.localeCompare(b.kind));
+            const digest=crypto.createHash('sha256')
+              .update(JSON.stringify(ids)).digest('hex').slice(0,20);
+            const marker='<!-- wp21-three-priority-followup-digest:'+digest+' -->';
+            const title='WP21: offene neue DIP-Rechtsfolgenhinweise zu Reichardt/Keuter';
+            const details=source.hints.map(h=>
+              '- [Amtliche DIP-Quelle]('+h.source_url+') – Elternvorgang '+
+              h.official_parent_id+
+              (h.official_position_id ? ', Position '+h.official_position_id : '')+
+              ', '+h.kind+' (Datum '+h.source_date+'). **Nur manuelle Prüfung.**');
+            const body=[
+              marker,
+              'Neue amtliche Quellenmetadaten zu drei ausgewählten WP21-DIP-Elternakten.',
+              '**Kein** bestätigter zusätzlicher Ordnungsruf und **keine** '+
+              'zugeordnete Einspruchsentscheidung oder Rechtswirksamkeit.',
+              '',
+              ...details,
+              '',
+              'DIP-Aktualisierungsfilter ist begrenzt; ein leerer Suchlauf '+
+              'beweist nicht, dass keine anderen Rechtsfolgen existieren.',
+              'Quelle: GitHub Actions '+context.runId+
+              '. **Keine Änderung bestätigter CSV-/JSON-Zähler.**',
+            ].join('\n');
+            const {owner,repo}=context.repo;
+            const open=await github.paginate(github.rest.issues.listForRepo,{
+              owner,repo,state:'open',per_page:100
+            });
+            const previous=open.find(item=>
+              !item.pull_request && item.title===title);
+            if(!previous){
+              await github.rest.issues.create({owner,repo,title,body});
+              core.info('Neue DIP-Quellen nur als manuellen Prüfhinsweis angelegt.');
+            }else if(!(previous.body||'').includes(marker)){
+              await github.rest.issues.update({
+                owner,repo,issue_number:previous.number,body
+              });
+              core.info('Neue Quellenliste im vorhandenen Prüfhinsweis aktualisiert.');
+            }else{
+              core.info('Identischer Quellensatz bereits gemeldet, kein Duplikat.');
             }
