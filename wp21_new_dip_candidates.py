@@ -253,6 +253,96 @@ def corroborate_original_positions(report, *, key=None, fetch=fetch_positions,
     }
 
 
+
+def make_manual_review_batches(report, batch_size=5):
+    """Non-counting, original-source-linked follow-up queue, up to 5 per batch.
+
+    Being absent from the dated sample never proves that an original grant is
+    new or still in force. This queue only makes further investigation easier.
+    """
+    if (report.get('original_position_enrichment_status')!=
+            'all_possible_parents_positions_refreshed'
+            or report.get('automatically_confirmed_new_sanctions')!=0
+            or report.get('protected_counters_changed') is not False
+            or type(batch_size) is not int or not 1<=batch_size<=10):
+        raise ValueError('DIP-Einzelquellen fehlen oder unsicher')
+    selected=[]
+    for c in report['possible_originals_for_individual_review']:
+        if c['matched_dated_positive_sample_by_original_position']:
+            continue
+        origins=c['original_position_sources']
+        followups=c['other_position_sources_needing_legal_review']
+        source_status=(
+            'no_individual_original_position_found' if not origins
+            else 'multiple_original_positions_not_independent_counts' if len(origins)>1
+            else 'original_position_source_only_legal_effect_open')
+        priority='hoch' if len(origins)!=1 or followups else 'mittel'
+        selected.append({
+            'official_dip_parent_id':c['official_dip_parent_id'],
+            'official_parent_url':c['official_dip_parent_url'],
+            'title':c['title'],
+            'priority':priority,
+            'source_status':source_status,
+            'official_original_positions':origins,
+            'other_procedure_positions':followups,
+            'possibly_already_in_confirmed_preview':
+                bool(c['possible_overlap_with_confirmed_preview']),
+            'next_manual_actions':[
+                'Originale amtliche Erteilungsstelle und Empfänger im PDF/XML prüfen',
+                'Mehrfachformulierungen und weitere selbständige Erteilungen abgrenzen',
+                'Einsprüche, Rücknahmen und Rechtsfolgen außerhalb der DIP-Elternakte prüfen',
+                'Erst nach unabhängigem Einzelnachweis gesonderte Statistikfreigabe beantragen',
+            ],
+            'additional_effective_sanctions_approved':0,
+        })
+    selected.sort(key=lambda c:(
+        0 if c['priority']=='hoch' else 1,
+        c['official_dip_parent_id']))
+    batches=[selected[i:i+batch_size] for i in range(0,len(selected),batch_size)]
+    return {
+        'schema':'wp21-dip-unmatched-manual-review-queue-v1',
+        'source_since_utc':report['since_utc'],
+        'source_full_term_update_window':report['full_legislative_period_update_window'],
+        'pending_parent_review_tasks':len(selected),
+        'batches':batches,
+        'automatic_counted_new_sanctions':0,
+        'protected_ledgers_changed':False,
+        'warning':(
+            'Diese offenen DIP-Elternvorgänge sind weder einzeln bestätigte '
+            'noch notwendigerweise neue oder wirksame Ordnungsrufe. '
+            'Nur Teilmenge des jeweiligen DIP-Aktualisierungsfensters. '
+            'Keine automatische Freigabe.'
+        ),
+    }
+
+
+def review_markdown(queue):
+    if (queue.get('automatic_counted_new_sanctions')!=0
+            or queue.get('protected_ledgers_changed') is not False):
+        raise ValueError('Unzulässige Statistikfreigabe in Review-Queue')
+    lines=['# WP21: manuelle Quellen-Arbeitsbündel', '',
+           '**Nur noch nicht exakt der datierten Positivstichprobe '
+           'zugeordnete DIP-Metadatentreffer, niemals automatisch bestätigte Maßnahmen.**',
+           '',
+           'Offene DIP-Elternvorgänge: '+str(queue['pending_parent_review_tasks']),
+           ' / Bündel: '+str(len(queue['batches'])), '']
+    for index,batch in enumerate(queue['batches'],start=1):
+        lines.append('## Bündel '+str(index))
+        for c in batch:
+            lines.append(
+                '- **'+c['priority']+'** [DIP '+c['official_dip_parent_id']+
+                ']('+c['official_parent_url']+') – '+c['source_status'])
+            for p in c['official_original_positions']:
+                lines.append('  - [Amtliche Originalposition '+p['official_position_id']+
+                             ']('+p['official_plenary_pdf_url']+') (Sitzung 21/'+
+                             str(p['official_plenary_session'])+')')
+            for action in c['next_manual_actions']:
+                lines.append('  - [ ] '+action)
+        lines.append('')
+    lines.extend([queue['warning'], '', '**Keine Zähleränderung.**', ''])
+    return '\n'.join(lines)
+
+
 def markdown(report):
     if (report['automatically_confirmed_new_sanctions'] != 0 or
             report['automatically_rescinded_sanctions'] != 0 or
@@ -301,9 +391,12 @@ def save(report, folder):
     if root not in path.parents or path.is_symlink():
         raise ValueError('DIP-Discovery-Ausgaben nur im privaten .audit-Unterordner')
     path.mkdir(parents=True, exist_ok=True)
+    queue=make_manual_review_batches(report)
     for name, contents in (
         ('outside_pins.json', json.dumps(report,ensure_ascii=False,indent=2)+'\n'),
-        ('outside_pins.md', markdown(report))):
+        ('outside_pins.md', markdown(report)),
+        ('review_queue.json', json.dumps(queue,ensure_ascii=False,indent=2)+'\n'),
+        ('review_queue.md', review_markdown(queue))):
         temporary = path / (name + '.tmp')
         temporary.write_text(contents, encoding='utf-8')
         temporary.replace(path / name)
