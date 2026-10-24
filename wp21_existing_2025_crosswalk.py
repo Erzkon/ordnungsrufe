@@ -289,6 +289,76 @@ def markdown(report):
     return '\n'.join(lines)
 
 
+
+def next_review_queue(report, batch_size=5):
+    """Batch only parents *outside* the ten already individually documented."""
+    if (report.get('schema')!='wp21-2025-dip-dossier-overlap-v1'
+            or report.get('automatically_confirmed_new_measures')!=0
+            or report.get('protected_counter_changes')!=0
+            or type(batch_size) is not int or not 1<=batch_size<=10):
+        raise ValueError('DIP-Forschungsqueue kann keine Zähler freigeben')
+    rows=report['remaining_parent_cases_for_individual_review']
+    if len(rows)!=report['remaining_outside_ten_parent_dossier_tasks']:
+        raise ValueError('Andere Eltern-DIP-Fälle fehlen')
+    tasks=[]
+    for c in rows:
+        tasks.append({
+            'official_dip_parent_id':c['official_dip_parent_id'],
+            'official_parent_url':c['official_parent_url'],
+            'original_sources':c['original_sources'],
+            'later_position_sources':c['other_procedure_position_sources'],
+            'priority':c['review_priority'],
+            'cross_parent_context_ids':c['other_dip_parents_same_original_context'],
+            'known_ten_parent_2025_dossier_already_reviewed':False,
+            'next_individual_checklist':[
+                'Amtlichen Originalwortlaut und Adressat im Original-XML/PDF individuell prüfen',
+                'Bei mehrfachen DIP-Positionen oder gleicher Person/Sitzung andere Elternakten abgrenzen',
+                'Frühere Einzelakten, Einsprüche, spätere Beschlüsse und Rücknahmen separat abgleichen',
+                'Keine rechtswirksame Maßnahme ohne eigenständige Quellen- und Rechtsfolgenfreigabe zählen',
+            ],
+            'automatically_approved_measures':0,
+        })
+    tasks.sort(key=lambda c:(0 if c['priority']=='hoch' else 1,
+                             int(c['official_dip_parent_id'])))
+    return {
+        'schema':'wp21-2025-after-dossier-noncounting-queue-v1',
+        'source_since_utc':report['since_utc'],
+        'total_parent_tasks':len(tasks),
+        'high_priority_parent_tasks':sum(c['priority']=='hoch' for c in tasks),
+        'batch_size':batch_size,
+        'batches':[tasks[i:i+batch_size] for i in range(0,len(tasks),batch_size)],
+        'previous_ten_parent_dossiers_are_not_repeated_as_new_tasks':True,
+        'automatic_counter_change':0,
+        'warning':SOURCE_NOTICE,
+    }
+
+
+def next_review_markdown(report):
+    if (report['automatic_counter_change']!=0 or
+            not report['previous_ten_parent_dossiers_are_not_repeated_as_new_tasks']):
+        raise ValueError('Zähleränderung und doppelte Neuaufgabe verboten')
+    lines=['# WP21: nur verbleibende Eltern-DIP-Rechercheaufgaben', '',
+           '**Keine amtlich abschließend bestätigten neuen Maßnahmen.**', '',
+           'Noch nicht im Zehnerdossier: '+str(report['total_parent_tasks'])+
+           '; davon hohe Priorität: '+str(report['high_priority_parent_tasks']), '']
+    for idx,batch in enumerate(report['batches'],start=1):
+        lines.append('## Arbeitsbündel '+str(idx))
+        for c in batch:
+            lines.append('- **'+c['priority']+'** [DIP '+c['official_dip_parent_id']+
+                         ']('+c['official_parent_url']+')')
+            for p in c['original_sources']:
+                lines.append('  - [Original-Protokollquelle '+p['official_position_id']+
+                             ']('+p['official_plenary_pdf_url']+')')
+            if c['cross_parent_context_ids']:
+                lines.append('  - **Gleicher Originalkontext mit Eltern-ID(s):** '+
+                             ', '.join(c['cross_parent_context_ids'])+
+                             '; eigenständige Erteilungen nicht automatisch behaupten')
+            for action in c['next_individual_checklist']:
+                lines.append('  - [ ] '+action)
+        lines.append('')
+    lines.extend([report['warning'],'', '**Zählerdaten unverändert.**',''])
+    return '\n'.join(lines)
+
 def run(discovery_file,queue_file,output_dir):
     folder=Path(output_dir).resolve()
     root=AUDIT_ROOT.resolve()
@@ -298,9 +368,12 @@ def run(discovery_file,queue_file,output_dir):
     queue=json.loads(Path(queue_file).read_text(encoding='utf-8'))
     report=crosswalk(discovery,queue)
     folder.mkdir(parents=True,exist_ok=True)
+    queue=next_review_queue(report)
     targets={
         'dossier_overlap.json':json.dumps(report,ensure_ascii=False,indent=2)+'\n',
         'dossier_overlap.md':markdown(report),
+        'next_review_queue.json':json.dumps(queue,ensure_ascii=False,indent=2)+'\n',
+        'next_review_queue.md':next_review_markdown(queue),
     }
     for name,payload in targets.items():
         temporary=folder/(name+'.tmp')
