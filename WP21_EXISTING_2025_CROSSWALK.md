@@ -107,3 +107,30 @@ Prioritätsfälle mit Original-XML-Wortlaut abgleichen und danach
 separat Einspruchsfolgen prüfen. Erst tatsächlich abgeschlossene
 Einzelakten können mit ausdrücklicher Freigabe in einen
 eigenen Statistik-PR übernommen werden.
+
+## Korrigierte Personenquellen bei Reichardt/Keuter (24.10.2026)
+
+Die vormals ausschließlich auf identische Originalperson/-Sitzung/-Datum
+und DIP-Titel ausgerichtete Kollisionsmeldung zu **322921** und **322922**
+ist nicht ausreichend. Der amtliche Wortlaut aus **21/014** konkretisiert:
+
+- **322922 / Position 672194 / Seite 1133:** Der Originalkontext
+  bezieht sich auf eine ausgesprochene Erteilung an **Martin Reichardt**.
+- **322921 / Position 672193 / Seite 1221:** Derselbe DIP-Titel
+  nennt Reichardt, aber die Vorsitzende bestätigt auf
+  [Seite 1222](https://dserver.bundestag.de/btp/21/21014.pdf#P.1222)
+  ausdrücklich **Stefan Keuter** als Empfänger des betreffenden Rufs.
+  Dieser **Metadaten-/Quellenkonflikt** wird in der manuellen
+  Forschungsliste festgehalten; er rechtfertigt keine automatische
+  Reichardt-Doppelzählung.
+- **328596 / Keuter 21/043:** Die zwei amtlichen Positions-IDs
+  können jetzt mit zwei getrennten tatsächlichen Erteilungsformulierungen
+  aus den XML-Originalzeilen **2405** und **3495** abgeglichen werden.
+  Ein theoretischer Ordnungsruf, ein eigener Reichardt-Ruf und ein
+  Frohnmaier-Ruf in derselben Sitzung sind negative Kontrollen.
+
+Die automatische Quelle-/Empfänger-Warnung ist bewusst
+**von den bestätigten Maßnahmenzählern getrennt** und wird auch in die
+bereinigten Fünfer-Prüfbündel übernommen. Sämtliche Rechtsfolgen bleiben
+bis zur separaten fachlichen Abklärung offen.
+
