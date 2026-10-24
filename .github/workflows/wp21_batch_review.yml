@@ -185,17 +185,21 @@ jobs:
                   and len(d['five_additional_case_summaries'])==5
                   and d['fully_reviewed_legal_effects']==0
                   and d['automatically_approved_new_sanctions']==0
-                  and d['protected_public_counter_changes']==0)
+                  and d['protected_public_counter_changes']==0
+                  and d['total_additional_position_review_hints']
+                      ==d['already_curated_vote_metadata_positions']
+                        +d['new_uncurated_procedure_position_hints'])
           lines=[
             '## DIP-Quelle: 17 von 17 bekannten WP21-Urspruengen separat aktualisiert',
             '',
             'Nur die 17 auf den 15.10.2026 datierten Ausgangsfaelle; '
               '**keine vollstaendige WP21 und keine automatische Rechtsfolgenfreigabe**.',
             '',
-            '| Original-Faelle | Neu aktualisiert | Bereits separat aktualisiert | '
-              'Zusatzpositionen fuer manuelle Pruefung |',
-            '|---:|---:|---:|---:|',
-            '| 17 | 12 | 5 | '+str(d['total_additional_position_review_hints'])+' |',
+            '| Original-Faelle | Bereits kuratierte Abstimmungspositionen | '
+              'Neue ungeklaerte Verfahrenspositionen |',
+            '|---:|---:|---:|',
+            '| 17 | '+str(d['already_curated_vote_metadata_positions'])+
+              ' | '+str(d['new_uncurated_procedure_position_hints'])+' |',
             '',
             'Alle nicht urspruenglichen DIP-Positionen bleiben Metadaten-Hinweise. '
               'Keine Aenderung bestaetigter Zaehler.'
@@ -248,45 +252,58 @@ jobs:
             const fs=require('fs');
             const crypto=require('crypto');
             const data=JSON.parse(fs.readFileSync(
-              '.audit/wp21_five_later_live/later_effects.json','utf8'));
-            if(data.schema!=='wp21-five-legal-followup-matrix-v1' ||
-               data.cases.length!==5 ||
+              '.audit/wp21_all17_live/all17.json','utf8'));
+            if(data.schema!=='wp21-pinned-other-12-dip-sources-v1' ||
+               data.live_status!=='all_17_pinned_parents_refreshed' ||
+               data.all_17_pinned_parents_refreshed!==true ||
+               data.total_dip_parent_originals_covered!==17 ||
                data.automatically_approved_new_sanctions!==0 ||
-               data.protected_ledger_changed!==false ||
-               data.live_dip_parent_status!=='all_five_refreshed'){
-              throw new Error('DIP-Folgequellenreport nicht sicher');
+               data.protected_public_counter_changes!==0 ||
+               !Array.isArray(data.all_additional_procedure_positions) ||
+               data.total_additional_position_review_hints!==
+                 data.all_additional_procedure_positions.length ||
+               data.total_additional_position_review_hints!==
+                 data.already_curated_vote_metadata_positions+
+                 data.new_uncurated_procedure_position_hints){
+              throw new Error('DIP-Folgequellenbericht fuer 17 Ursprungsfaelle unsicher');
             }
-            const hints=data.cases.filter(c=>
-              c.dip_parent_metadata_review?.other_step_review_hints>0);
+            // Four explicitly curated historical vote positions are NOT
+            // new alerts. No legal consequence or automatic counter writes.
+            const hints=data.all_additional_procedure_positions.filter(p=>
+              p.needs_new_manual_source_review===true &&
+              p.already_independently_curated_vote_metadata===false &&
+              p.legal_effect_decided_by_this_classifier===false);
+            if(hints.length!==data.new_uncurated_procedure_position_hints)
+              throw new Error('Nicht zugeordnete Hinweise fehlerhaft klassifiziert');
             if(hints.length===0){
-              core.info('Keine zusätzlichen DIP-Verfahrenspositionen: kein Issue.');
+              core.info('Keine neuen unzugeordneten DIP-Verfahrenspositionen: kein Issue.');
               return;
             }
-            const observed=hints.map(c=>({
-              parent:c.official_dip_parent_id,
-              positions:c.dip_parent_metadata_review.positions
-                .filter(p=>p.role_for_review!=='original_grant_step')
-                .map(p=>[p.official_position_id,p.date,p.role_for_review])
-            })).sort((a,b)=>a.parent.localeCompare(b.parent));
+            const observed=hints.map(p=>({
+              parent:p.official_dip_parent_id,
+              position_id:p.official_position_id,
+              date:p.date,role:p.role_for_review
+            })).sort((a,b)=>a.parent.localeCompare(b.parent)||
+              a.position_id.localeCompare(b.position_id));
             const digest=crypto.createHash('sha256')
               .update(JSON.stringify(observed)).digest('hex').slice(0,20);
+            // Stable marker retained for backward compatible regression tests.
             const marker='<!-- wp21-five-procedure-digest:'+digest+' -->';
-            const title='WP21: neue DIP-Verfahrenspositionen zu fünf Ursprungsfällen';
+            const title='WP21: offene neue DIP-Verfahrenshinweise zu 17 Ursprungsfaellen';
             const lines=[
               marker,
-              'Automatisch erkannte amtliche **Verfahrenspositions-Hinweise**, '
-                +'keine neue bestätigte oder rechtlich wirksame Sanktion.',
+              'Automatisch entdeckte, **noch nicht individuell zugeordnete** '
+                +'amtliche DIP-Verfahrenspositions-Metadaten. Keine '
+                +'neue oder endgültig wirksame Sanktion.',
               '',
-              'Es besteht Bedarf für individuelle Prüfung des genauen '
-                +'Verfahrensinhalts und möglicher späterer Rechtsfolgen.',
+              'Vier bekannte und bereits unabhängig dokumentierte '
+                +'Einspruchsabstimmungspositionen werden nicht erneut als '
+                +'neue Ereignisse gemeldet.',
               '',
-              ...hints.map(c=>' - '+c.person+' / 21/'+
-                String(c.session).padStart(3,'0')+' – '+
-                c.dip_parent_metadata_review.other_step_review_hints+
-                ' zusätzliche Position(en): '+
-                c.dip_parent_metadata_review.positions
-                  .filter(p=>p.role_for_review!=='original_grant_step')
-                  .map(p=>p.official_position_api).join(', ')),
+              ...hints.map(p=>' - '+p.person+' / 21/'+
+                String(p.session).padStart(3,'0')+
+                ' – [amtliche Position]('+p.official_position_api+') ('+
+                p.role_for_review+', '+p.date+'); genaue Rechtsfolge offen'),
               '',
               'Beobachtungsdaten: GitHub Actions '+context.runId+
                 '; **kein** automatischer Eingriff in CSV-/JSON-Zähler.'

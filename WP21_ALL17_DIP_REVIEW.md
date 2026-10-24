@@ -65,3 +65,33 @@ Rechtsfolgenhinweisen diejenigen mit unabhängig überprüfbarer
 Abstimmungs-/Entscheidungsquelle priorisieren. Parallel weitere,
 im datierten DIP-Snapshot noch **nicht enthaltene** Quellen suchen,
 ohne deren Fund automatisch als Sanktion zu zählen.
+
+
+## Weitere Quellenpositionen nur dann als „neu“ melden, wenn sie nicht bereits überprüft sind
+
+Eine rein technische Änderung macht die Live-Abfrage noch nicht nützlich:
+die 17 bekannten Original-DIP-Vorgänge umfassen bereits **vier einzeln
+kuratierte Einspruchsabstimmungspositionen** zu Reichardt, Hess,
+Przygodda und Fahl. Diese vier sind trotz zusätzlicher DIP-Metadaten
+**keine neuen Fälle**.
+
+Deshalb unterscheidet die erweiterte Auswertung nun zwischen
+`already_curated_vote_metadata_positions` und
+`new_uncurated_procedure_position_hints`.
+Eine Abstimmungsposition gilt nur als *bereits kuratiert*, wenn
+Person/Sitzung, amtliches Abstimmungsdatum und ausgewiesener
+Beschlusstenor auf die schon unabhängig dokumentierte Zurückweisung
+passen. Fehlt einer dieser Nachweise, landet die Position in der
+**manuellen** Prüfqueue.
+
+Nach später genehmigtem Merge verwendet der wöchentliche,
+`main`-exklusive Issue-Melder diese **nicht kuratierten** Positionen
+aller 17 Ursprungsvorgänge. Bei null neuen Hinweisen legt er
+**kein neues Issue** an; identische unveränderte Hinweislisten
+werden anhand eines stabilen Hashes dedupliziert.
+Jeder neue Treffer bleibt eine manuelle Rechercheaufgabe,
+niemals eine automatisch bestätigte Sanktion.
+
+Das ist weiterhin nur ein **sicher begrenzter 17-Fälle-Monitor**:
+ein völlig neuer WP21-DIP-Ursprungsvorgang außerhalb der bekannten
+Stichprobe ist hiervon noch nicht abgedeckt.

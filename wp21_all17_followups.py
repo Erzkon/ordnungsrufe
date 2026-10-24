@@ -153,6 +153,49 @@ def combine(base,results=None,five_live=None,refreshed_at=None):
         c['dip_parent_metadata_review'] for c in five_live['cases']]
     if len(all_assessments)!=17:
         raise ValueError('Siebzehn Live-Prüffälle nicht vollständig')
+    # Distinguish four already individually curated appeal-vote positions
+    # from newly surfaced, as-yet-unattributed procedure metadata. Merely
+    # seeing a vote position never adjudicates the legal effect.
+    categorized=[]
+    for c in augmented:
+        curated=c['individually_curated_appeal_decision']
+        for p in c['dip_parent_metadata_review']['positions']:
+            if p['role_for_review']=='original_grant_step':
+                continue
+            preexisting=bool(
+                curated and p['role_for_review']=='unadjudicated_appeal_vote_metadata_candidate'
+                and p['date']==curated['date']
+                and p['official_plenary_session'] is not None
+                and p['official_plenary_session']>c['session']
+                and 'Zurückweisung des Einspruchs' in p['decision_tenor_metadata_only']
+            )
+            categorized.append({
+                'person':c['person'],'session':c['session'],
+                'official_dip_parent_id':c['official_dip_parent_id'],
+                'official_position_id':p['official_position_id'],
+                'official_position_api':p['official_position_api'],
+                'date':p['date'],'role_for_review':p['role_for_review'],
+                'already_independently_curated_vote_metadata':preexisting,
+                'needs_new_manual_source_review':not preexisting,
+                'legal_effect_decided_by_this_classifier':False,
+            })
+    for c in five_live['cases']:
+        for p in c['dip_parent_metadata_review']['positions']:
+            if p['role_for_review']=='original_grant_step':
+                continue
+            categorized.append({
+                'person':c['person'],'session':c['session'],
+                'official_dip_parent_id':c['official_dip_parent_id'],
+                'official_position_id':p['official_position_id'],
+                'official_position_api':p['official_position_api'],
+                'date':p['date'],'role_for_review':p['role_for_review'],
+                'already_independently_curated_vote_metadata':False,
+                'needs_new_manual_source_review':True,
+                'legal_effect_decided_by_this_classifier':False,
+            })
+    if len(categorized)!=sum(
+            a['other_step_review_hints'] for a in all_assessments):
+        raise ValueError('Zusatzpositionen ohne vollständig kategorisierte Quelle')
     return {
         **base,'twelve_cases':augmented,
         'live_status':'all_17_pinned_parents_refreshed',
@@ -170,6 +213,11 @@ def combine(base,results=None,five_live=None,refreshed_at=None):
             a['position_count'] for a in all_assessments),
         'total_additional_position_review_hints':sum(
             a['other_step_review_hints'] for a in all_assessments),
+        'all_additional_procedure_positions':categorized,
+        'already_curated_vote_metadata_positions':sum(
+            x['already_independently_curated_vote_metadata'] for x in categorized),
+        'new_uncurated_procedure_position_hints':sum(
+            x['needs_new_manual_source_review'] for x in categorized),
         'fully_reviewed_legal_effects':0,
         'automatically_approved_new_sanctions':0,
         'protected_public_counter_changes':0,
@@ -203,6 +251,17 @@ def markdown(data):
             lines.append(f"| {c['person']} / 21/{c['session']:03d} "
                          f"| DIP {c['official_dip_parent_id']} "
                          f"| {c['position_count']} | aus separatem Fünfer-Livebericht; offen |")
+    if data.get('all_17_pinned_parents_refreshed'):
+        lines.extend([
+            '',
+            '**Zusatzpositionen insgesamt:** '+str(
+                data['total_additional_position_review_hints']),
+            '**Bereits quellengebunden kuratierte Einspruchsabstimmungs-Metadaten:** '+
+                str(data['already_curated_vote_metadata_positions']),
+            '**Noch nicht zugeordnete neue Verfahrenspositions-Hinweise:** '+
+                str(data['new_uncurated_procedure_position_hints']),
+            '**Diese Trennung ist kein Abschluss der individuellen Rechtsfolgenprüfung.**',
+        ])
     lines.extend(['',data['warning'],'',
                   '**Nur Verfahrenspositionsmetadaten, keine Wirksamkeitsentscheidung.**',
                   '**Geschützte CSV-/JSON-Zähler bleiben unverändert.**',''])

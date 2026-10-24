@@ -125,6 +125,18 @@ class SeventeenCasesLegalHints(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'zeitnah'):
             combine(self.basis,other,five,BASE_DATE)
 
+    def test_weekly_alert_reads_all17_and_skips_already_curated_votes(self):
+        workflow=(ROOT/'.github/workflows/wp21_batch_review.yml').read_text(
+            encoding='utf-8')
+        self.assertIn("if: github.event_name == 'schedule'",workflow)
+        self.assertIn(".audit/wp21_all17_live/all17.json",workflow)
+        self.assertIn("p.needs_new_manual_source_review===true",workflow)
+        self.assertIn("p.already_independently_curated_vote_metadata===false",workflow)
+        self.assertIn("if(hints.length===0)",workflow)
+        self.assertIn("const marker='<!-- wp21-five-procedure-digest:",workflow)
+        self.assertIn("data.total_dip_parent_originals_covered!==17",workflow)
+        self.assertIn("issues: write",workflow)
+
     def test_outside_workspace_forbidden_and_offline_no_guess(self):
         report=combine(self.basis)
         self.assertFalse(report['all_17_pinned_parents_refreshed'])
