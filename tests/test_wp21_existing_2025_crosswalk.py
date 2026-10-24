@@ -56,9 +56,13 @@ def fixture(include_unknown=True):
     if include_unknown:
         docs.append(document('328596','Stefan Keuter','2025-11-26',2))
         positions['328596']=[
-            position('328596',899999,43,'2025-11-26'),
-            position('328596',899998,43,'2025-11-26'),
+            position('328596',681904,43,'2025-11-26'),
+            position('328596',682732,43,'2025-11-26'),
         ]
+        positions['328596'][0]['fundstelle']['pdf_url']=(
+            'https://dserver.bundestag.de/btp/21/21043.pdf#P.4996')
+        positions['328596'][1]['fundstelle']['pdf_url']=(
+            'https://dserver.bundestag.de/btp/21/21043.pdf#P.5015')
     base=build(docs,since=START,now=NOW,pages=1)
     enriched=corroborate_original_positions(
         base,key='testing',fetch=lambda parent,key:positions[parent])
@@ -156,7 +160,7 @@ class PreviousDossiersCrosswalkTests(unittest.TestCase):
         # Reichardt 21/014; their common title is NOT proof of two
         # independent legally effective sanctions.
         same_title='Erteilung eines Ordnungsrufes an den Abg Martin Reichardt (AfD)'
-        for ident,pid in (('322921',882021),('322922',882022)):
+        for ident,pid,page in (('322921',672193,1221),('322922',672194,1133)):
             c={
                 'official_dip_parent_id':ident,
                 'official_dip_parent_url':'https://dip.bundestag.de/vorgang/'+ident,
@@ -170,7 +174,7 @@ class PreviousDossiersCrosswalkTests(unittest.TestCase):
                         'https://search.dip.bundestag.de/api/v1/vorgangsposition/'+str(pid),
                     'official_plenary_session':14,'date':'2025-06-26',
                     'official_plenary_pdf_url':
-                        'https://dserver.bundestag.de/btp/21/21014.pdf#P.1500',
+                        f'https://dserver.bundestag.de/btp/21/21014.pdf#P.{page}',
                 }],
                 'other_position_sources_needing_legal_review':[],
                 'matched_dated_positive_sample_by_original_position':[],
@@ -218,6 +222,7 @@ class PreviousDossiersCrosswalkTests(unittest.TestCase):
             clone['official_dip_parent_id']=str(345800+idx)
             clone['official_parent_url']='https://dip.bundestag.de/vorgang/'+clone['official_dip_parent_id']
             clone['review_priority']='mittel'
+            clone['manual_original_source_identity_review']=None
             rows.append(clone)
         report['remaining_outside_ten_parent_dossier_tasks']=len(rows)
         q=next_review_queue(report)
@@ -227,6 +232,55 @@ class PreviousDossiersCrosswalkTests(unittest.TestCase):
         ids={x['official_dip_parent_id'] for b in q['batches'] for x in b}
         self.assertNotIn('328224',ids)
         self.assertNotIn('328225',ids)
+
+    def test_reichardt_keuter_source_conflict_survives_next_review_queue(self):
+        d,q=fixture()
+        for ident,pid,page in (('322921',672193,1221),('322922',672194,1133)):
+            text='Erteilung eines Ordnungsrufes an den Abg Martin Reichardt (AfD)'
+            c={
+                'official_dip_parent_id':ident,
+                'official_dip_parent_url':'https://dip.bundestag.de/vorgang/'+ident,
+                'title':text,
+                'all_official_parent_positions_fetched':True,
+                'official_original_position_count':1,
+                'official_parent_position_count':1,
+                'original_position_sources':[{
+                    'official_position_id':str(pid),
+                    'official_position_api':
+                        'https://search.dip.bundestag.de/api/v1/vorgangsposition/'+str(pid),
+                    'official_plenary_session':14,'date':'2025-06-26',
+                    'official_plenary_pdf_url':
+                        f'https://dserver.bundestag.de/btp/21/21014.pdf#P.{page}',
+                }],
+                'other_position_sources_needing_legal_review':[],
+                'matched_dated_positive_sample_by_original_position':[],
+                'confirmed_additional_sanctions':0,
+            }
+            d['possible_originals_for_individual_review'].append(c)
+            q['batches'].append([{'official_dip_parent_id':ident}])
+        d['possible_original_parent_ids_outside_18_pins']+=2
+        d['candidates_without_positive_sample_original_match']+=2
+        q['pending_parent_review_tasks']+=2
+        output=crosswalk(d,q)
+        self.assertEqual(output['parents_with_independently_noted_original_source_issues'],3)
+        nextq=next_review_queue(output)
+        flags={x['official_dip_parent_id']:x['manual_original_source_identity_review']
+               for batch in nextq['batches'] for x in batch}
+        self.assertEqual(flags['322921']['recipient_identified_from_spoken_plenary'],
+                         'Stefan Keuter')
+        self.assertIn('dip_reichardt_parent_title_conflicts',
+                      flags['322921']['source_flag'])
+        self.assertIn('two_separate_keuter',flags['328596']['source_flag'])
+        self.assertEqual(nextq['automatic_counter_change'],0)
+        self.assertIn('Quellenkonflikt',next_review_markdown(nextq))
+        # Mutation of the anchored official position cannot overwrite the
+        # conflict with unrelated source metadata.
+        tampered=copy.deepcopy(d)
+        bad=next(c for c in tampered['possible_originals_for_individual_review']
+                 if c['official_dip_parent_id']=='322921')
+        bad['original_position_sources'][0]['official_position_id']='999999'
+        with self.assertRaises(ValueError):
+            crosswalk(tampered,q)
 
     def test_queue_mutation_or_public_count_delta_rejected(self):
         d,q=fixture()
