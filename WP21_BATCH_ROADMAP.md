@@ -219,3 +219,22 @@ dokumentierten DIP-Eltern-IDs systematisch mit den übrigen
 XML-/Personenakten abgleichen, zuerst die Kollisions- und
 Mehrfachfälle. Eine echte Zählerfreigabe bleibt einem gesonderten,
 explizit genehmigten Statistik-PR vorbehalten.
+
+## Amtlich belegte Empfängerabgrenzung bei den drei Hochprioritäts-Elternakten
+
+Der weitergehende, am echten gesprochenen XML-Wortlaut geprüfte
+[Reichardt-/Keuter-Audit](WP21_PRIORITY_ORIGINALS.md) macht
+zusätzlich eine mögliche Metadatenverwechslung sichtbar:
+**DIP 322921** ist mit Reichardt tituliert, die im zugehörigen
+Plenarprotokoll 21/014 (S. 1221–1222) eindeutig klarstellte
+Empfängerperson lautet jedoch **Keuter**. Die Elternakte bleibt
+als überprüfungsbedürftiger **Personenquellenkonflikt** in der
+nichtzählenden Arbeitsliste; die Original-Erteilung an Reichardt
+in 21/014 liegt separat auf S. 1133.
+
+In 21/043 sind zwei gesprochene Keuter-Erteilungsformulierungen
+auf S. 4997 und 5015 nachvollziehbar; ausdrücklich nur theoretische,
+an andere Personen gerichtete und nachträglich berichtende
+Protokollpassagen werden technisch getrennt. Eine nachfolgende
+Rechtsfolgen-/Einspruchsprüfung und individuelle Zählerfreigabe
+sind weiterhin zwingend erforderlich.
