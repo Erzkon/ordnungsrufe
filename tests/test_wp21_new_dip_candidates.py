@@ -8,7 +8,7 @@ from pathlib import Path
 
 from wp21_dip_monitor import START, iso
 from wp21_new_dip_candidates import (
-    AUDIT_ROOT, build, classify, markdown, run, save,
+    AUDIT_ROOT, build, corroborate_original_positions, classify, markdown, run, save,
 )
 
 NOW = datetime(2026,10,24,12,0,tzinfo=timezone.utc)
@@ -23,6 +23,21 @@ def doc(ident, title, *, date='2026-10-23', updated=None):
         'abstract':'',
         'datum':date,
         'aktualisiert':updated or iso(NOW-timedelta(hours=3)),
+    }
+
+
+def position(parent, ident, session, date, step='Ordnungsruf'):
+    return {
+        'id':ident,'vorgang_id':int(parent),'wahlperiode':21,
+        'vorgangsposition':step,'titel':step,
+        'datum':date,'aktualisiert':iso(NOW-timedelta(hours=2)),
+        'fundstelle':{
+            'dokumentart':'Plenarprotokoll',
+            'dokumentnummer':f'21/{session}',
+            'datum':date,
+            'pdf_url':f'https://dserver.bundestag.de/btp/21/21{session:03d}.pdf#P.1000',
+            'xml_url':f'https://dserver.bundestag.de/btp/21/21{session:03d}.xml',
+        },
     }
 
 
@@ -103,7 +118,8 @@ class OutsidePinsDiscoveryTests(unittest.TestCase):
                 return {'numFound':2,'cursor':None,'documents':[
                     doc(345501,'Einspruch gegen einen Ordnungsruf')]}
             ledger=Path('daten/wirksame_ordnungsrufe_21wp.csv').read_bytes()
-            report=run(since=SINCE,now=NOW,key='test',load=load,output_dir=dest)
+            report=run(since=SINCE,now=NOW,key='test',load=load,output_dir=dest,
+                       fetch=lambda parent,key:[position(parent,800001,90,'2026-07-10')])
             self.assertEqual(len(seen),2)
             self.assertEqual(seen[1]['cursor'],'next')
             self.assertEqual(report['api_pages_completely_fetched'],2)
@@ -136,6 +152,59 @@ class OutsidePinsDiscoveryTests(unittest.TestCase):
             self.assertEqual(report['total_dip_documents_in_update_window'],0)
             self.assertFalse(report['full_legislative_period_update_window'])
             self.assertIn('weder',report['warning'])
+
+    def test_later_parent_date_not_conflated_with_sichert_origin(self):
+        item=doc(337160,'Erteilung eines Ordnungsrufes an den Abg Martin Sichert (AfD)',
+                 date='2026-09-08')
+        starting=build([item],since=SINCE,now=NOW,pages=1)
+        linked=corroborate_original_positions(
+            starting,key='test',fetch=lambda parent,key:[
+                position(parent,801001,90,'2026-07-10'),
+                position(parent,801002,91,'2026-09-08',step='Abstimmung')])
+        case=linked['possible_originals_for_individual_review'][0]
+        self.assertEqual(case['official_original_position_count'],1)
+        self.assertTrue(case['parent_display_date_is_not_original_position_date'])
+        self.assertEqual(case['matched_dated_positive_sample_by_original_position'],
+                         [{'session':90,'person':'Martin Sichert',
+                           'original_date':'2026-07-10',
+                           'matching_official_position_id':'801001'}])
+        self.assertEqual(len(case['other_position_sources_needing_legal_review']),1)
+        self.assertEqual(linked['candidates_matched_to_existing_positive_sample'],1)
+        self.assertEqual(linked['candidates_without_positive_sample_original_match'],0)
+        self.assertEqual(linked['automatically_confirmed_new_sanctions'],0)
+
+    def test_same_surname_other_original_session_not_false_dedup(self):
+        item=doc(345777,'Erteilung eines Ordnungsrufes an den Abg Martin Sichert',
+                 date='2026-09-08')
+        base=build([item],since=SINCE,now=NOW,pages=1)
+        linked=corroborate_original_positions(
+            base,key='test',fetch=lambda p,k:[
+                position(p,801003,95,'2026-09-17')])
+        self.assertEqual(linked['candidates_matched_to_existing_positive_sample'],0)
+        self.assertEqual(linked['candidates_without_positive_sample_original_match'],1)
+
+    def test_crosswalk_rejects_wrong_parent_and_broken_official_fundstelle(self):
+        item=doc(345778,'Erteilung eines Ordnungsrufes an den Abg Test')
+        base=build([item],since=SINCE,now=NOW,pages=1)
+        with self.assertRaises(ValueError):
+            corroborate_original_positions(
+                base,key='test',fetch=lambda p,k:[
+                    position('999999',801004,90,'2026-07-10')])
+        damaged=position('345778',801004,90,'2026-07-10')
+        damaged['fundstelle']['pdf_url']='https://example.com/fake.pdf'
+        with self.assertRaises(ValueError):
+            corroborate_original_positions(
+                base,key='test',fetch=lambda p,k:[damaged])
+
+    def test_empty_or_incomplete_position_source_cannot_complete(self):
+        item=doc(345779,'Erteilung eines Ordnungsrufes an den Abg Test')
+        base=build([item],since=SINCE,now=NOW,pages=1)
+        with self.assertRaises(ValueError):
+            corroborate_original_positions(base,key='test',fetch=lambda p,k:[])
+        with self.assertRaises(ValueError):
+            corroborate_original_positions(
+                {**base,'automatically_confirmed_new_sanctions':1},
+                key='test',fetch=lambda p,k:[position(p,801005,90,'2026-07-10')])
 
     def test_outside_audit_and_unsafely_modified_count_rejected(self):
         report=build([],since=SINCE,now=NOW,pages=1)
