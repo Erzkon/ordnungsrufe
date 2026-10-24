@@ -131,6 +131,15 @@ class PreviousDossiersCrosswalkTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Einspruchsquelle'):
             crosswalk(bad,q)
 
+    def test_appeal_position_wrong_plenary_session_is_not_taken_as_vote(self):
+        d,q=fixture()
+        bad=copy.deepcopy(d)
+        c=next(c for c in bad['possible_originals_for_individual_review']
+               if c['official_dip_parent_id']=='328224')
+        c['other_position_sources_needing_legal_review'][0]['official_plenary_session']=99
+        with self.assertRaisesRegex(ValueError,'Einspruchspositionen'):
+            crosswalk(bad,q)
+
     def test_prior_study_is_not_required_for_recent_zero_case_window(self):
         d,q=fixture(include_unknown=False)
         d={**d,'possible_originals_for_individual_review':[],
