@@ -140,6 +140,50 @@ class PreviousDossiersCrosswalkTests(unittest.TestCase):
         self.assertEqual(report['all_unmatched_dip_parent_tasks'],0)
         self.assertEqual(report['previously_curated_ten_parent_dossier_matches'],0)
 
+    def test_two_official_parents_same_person_sitting_remain_two_review_tasks(self):
+        d,q=fixture()
+        # Both IDs were historically present in the DIP snapshot for
+        # Reichardt 21/014; their common title is NOT proof of two
+        # independent legally effective sanctions.
+        same_title='Erteilung eines Ordnungsrufes an den Abg Martin Reichardt (AfD)'
+        for ident,pid in (('322921',882021),('322922',882022)):
+            c={
+                'official_dip_parent_id':ident,
+                'official_dip_parent_url':'https://dip.bundestag.de/vorgang/'+ident,
+                'title':same_title,
+                'all_official_parent_positions_fetched':True,
+                'official_original_position_count':1,
+                'official_parent_position_count':1,
+                'original_position_sources':[{
+                    'official_position_id':str(pid),
+                    'official_position_api':
+                        'https://search.dip.bundestag.de/api/v1/vorgangsposition/'+str(pid),
+                    'official_plenary_session':14,'date':'2025-06-26',
+                    'official_plenary_pdf_url':
+                        'https://dserver.bundestag.de/btp/21/21014.pdf#P.1500',
+                }],
+                'other_position_sources_needing_legal_review':[],
+                'matched_dated_positive_sample_by_original_position':[],
+                'confirmed_additional_sanctions':0,
+            }
+            d['possible_originals_for_individual_review'].append(c)
+            q['batches'].append([{'official_dip_parent_id':ident}])
+        d['possible_original_parent_ids_outside_18_pins']+=2
+        d['candidates_without_positive_sample_original_match']+=2
+        q['pending_parent_review_tasks']+=2
+        r=crosswalk(d,q)
+        self.assertEqual(r['parents_needing_collision_review'],2)
+        self.assertEqual(len(r['possible_cross_parent_original_context_collisions']),1)
+        group=r['possible_cross_parent_original_context_collisions'][0]
+        self.assertEqual(group['distinct_official_parent_ids'],['322921','322922'])
+        names={c['official_dip_parent_id']:c for c in
+               r['remaining_parent_cases_for_individual_review']}
+        self.assertEqual(names['322921']['other_dip_parents_same_original_context'],['322922'])
+        self.assertEqual(names['322922']['other_dip_parents_same_original_context'],['322921'])
+        self.assertEqual(names['322921']['review_priority'],'hoch')
+        self.assertEqual(r['automatically_confirmed_new_measures'],0)
+        self.assertIn('Getrennte DIP-Eltern',markdown(r))
+
     def test_queue_mutation_or_public_count_delta_rejected(self):
         d,q=fixture()
         corrupted=copy.deepcopy(q)
