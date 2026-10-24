@@ -1,0 +1,176 @@
+"""Offline safeguards for joining new DIP parents to old 2025 dossiers."""
+import copy
+import json
+import tempfile
+import unittest
+from datetime import datetime, timezone
+from pathlib import Path
+
+from wp21_2025_dip_einzelakten import CASES
+from wp21_weitere_einspruchsberichte import EVIDENCE
+from wp21_new_dip_candidates import (
+    AUDIT_ROOT, START, build, corroborate_original_positions,
+    make_manual_review_batches,
+)
+from wp21_existing_2025_crosswalk import crosswalk, markdown, run
+
+NOW=datetime(2026,10,24,15,0,tzinfo=timezone.utc)
+
+
+def document(parent,name,day,grants=1):
+    grant=('von zwei Ordnungsrufen' if grants==2 else 'eines Ordnungsrufes')
+    return {'id':str(parent),'wahlperiode':21,
+            'titel':f'Erteilung {grant} an den Abg {name}',
+            'abstract':'','datum':day,
+            'aktualisiert':'2026-10-23T13:00:00+00:00'}
+
+
+def position(parent,ident,session,day,step='Ordnungsruf'):
+    return {
+        'id':int(ident),'vorgang_id':int(parent),'wahlperiode':21,
+        'vorgangsposition':step,'titel':step,
+        'datum':day,'aktualisiert':'2026-10-23T14:00:00+00:00',
+        'fundstelle':{
+            'dokumentart':'Plenarprotokoll',
+            'dokumentnummer':f'21/{session}',
+            'datum':day,
+            'pdf_url':f'https://dserver.bundestag.de/btp/21/21{session:03d}.pdf#P.1000',
+            'xml_url':f'https://dserver.bundestag.de/btp/21/21{session:03d}.xml',
+        },
+    }
+
+
+def fixture(include_unknown=True):
+    docs=[]
+    positions={}
+    for idx,(day,person,parent,session,decision_session,grants,votes) in enumerate(CASES):
+        docs.append(document(parent,person,day,grants))
+        later=sorted((e for e in EVIDENCE if e['original_date']==day
+                      and e['person']==person),
+                     key=lambda e:e['individual_objection_ordinal'])
+        assert len(later)==votes
+        positions[parent]=[position(parent,880000+idx,session,day)]+[
+            position(parent,890000+idx*10+n,decision_session,e['decision_date'],
+                     'Abstimmung') for n,e in enumerate(later,1)]
+    if include_unknown:
+        docs.append(document('328596','Stefan Keuter','2025-11-26',2))
+        positions['328596']=[
+            position('328596',899999,43,'2025-11-26'),
+            position('328596',899998,43,'2025-11-26'),
+        ]
+    base=build(docs,since=START,now=NOW,pages=1)
+    enriched=corroborate_original_positions(
+        base,key='testing',fetch=lambda parent,key:positions[parent])
+    return enriched,make_manual_review_batches(enriched)
+
+
+class PreviousDossiersCrosswalkTests(unittest.TestCase):
+    def test_exact_ten_dossiers_are_reused_not_recounted(self):
+        discovery,queue=fixture()
+        report=crosswalk(discovery,queue)
+        self.assertEqual(report['all_unmatched_dip_parent_tasks'],11)
+        self.assertEqual(report['previously_curated_ten_parent_dossier_matches'],10)
+        self.assertEqual(report['remaining_outside_ten_parent_dossier_tasks'],1)
+        self.assertEqual(report['independently_reported_initial_grants_in_matched_dossiers'],12)
+        self.assertEqual(report['independently_reported_rejected_appeals_in_matched_dossiers'],11)
+        self.assertEqual(set(report['special_prior_cases_still_open']),{'328224','328225'})
+        self.assertEqual(report['automatically_confirmed_new_measures'],0)
+        self.assertEqual(report['automatically_rescinded_measures'],0)
+        self.assertEqual(report['protected_counter_changes'],0)
+        self.assertIn('keine zehn neuen',report['warning'])
+        self.assertIn('Steffen Janich',markdown(report))
+
+    def test_janich_and_gottschalk_different_procedural_limits(self):
+        report=crosswalk(*fixture())
+        rows={r['official_dip_parent_id']:r
+              for r in report['previously_curated_parent_cases']}
+        janich=rows['328224']
+        gottschalk=rows['328225']
+        self.assertEqual(janich['reported_initial_grants_from_independent_dossier'],2)
+        self.assertEqual(janich['source_grant_dip_position_count'],1)
+        self.assertEqual(janich['independently_documented_rejected_objections'],2)
+        self.assertIsNone(janich['original_xml_line_from_seven_case_dossier'])
+        self.assertIn('unlocated',janich['original_xml_status'])
+        self.assertEqual(gottschalk['reported_initial_grants_from_independent_dossier'],2)
+        self.assertEqual(gottschalk['independently_documented_rejected_objections'],1)
+        self.assertIn('unresolved',gottschalk['original_xml_status'])
+        self.assertEqual(len(janich['official_objection_reports']),2)
+
+    def test_keuter_multiple_dip_grant_steps_do_not_prove_two_effective_calls(self):
+        report=crosswalk(*fixture())
+        keuter=report['remaining_parent_cases_for_individual_review'][0]
+        self.assertEqual(keuter['official_dip_parent_id'],'328596')
+        self.assertEqual(len(keuter['original_sources']),2)
+        self.assertEqual(keuter['review_priority'],'hoch')
+        self.assertIn('do_not_prove',keuter['remaining_source_problem'])
+        self.assertEqual(keuter['newly_approved_sanctions'],0)
+
+    def test_mismatched_official_identity_is_blocked(self):
+        d,q=fixture()
+        bad=copy.deepcopy(d)
+        case=next(c for c in bad['possible_originals_for_individual_review']
+                  if c['official_dip_parent_id']=='328225')
+        case['title']='Erteilung von zwei Ordnungsrufen an den Abg Steffen Janich'
+        with self.assertRaises(ValueError):
+            crosswalk(bad,q)
+        bad=copy.deepcopy(d)
+        case=next(c for c in bad['possible_originals_for_individual_review']
+                  if c['official_dip_parent_id']=='328225')
+        case['original_position_sources'][0]['date']='2025-11-14'
+        with self.assertRaises(ValueError):
+            crosswalk(bad,q)
+
+    def test_missing_independent_appeal_vote_is_not_silently_accepted(self):
+        d,q=fixture()
+        bad=copy.deepcopy(d)
+        case=next(c for c in bad['possible_originals_for_individual_review']
+                  if c['official_dip_parent_id']=='328224')
+        case['other_position_sources_needing_legal_review']=[]
+        case['official_parent_position_count']-=2
+        with self.assertRaisesRegex(ValueError,'Einspruchsquelle'):
+            crosswalk(bad,q)
+
+    def test_prior_study_is_not_required_for_recent_zero_case_window(self):
+        d,q=fixture(include_unknown=False)
+        d={**d,'possible_originals_for_individual_review':[],
+           'possible_original_parent_ids_outside_18_pins':0,
+           'candidates_without_positive_sample_original_match':0}
+        q={**q,'batches':[],'pending_parent_review_tasks':0}
+        report=crosswalk(d,q)
+        self.assertEqual(report['all_unmatched_dip_parent_tasks'],0)
+        self.assertEqual(report['previously_curated_ten_parent_dossier_matches'],0)
+
+    def test_queue_mutation_or_public_count_delta_rejected(self):
+        d,q=fixture()
+        corrupted=copy.deepcopy(q)
+        corrupted['batches'][0][0]['official_dip_parent_id']='999888'
+        with self.assertRaises(ValueError):
+            crosswalk(d,corrupted)
+        with self.assertRaises(ValueError):
+            crosswalk({**d,'automatically_confirmed_new_sanctions':1},q)
+        with self.assertRaises(ValueError):
+            markdown({**crosswalk(d,q),'protected_counter_changes':1})
+
+    def test_files_only_in_audit_and_no_source_ledger_mutation(self):
+        d,q=fixture()
+        AUDIT_ROOT.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=AUDIT_ROOT) as td:
+            folder=Path(td)
+            inputs=folder/'sources'
+            inputs.mkdir()
+            (inputs/'outside_pins.json').write_text(json.dumps(d),encoding='utf-8')
+            (inputs/'review_queue.json').write_text(json.dumps(q),encoding='utf-8')
+            dest=folder/'matched'
+            protected=Path('daten/wirksame_ordnungsrufe_21wp.csv').read_bytes()
+            r=run(inputs/'outside_pins.json',inputs/'review_queue.json',dest)
+            self.assertEqual(r['previously_curated_ten_parent_dossier_matches'],10)
+            self.assertTrue((dest/'dossier_overlap.json').exists())
+            self.assertIn('2025', (dest/'dossier_overlap.md').read_text())
+            self.assertEqual(protected,Path('daten/wirksame_ordnungsrufe_21wp.csv').read_bytes())
+        with tempfile.TemporaryDirectory() as td:
+            with self.assertRaises(ValueError):
+                run('does-not-exist','does-not-exist',Path(td)/'elsewhere')
+
+
+if __name__=='__main__':
+    unittest.main()
