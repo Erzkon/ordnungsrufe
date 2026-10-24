@@ -95,3 +95,26 @@ niemals eine automatisch bestätigte Sanktion.
 Das ist weiterhin nur ein **sicher begrenzter 17-Fälle-Monitor**:
 ein völlig neuer WP21-DIP-Ursprungsvorgang außerhalb der bekannten
 Stichprobe ist hiervon noch nicht abgedeckt.
+
+## Verwechslungsschutz für die vier bekannten Abstimmungspositionen (24.10.2026)
+
+Ein gleiches Abstimmungsdatum und ein ähnlicher Zurückweisungstext
+reichen **nicht** aus, um eine neue DIP-Verfahrensposition als bereits
+geprüft auszublenden. Die Erkennung gleicht deshalb zusätzlich die
+**amtliche eindeutige Positions-ID** ab:
+
+- Reichardt, 21/065: [689075](https://search.dip.bundestag.de/api/v1/vorgangsposition/689075)
+- Hess, 21/052: [684717](https://search.dip.bundestag.de/api/v1/vorgangsposition/684717)
+- Przygodda, 21/067: [689680](https://search.dip.bundestag.de/api/v1/vorgangsposition/689680)
+- Fahl, 21/069: [690689](https://search.dip.bundestag.de/api/v1/vorgangsposition/690689)
+
+Person, Ursprungssitzung, bekannte amtliche ID, Datum,
+Abstimmungsklassifikation und bereits belegter Entscheidungstenor müssen
+zusammenpassen. Eine andere Positions-ID am selben Tag mit gleich
+lautendem Text erscheint weiter als **ungeprüfter manueller Hinweis**.
+Fehlerhafte Daten zur bekannten ID werden ebenfalls nicht als geprüft
+unterdrückt. Negative Tests decken beide Fälle ab.
+
+Auch die vier sicher zugeordneten Metadatenpositionen bleiben nur Belege
+für separat geprüfte parlamentarische Abstimmungen. Sie sind weder
+neue Ordnungsrufe noch eine automatische abschließende Rechtsfolgenwertung.
