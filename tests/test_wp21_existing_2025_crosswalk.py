@@ -12,7 +12,8 @@ from wp21_new_dip_candidates import (
     AUDIT_ROOT, START, build, corroborate_original_positions,
     make_manual_review_batches,
 )
-from wp21_existing_2025_crosswalk import crosswalk, markdown, run
+from wp21_existing_2025_crosswalk import (crosswalk, markdown, next_review_queue,
+                                         next_review_markdown, run)
 
 NOW=datetime(2026,10,24,15,0,tzinfo=timezone.utc)
 
@@ -184,6 +185,40 @@ class PreviousDossiersCrosswalkTests(unittest.TestCase):
         self.assertEqual(r['automatically_confirmed_new_measures'],0)
         self.assertIn('Getrennte DIP-Eltern',markdown(r))
 
+    def test_deduplicated_next_bundles_do_not_repeat_old_dossiers(self):
+        report=crosswalk(*fixture())
+        batches=next_review_queue(report)
+        self.assertEqual(batches['total_parent_tasks'],1)
+        self.assertEqual(batches['batch_size'],5)
+        self.assertEqual(len(batches['batches']),1)
+        self.assertEqual(batches['batches'][0][0]['official_dip_parent_id'],'328596')
+        self.assertTrue(batches['previous_ten_parent_dossiers_are_not_repeated_as_new_tasks'])
+        self.assertEqual(batches['automatic_counter_change'],0)
+        self.assertIn('328596',next_review_markdown(batches))
+        with self.assertRaises(ValueError):
+            next_review_markdown({**batches,'automatic_counter_change':1})
+        with self.assertRaises(ValueError):
+            next_review_queue(report,batch_size=0)
+
+    def test_capped_bundles_never_mix_previous_and_uncurated_parents(self):
+        report=crosswalk(*fixture())
+        # Build many distinct, *synthetic* new sources to test pagination.
+        rows=report['remaining_parent_cases_for_individual_review']
+        for idx in range(1,13):
+            clone=copy.deepcopy(rows[0])
+            clone['official_dip_parent_id']=str(345800+idx)
+            clone['official_parent_url']='https://dip.bundestag.de/vorgang/'+clone['official_dip_parent_id']
+            clone['review_priority']='mittel'
+            rows.append(clone)
+        report['remaining_outside_ten_parent_dossier_tasks']=len(rows)
+        q=next_review_queue(report)
+        self.assertEqual(q['total_parent_tasks'],13)
+        self.assertEqual([len(batch) for batch in q['batches']],[5,5,3])
+        self.assertEqual(sum(len(b) for b in q['batches']),13)
+        ids={x['official_dip_parent_id'] for b in q['batches'] for x in b}
+        self.assertNotIn('328224',ids)
+        self.assertNotIn('328225',ids)
+
     def test_queue_mutation_or_public_count_delta_rejected(self):
         d,q=fixture()
         corrupted=copy.deepcopy(q)
@@ -209,6 +244,8 @@ class PreviousDossiersCrosswalkTests(unittest.TestCase):
             r=run(inputs/'outside_pins.json',inputs/'review_queue.json',dest)
             self.assertEqual(r['previously_curated_ten_parent_dossier_matches'],10)
             self.assertTrue((dest/'dossier_overlap.json').exists())
+            self.assertTrue((dest/'next_review_queue.json').exists())
+            self.assertTrue((dest/'next_review_queue.md').exists())
             self.assertIn('2025', (dest/'dossier_overlap.md').read_text())
             self.assertEqual(protected,Path('daten/wirksame_ordnungsrufe_21wp.csv').read_bytes())
         with tempfile.TemporaryDirectory() as td:
