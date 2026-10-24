@@ -238,10 +238,9 @@ jobs:
           # First Monday of each month: complete term refresh catches
           # old, backdated DIP updates missing from the 45-day PR/week window.
           # First Monday of each month: full-term reconciliation.
-          # One historical PR-only backfill to audit priority external legal hints.
-          # Afterwards revert PR checks to 45 days; retain monthly full refresh.
-          if [[ "${{ github.event_name }}" == "pull_request" ]] ||
-             [[ "${{ github.event_name }}" == "schedule" && "$(date -u +%d)" -le 7 ]] ||
+          # Ordinary PR and weekly checks use a bounded 45-day update window;
+          # first Monday monthly rechecks the entire term for backdated changes.
+          if [[ "${{ github.event_name }}" == "schedule" && "$(date -u +%d)" -le 7 ]] ||
              [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.full_term_discovery }}" == "true" ]]; then
             args=(--full-term)
           fi
