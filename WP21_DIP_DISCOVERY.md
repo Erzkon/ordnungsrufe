@@ -83,3 +83,44 @@ individueller Originalperson, ursprünglicher Sitzung, PDF-/XML-Seite
 und separater Rechtsfolgensuche sortieren. Nur quellenkritisch
 abgeschlossene Einzelfälle können in einem **gesondert freigegebenen
 Statistik-PR** zur Zählung vorgeschlagen werden.
+
+
+## Erster amtlicher Originalpositions-Abgleich (24.10.2026)
+
+Der erste echte 45-Tage-Lauf (seit 9. September 2026 nach
+**DIP-Aktualisierungsdatum**) hat 6.201 Dokumente auf 63 vollständigen
+API-Seiten abgefragt und vier möglich ursprüngliche
+Erteilungs-Elternvorgänge **außerhalb der 18 schon fest verankerten IDs**
+gefunden.
+
+Anschließend wurden **alle amtlichen Verfahrenspositionen dieser vier
+Elternvorgänge** erneut live abgefragt, jeweils mit amtlicher
+Originalposition, Sitzungsnummer und Original-PDF-Seite. Ergebnis:
+**4 von 4** lassen sich der bereits datierten Positivstichprobe und
+zugleich der bestätigten Acht-Fälle-Vorschau zuordnen.
+**Null daraus neu freizugebende Maßnahmen.**
+
+| DIP-Eltern-ID | Person / ursprüngliche Sitzung | Amtliche Ursprungsposition | Beobachtung |
+|---|---|---|---|
+| [339748](https://dip.bundestag.de/vorgang/339748) | Robin Wagener, 21/097 | [700670](https://search.dip.bundestag.de/api/v1/vorgangsposition/700670) | Bereits bekannt |
+| [340146](https://dip.bundestag.de/vorgang/340146) | Roland Theis, 21/099 | [701389](https://search.dip.bundestag.de/api/v1/vorgangsposition/701389) | Bereits bekannt |
+| [337160](https://dip.bundestag.de/vorgang/337160) | Martin Sichert, 21/090 | [696896](https://search.dip.bundestag.de/api/v1/vorgangsposition/696896) | Ursprünglich 10.07.2026, später separate Abstimmungsposition |
+| [338942](https://dip.bundestag.de/vorgang/338942) | Jürgen Koegel, 21/092 | [699250](https://search.dip.bundestag.de/api/v1/vorgangsposition/699250) | Bereits bekannt |
+
+Die DIP-Elternakte von **Sichert** zeigt als `datum` den **08.09.2026**,
+weil sie zusätzlich eine spätere Plenar-Abstimmungsposition
+[699168](https://search.dip.bundestag.de/api/v1/vorgangsposition/699168)
+enthält. Der individuell entscheidende ursprüngliche
+Ordnungsruf-Quellenschritt ist dagegen **21/090 vom 10.07.2026**.
+Ein Vergleich nur auf Eltern-Datum würde diesen bekannten Fall irrtümlich
+als neu ausweisen. Deshalb verwendet der verfeinerte Crosswalk die
+eindeutige amtliche Originalpositions-ID, ursprüngliche Sitzung,
+Datum und Titelperson statt des veränderlichen Eltern-Anzeigedatums.
+
+**Unverändert offen:** Ein vollständiger Zeitfenster-Abgleich der
+DIP-Metadaten oder eine gefundene Originalposition beweist nicht,
+dass sämtliche früheren Fälle oder späteren Aufhebungen bekannt sind.
+Neue Hinweise müssen weiterhin mit Quellen und Rechtsfolgen einzeln
+abgeglichen werden. Die bisherige Acht-Fälle-Auswahl bleibt
+ausdrücklich unvollständig.
+
