@@ -3,10 +3,14 @@ import copy
 import json
 import tempfile
 import unittest
+
+from wp21_autopruefung import norm
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from wp21_all17_followups import ROOT, sources, combine, markdown, save
+from wp21_all17_followups import (
+    ROOT, CURATED_VOTE_POSITION_IDS, sources, combine, markdown, save,
+)
 from wp21_five_rechtsfolgen import (
     historical_crosscheck, combine as five_combine, assess_dip,
 )
@@ -124,6 +128,61 @@ class SeventeenCasesLegalHints(unittest.TestCase):
         five['last_five_parent_probe_utc']=stale
         with self.assertRaisesRegex(ValueError,'zeitnah'):
             combine(self.basis,other,five,BASE_DATE)
+
+    def test_only_exact_official_vote_ids_suppress_duplicate_review(self):
+        other,five=self.make_live()
+        for c in self.basis['twelve_cases']:
+            if not c['individually_curated_appeal_decision']:
+                continue
+            key=(c['session'],norm(c['person']))
+            official_id=CURATED_VOTE_POSITION_IDS[key]
+            assessment=other[c['official_dip_parent_id']]
+            for position_id in (official_id, str(int(official_id)+100000)):
+                assessment['positions'].append({
+                    'official_position_id':position_id,
+                    'official_position_api':
+                        'https://search.dip.bundestag.de/api/v1/vorgangsposition/'
+                        +position_id,
+                    'date':c['individually_curated_appeal_decision']['date'],
+                    'role_for_review':'unadjudicated_appeal_vote_metadata_candidate',
+                    'official_plenary_session':c['session']+1,
+                    'decision_tenor_metadata_only':'Zurückweisung des Einspruchs',
+                })
+                assessment['position_count']+=1
+                assessment['other_step_review_hints']+=1
+        report=combine(self.basis,other,five,BASE_DATE)
+        self.assertEqual(report['already_curated_vote_metadata_positions'],4)
+        self.assertEqual(report['new_uncurated_procedure_position_hints'],4)
+        self.assertEqual(report['total_additional_position_review_hints'],8)
+        new=[p for p in report['all_additional_procedure_positions']
+             if p['needs_new_manual_source_review']]
+        self.assertEqual(len(new),4)
+        self.assertTrue(all(not p['already_independently_curated_vote_metadata']
+                            for p in new))
+        self.assertEqual(report['protected_public_counter_changes'],0)
+
+    def test_known_vote_id_with_wrong_date_remains_reviewable(self):
+        other,five=self.make_live()
+        c=next(c for c in self.basis['twelve_cases']
+               if c['individually_curated_appeal_decision'])
+        key=(c['session'],norm(c['person']))
+        position_id=CURATED_VOTE_POSITION_IDS[key]
+        assessment=other[c['official_dip_parent_id']]
+        assessment['positions'].append({
+            'official_position_id':position_id,
+            'official_position_api':
+                'https://search.dip.bundestag.de/api/v1/vorgangsposition/'
+                +position_id,
+            'date':'2000-01-01',
+            'role_for_review':'unadjudicated_appeal_vote_metadata_candidate',
+            'official_plenary_session':c['session']+1,
+            'decision_tenor_metadata_only':'Zurückweisung des Einspruchs',
+        })
+        assessment['position_count']+=1
+        assessment['other_step_review_hints']+=1
+        report=combine(self.basis,other,five,BASE_DATE)
+        self.assertEqual(report['already_curated_vote_metadata_positions'],0)
+        self.assertEqual(report['new_uncurated_procedure_position_hints'],1)
 
     def test_weekly_alert_reads_all17_and_skips_already_curated_votes(self):
         workflow=(ROOT/'.github/workflows/wp21_batch_review.yml').read_text(
