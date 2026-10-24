@@ -8,6 +8,9 @@ on:
       - 'wp21_three_decisions.py'
       - 'wp21_five_origins.py'
       - 'wp21_five_rechtsfolgen.py'
+      - 'wp21_all17_followups.py'
+      - 'tests/test_wp21_all17_followups.py'
+      - 'WP21_ALL17_DIP_REVIEW.md'
       - 'tests/test_wp21_five_rechtsfolgen.py'
       - 'tests/test_wp21_five_origins.py'
       - 'tests/test_wp21_batch_review.py'
@@ -55,7 +58,7 @@ jobs:
             docs/data/ordnungsrufe.json \
             docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/confirmed.sha256"
       - name: Pruefe offizielle Referenzen und negative Zaehlergrenzen
-        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins tests.test_wp21_five_rechtsfolgen
+        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins tests.test_wp21_five_rechtsfolgen tests.test_wp21_all17_followups
       - name: Erzeuge vier dateigebundene Pruefbuendel
         run: |
           python wp21_batch_review.py --output-dir .audit/wp21_batch_review
@@ -163,6 +166,43 @@ jobs:
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
               f.write('\n'.join(lines)+'\n')
           PY
+      - name: Uebrige zwoelf exakt verankerte DIP-Vorgaenge frisch abfragen
+        timeout-minutes: 8
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_all17_followups.py --offline --output-dir .audit/wp21_all17_offline
+          python wp21_all17_followups.py \
+            --five-live-report .audit/wp21_five_later_live/later_effects.json \
+            --output-dir .audit/wp21_all17_live
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_all17_live/all17.json').read_text(encoding='utf-8'))
+          assert (d['all_17_pinned_parents_refreshed'] is True
+                  and d['total_dip_parent_originals_covered']==17
+                  and len(d['twelve_cases'])==12
+                  and len(d['five_additional_case_summaries'])==5
+                  and d['fully_reviewed_legal_effects']==0
+                  and d['automatically_approved_new_sanctions']==0
+                  and d['protected_public_counter_changes']==0)
+          lines=[
+            '## DIP-Quelle: 17 von 17 bekannten WP21-Urspruengen separat aktualisiert',
+            '',
+            'Nur die 17 auf den 15.10.2026 datierten Ausgangsfaelle; '
+              '**keine vollstaendige WP21 und keine automatische Rechtsfolgenfreigabe**.',
+            '',
+            '| Original-Faelle | Neu aktualisiert | Bereits separat aktualisiert | '
+              'Zusatzpositionen fuer manuelle Pruefung |',
+            '|---:|---:|---:|---:|',
+            '| 17 | 12 | 5 | '+str(d['total_additional_position_review_hints'])+' |',
+            '',
+            'Alle nicht urspruenglichen DIP-Positionen bleiben Metadaten-Hinweise. '
+              'Keine Aenderung bestaetigter Zaehler.'
+          ]
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+            f.write('\n'.join(lines)+'\n')
+          PY
       - name: Bytegleichheit der bestaetigten Statistiken nach dem Report
         if: always()
         run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
@@ -177,6 +217,8 @@ jobs:
             .audit/wp21_five_origins/
             .audit/wp21_five_later_offline/
             .audit/wp21_five_later_live/
+            .audit/wp21_all17_offline/
+            .audit/wp21_all17_live/
           include-hidden-files: true
           retention-days: 30
           if-no-files-found: error

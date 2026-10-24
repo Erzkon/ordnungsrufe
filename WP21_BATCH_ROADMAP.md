@@ -131,3 +131,31 @@ Originalvorgangs aus. Der Workflow archiviert
 `.audit/wp21_five_later_offline/` und `.audit/wp21_five_later_live/`.
 Vollständig abgefragte DIP-Positionen sind **Quellenmetadaten**,
 nicht bestätigte rechtswirksame Maßnahmen.
+
+
+## Weiterführender Quellenabgleich: alle 17 bekannten DIP-Ursprünge
+
+Die bisherigen fünf einzeln verankerten, live abgefragten DIP-Ursprungsvorgänge
+werden nun mit **12 weiteren bereits am 16. Oktober amtlich festgestellten
+Original-DIP-Vorgangs-IDs** kombiniert. Der separate Python-Baustein
+`wp21_all17_followups.py` prüft dafür die Daten des 15.10.-Teilsnapshots,
+die amtlichen Person-/Sitzungsschlüssel, Original-XML-Fundstellen und
+die exakte Zugehörigkeit aller 17 verschiedenen DIP-IDs.
+
+Der neue GitHub-Workflow-Schritt ruft den vollständigen
+**Positionssatz dieser zusätzlichen zwölf Ursprungsvorgänge** ab und
+verwendet im selben Lauf das bereits erneuerte Fünfer-Quellenartefakt.
+Nur wenn beide Gruppen vollständig, widerspruchsfrei und zeitnah
+vorliegen, wird der Bericht `all_17_pinned_parents_refreshed` gesetzt.
+Jede Position jenseits der ursprünglichen Erteilung ist ausschließlich
+ein **Hinweis für individuelle Prüfung**. Die Zahl der zusätzlichen
+Verfahrenspositionen belegt weder die Zahl der Einsprüche noch
+die Zahl der endgültig wirksamen Ordnungsrufe.
+
+**Ziel:** alle bekannten Fälle an einer Stelle priorisieren und
+die eigentliche Quellen- und Rechtsfolgenrecherche bündeln, statt
+immer wieder bekannte Metadaten einzeln aufzusuchen.
+
+Die genaue Durchführung, Beweisgrenzen und Workflow-Artefakte sind
+in `WP21_ALL17_DIP_REVIEW.md` dokumentiert. Für die produktive
+wöchentliche Ausführung ist eine spätere ausdrückliche Merge-Freigabe nötig.
