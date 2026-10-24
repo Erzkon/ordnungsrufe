@@ -8,7 +8,7 @@ from pathlib import Path
 from wp21_new_dip_candidates import AUDIT_ROOT
 from wp21_priority_later_effects import (
     EXPECTED,inspect_parent,bounded_other_parent_hints,original_role_consistent,
-    historical_appeal_exclusions,consolidate,render,save,run,
+    historical_appeal_exclusions,consolidate,review_alerts,render,save,run,
 )
 from tests.test_wp21_priority_xml_verify import fixture as original_scout
 
@@ -136,6 +136,41 @@ class PriorityLegalFollowupTests(unittest.TestCase):
         self.assertEqual(result['automatically_approved_new_sanctions'],0)
         self.assertIn('Zusätzliche',render(result))
 
+    def test_alerts_are_only_unresolved_parent_positions_or_relevant_keywords(self):
+        report=consolidate(pinned(),original_scout(),inventory())
+        alerts=review_alerts(report)
+        # The separately regulated fine and unrelated original Reichardt
+        # grant must not trigger a legal-effect alert for these three IDs.
+        self.assertEqual(alerts['hint_count'],1)
+        self.assertEqual(alerts['hints'][0]['official_parent_id'],'999002')
+        self.assertEqual(
+            alerts['hints'][0]['kind'],'other_parent_name_and_procedure_keyword_only')
+        self.assertFalse(alerts['absence_of_hints_means_no_appeal'])
+        self.assertEqual(alerts['automatically_approved_sanctions'],0)
+        self.assertFalse(alerts['protected_counters_modified'])
+        with_vote=consolidate(
+            {**pinned(),'328596':inspect_parent(
+                '328596',parent('328596'),children('328596',True))},
+            original_scout(),inventory())
+        alerts=review_alerts(with_vote)
+        self.assertEqual(alerts['hint_count'],2)
+        self.assertEqual(
+            {x['kind'] for x in alerts['hints']},
+            {'new_parent_procedure_position','other_parent_name_and_procedure_keyword_only'})
+        self.assertTrue(all(x['automatic_count_delta']==0 for x in alerts['hints']))
+        corrupt=copy.deepcopy(with_vote)
+        idx=next(c for c in corrupt['pinned_parent_cases'] if c['official_dip_parent_id']=='328596')
+        idx['later_parent_positions_for_individual_review'][0]['source_url']='https://evil.example'
+        with self.assertRaises(ValueError):
+            review_alerts(corrupt)
+
+    def test_zero_alerts_is_not_silently_interpreted_as_no_appeals(self):
+        report=consolidate(pinned(),original_scout(),inventory(False))
+        alerts=review_alerts(report)
+        self.assertEqual(alerts['hint_count'],0)
+        self.assertEqual(alerts['hints'],[])
+        self.assertFalse(alerts['absence_of_hints_means_no_appeal'])
+
     def test_missing_relabelled_or_foreign_official_position_fails_closed(self):
         with self.assertRaises(ValueError):
             inspect_parent('328596',parent('328596'),children('328596')[:1])
@@ -230,6 +265,7 @@ class PriorityLegalFollowupTests(unittest.TestCase):
             self.assertEqual(report['automatically_approved_new_sanctions'],0)
             self.assertTrue((base/'results/priority_later_effects.json').is_file())
             self.assertTrue((base/'results/priority_later_effects.md').is_file())
+            self.assertTrue((base/'results/priority_review_alerts.json').is_file())
             self.assertEqual(ledger,Path('daten/wirksame_ordnungsrufe_21wp.csv').read_bytes())
         with tempfile.TemporaryDirectory() as td:
             with self.assertRaises(ValueError):
