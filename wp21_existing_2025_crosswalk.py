@@ -31,6 +31,40 @@ SOURCE_NOTICE=(
     'beweist nicht, dass ihn keine andere Projektakte behandelt. '
     'Keine Änderung bestätigter Zähler.'
 )
+# Manually cross-checked against 21/014 PDF pp. 1133, 1221-1222
+# and 21/043 PDF pp. 4997 and 5015. Exact XML source checks in
+# wp21_priority_xml_verify.py MUST independently pass before publishing
+# the corresponding audit bundles. Never change statistical records here.
+ORIGINAL_SOURCE_REVIEW={
+    '322921':{
+        'official_position_ids':['672193'],
+        'official_pdf_pages':[1221],
+        'source_flag':'dip_reichardt_parent_title_conflicts_with_keuter_plenary_recipient',
+        'original_spoken_xml_session':14,
+        'relevant_spoken_xml_lines':[5705],
+        'recipient_identified_from_spoken_plenary':'Stefan Keuter',
+        'independent_effective_measures_approved':0,
+    },
+    '322922':{
+        'official_position_ids':['672194'],
+        'official_pdf_pages':[1133],
+        'source_flag':'one_reichardt_original_issuance_context_found_separately',
+        'original_spoken_xml_session':14,
+        'relevant_spoken_xml_lines':[2311],
+        'recipient_identified_from_spoken_plenary':'Martin Reichardt (PDF-/Zwischenruf-Kontext)',
+        'independent_effective_measures_approved':0,
+    },
+    '328596':{
+        'official_position_ids':['681904','682732'],
+        'official_pdf_pages':[4996,5015],
+        'source_flag':'two_separate_keuter_spoken_grant_phrases_legal_effect_still_open',
+        'original_spoken_xml_session':43,
+        'relevant_spoken_xml_lines':[2405,3495],
+        'recipient_identified_from_spoken_plenary':'Stefan Keuter',
+        'independent_effective_measures_approved':0,
+    },
+}
+
 
 
 def crosswalk(discovery, queue, *, cases=CASES, appeals=None):
@@ -215,6 +249,25 @@ def crosswalk(discovery, queue, *, cases=CASES, appeals=None):
     for c in other:
         c.setdefault('other_dip_parents_same_original_context',[])
         c.setdefault('collision_requires_separate_original_xml_issuance_review',False)
+    for c in other:
+        note=ORIGINAL_SOURCE_REVIEW.get(c['official_dip_parent_id'])
+        if note:
+            positions=c['original_sources']
+            ids=[p['official_position_id'] for p in positions]
+            pages=[
+                int(p['official_plenary_pdf_url'].rsplit('#P.',1)[1])
+                for p in positions
+            ]
+            if (ids!=note['official_position_ids']
+                    or pages!=note['official_pdf_pages']
+                    or any(p['official_plenary_session']!=
+                           note['original_spoken_xml_session'] for p in positions)
+                    or note['independent_effective_measures_approved']!=0):
+                raise ValueError('Kuratierter DIP-Titel-/Empfängerkonflikt hat andere amtliche Belege')
+            c['manual_original_source_identity_review']=dict(note)
+            c['review_priority']='hoch'
+        else:
+            c['manual_original_source_identity_review']=None
     collisions.sort(key=lambda row:(row['official_original_session'],row['original_day']))
     if len({p['official_position_id'] for c in prior+other
             for p in c['original_sources']})!=sum(len(c['original_sources'])
@@ -243,6 +296,8 @@ def crosswalk(discovery, queue, *, cases=CASES, appeals=None):
         'possible_cross_parent_original_context_collisions':collisions,
         'parents_needing_collision_review':sum(
             bool(c['other_dip_parents_same_original_context']) for c in other),
+        'parents_with_independently_noted_original_source_issues':sum(
+            c['manual_original_source_identity_review'] is not None for c in other),
         'special_prior_cases_still_open':[
             c['official_dip_parent_id'] for c in prior
             if c['original_xml_status']!=
@@ -324,6 +379,7 @@ def next_review_queue(report, batch_size=5):
             'later_position_sources':c['other_procedure_position_sources'],
             'priority':c['review_priority'],
             'cross_parent_context_ids':c['other_dip_parents_same_original_context'],
+            'manual_original_source_identity_review':c['manual_original_source_identity_review'],
             'known_ten_parent_2025_dossier_already_reviewed':False,
             'next_individual_checklist':[
                 'Amtlichen Originalwortlaut und Adressat im Original-XML/PDF individuell prüfen',
@@ -364,6 +420,13 @@ def next_review_markdown(report):
             for p in c['original_sources']:
                 lines.append('  - [Original-Protokollquelle '+p['official_position_id']+
                              ']('+p['official_plenary_pdf_url']+')')
+            if c['manual_original_source_identity_review']:
+                flag=c['manual_original_source_identity_review']
+                lines.append('  - **XML-/DIP-Quellenkonflikt oder Sonderbeleg:** '+
+                             flag['source_flag']+
+                             ', Original-XML 21/'+str(flag['original_spoken_xml_session'])+
+                             ', Zeilen '+', '.join(map(str,flag['relevant_spoken_xml_lines']))+
+                             ' – **keine rechtliche Freigabe**')
             if c['cross_parent_context_ids']:
                 lines.append('  - **Gleicher Originalkontext mit Eltern-ID(s):** '+
                              ', '.join(c['cross_parent_context_ids'])+
