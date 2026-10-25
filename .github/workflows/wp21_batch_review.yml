@@ -1,0 +1,693 @@
+name: WP21 amtliche Quellen-Review-Buendel
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'wp21_batch_review.py'
+      - 'wp21_three_decisions.py'
+      - 'wp21_five_origins.py'
+      - 'wp21_five_rechtsfolgen.py'
+      - 'wp21_all17_followups.py'
+      - 'wp21_new_dip_candidates.py'
+      - 'wp21_existing_2025_crosswalk.py'
+      - 'wp21_priority_xml_scout.py'
+      - 'wp21_priority_xml_verify.py'
+      - 'wp21_priority_later_effects.py'
+      - 'tests/test_wp21_priority_later_effects.py'
+      - 'WP21_PRIORITY_LATER_EFFECTS.md'
+      - 'tests/test_wp21_priority_xml_verify.py'
+      - 'tests/test_wp21_priority_xml_scout.py'
+      - 'WP21_PRIORITY_ORIGINALS.md'
+      - 'tests/test_wp21_existing_2025_crosswalk.py'
+      - 'WP21_EXISTING_2025_CROSSWALK.md'
+      - 'tests/test_wp21_new_dip_candidates.py'
+      - 'WP21_DIP_DISCOVERY.md'
+      - 'tests/test_wp21_all17_followups.py'
+      - 'WP21_ALL17_DIP_REVIEW.md'
+      - 'tests/test_wp21_five_rechtsfolgen.py'
+      - 'tests/test_wp21_five_origins.py'
+      - 'tests/test_wp21_batch_review.py'
+      - 'tests/test_wp21_three_decisions.py'
+      - 'WP21_BATCH_1_APPEAL_VOTES.md'
+      - 'tests/fixtures/official_dip_wp21_positive_snapshot.json'
+      - 'daten/wirksame_ordnungsrufe_21wp.csv'
+      - '.github/workflows/wp21_batch_review.yml'
+  workflow_dispatch:
+    inputs:
+      full_term_discovery:
+        description: 'Auch ältere WP21-DIP-Änderungen vollständig neu abfragen (nur Prüfhilfen)'
+        type: boolean
+        required: false
+        default: false
+  schedule:
+    - cron: '25 7 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: 17 nichtzaehlende Originalquellen-Pruefauftraege
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Installiere Python-Abhaengigkeiten
+        run: python -m pip install -r requirements.txt
+      - name: Bestaetigte Zaehlungen gegen main schuetzen
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/main
+          for f in daten/wirksame_ordnungsrufe_20wp.csv daten/wirksame_ordnungsrufe_21wp.csv docs/data/ordnungsrufe.json docs/data/ordnungsrufe_21.json; do
+            git show "FETCH_HEAD:$f" | cmp -s - "$f" || {
+              echo "::error file=$f::Bestaetigte Statistikdatei veraendert"
+              exit 1
+            }
+          done
+      - name: Sichere SHA256 der bestaetigten Dateien
+        run: |
+          sha256sum daten/wirksame_ordnungsrufe_20wp.csv \
+            daten/wirksame_ordnungsrufe_21wp.csv \
+            docs/data/ordnungsrufe.json \
+            docs/data/ordnungsrufe_21.json > "$RUNNER_TEMP/confirmed.sha256"
+      - name: Pruefe offizielle Referenzen und negative Zaehlergrenzen
+        run: python -m unittest -v tests.test_wp21_batch_review tests.test_wp21_three_decisions tests.test_wp21_five_origins tests.test_wp21_five_rechtsfolgen tests.test_wp21_all17_followups tests.test_wp21_new_dip_candidates tests.test_wp21_existing_2025_crosswalk tests.test_wp21_priority_xml_scout tests.test_wp21_priority_xml_verify tests.test_wp21_priority_later_effects
+      - name: Erzeuge vier dateigebundene Pruefbuendel
+        run: |
+          python wp21_batch_review.py --output-dir .audit/wp21_batch_review
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          report=json.loads(Path('.audit/wp21_batch_review/review_queue.json').read_text(encoding='utf-8'))
+          assert (report['pending_person_session_pairs']==17
+                  and len(report['batches'])==4
+                  and report['automatic_approved_sanctions']==0
+                  and not report['protected_ledgers_changed'])
+          lines=[
+            '## WP21: Vier manuelle Arbeitsbuendel aus amtlicher Teilstichprobe',
+            '',
+            'DIP-Stichprobe '+report['source_snapshot']+
+            ', 17 offene Person/Sitzung-Kombinationen; keine zusaetzlich bestaetigten Massnahmen.',
+            '',
+            '| Buendel | Prioritaet | Originalfall |',
+            '|---|---|---|',
+          ]
+          for item in report['cases'][:5]:
+            lines.append(f"| {item['batch']} | {item['priority']} | "+
+                         f"{item['person']} / 21/{item['session']:03d} |")
+          lines.extend(['','Alle originalen Quellenverweise stehen im separaten '
+                         'Markdown-/CSV-/JSON-Artefakt; bestaetigte Zaehlungen unveraendert.'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as summary:
+            summary.write('\n'.join(lines)+'\n')
+          PY
+      - name: Verifiziere drei individuelle Originalerteilungen und Parlamentsvoten
+        run: |
+          python wp21_three_decisions.py --output-dir .audit/wp21_three_decisions
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_three_decisions/crosswalk.json').read_text(encoding='utf-8'))
+          assert (d['individual_origins_checked']==3
+                  and d['individually_linked_parliamentary_appeal_rejections']==3
+                  and d['independently_newly_approved_effective_sanctions']==0
+                  and not d['protected_public_counters_changed'])
+          PY
+      - name: Fuenf weitere amtliche Originalerteilungen einzeln belegen
+        run: |
+          python wp21_five_origins.py --output-dir .audit/wp21_five_origins
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_origins/source_records.json').read_text(encoding='utf-8'))
+          assert (d['origin_issuances_individually_located_in_official_pdfs']==5
+                  and d['individual_effectiveness_reviews_completed']==0
+                  and d['newly_approved_effective_sanctions']==0
+                  and not d['protected_counters_changed'])
+          PY
+      - name: Fuenf Ursprungsvorgaenge mit begrenzten Einspruchssammlungen abgleichen
+        run: |
+          python wp21_five_rechtsfolgen.py --offline --output-dir .audit/wp21_five_later_offline
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_later_offline/later_effects.json').read_text(encoding='utf-8'))
+          assert (d['original_cases']==5
+                  and d['curated_rejected_objections_scanned']==17
+                  and d['definitively_closed_legal_effects']==0
+                  and d['automatically_approved_new_sanctions']==0
+                  and not d['live_dip_complete_for_exact_five_parents'])
+          PY
+      - name: Fuenf exakt verankerte DIP-Vorgaenge und ihre Positionen frisch abfragen
+        timeout-minutes: 8
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_five_rechtsfolgen.py --output-dir .audit/wp21_five_later_live
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_later_live/later_effects.json').read_text(encoding='utf-8'))
+          assert (d['live_dip_parent_status']=='all_five_refreshed'
+                  and d['live_dip_complete_for_exact_five_parents']
+                  and all(x['dip_parent_metadata_review']['automatic_count_change']==0
+                          for x in d['cases'])
+                  and d['automatically_approved_new_sanctions']==0
+                  and d['definitively_closed_legal_effects']==0)
+          PY
+      - name: Fuenf Rechtsfolgenpruefungen sichtbar zusammenfassen
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_five_later_live/later_effects.json').read_text(encoding='utf-8'))
+          if (d['automatically_approved_new_sanctions']!=0
+                  or d['protected_ledger_changed']
+                  or not d['live_dip_complete_for_exact_five_parents']):
+              raise ValueError('Rechtsfolgenbericht ist nicht sicher')
+          lines=['## Fuenf amtliche DIP-Folgepruefungen', '',
+                 '| Originalperson / Sitzung | DIP-Vorgang | Verfahrenspositionen | Weitere Hinweise |',
+                 '|---|---|---:|---:|']
+          for case in d['cases']:
+              meta=case['dip_parent_metadata_review']
+              lines.append(
+                  f"| {case['person']} / 21/{case['session']:03d} "
+                  f"| [{case['official_dip_parent_id']}]({case['official_dip_parent_url']}) "
+                  f"| {meta['position_count']} | {meta['other_step_review_hints']} |")
+          lines.extend(['',
+              '**Alle Positionen sind nur amtliche Metadaten; keine '
+              'automatisch bestaetigte Rechtswirkung oder Einspruchsfreiheit.**'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+              f.write('\n'.join(lines)+'\n')
+          PY
+      - name: Uebrige zwoelf exakt verankerte DIP-Vorgaenge frisch abfragen
+        timeout-minutes: 8
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_all17_followups.py --offline --output-dir .audit/wp21_all17_offline
+          python wp21_all17_followups.py \
+            --five-live-report .audit/wp21_five_later_live/later_effects.json \
+            --output-dir .audit/wp21_all17_live
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          d=json.loads(Path('.audit/wp21_all17_live/all17.json').read_text(encoding='utf-8'))
+          assert (d['all_17_pinned_parents_refreshed'] is True
+                  and d['total_dip_parent_originals_covered']==17
+                  and len(d['twelve_cases'])==12
+                  and len(d['five_additional_case_summaries'])==5
+                  and d['fully_reviewed_legal_effects']==0
+                  and d['automatically_approved_new_sanctions']==0
+                  and d['protected_public_counter_changes']==0
+                  and d['total_additional_position_review_hints']
+                      ==d['already_curated_vote_metadata_positions']
+                        +d['new_uncurated_procedure_position_hints'])
+          lines=[
+            '## DIP-Quelle: 17 von 17 bekannten WP21-Urspruengen separat aktualisiert',
+            '',
+            'Nur die 17 auf den 15.10.2026 datierten Ausgangsfaelle; '
+              '**keine vollstaendige WP21 und keine automatische Rechtsfolgenfreigabe**.',
+            '',
+            '| Original-Faelle | Bereits kuratierte Abstimmungspositionen | '
+              'Neue ungeklaerte Verfahrenspositionen |',
+            '|---:|---:|---:|',
+            '| 17 | '+str(d['already_curated_vote_metadata_positions'])+
+              ' | '+str(d['new_uncurated_procedure_position_hints'])+' |',
+            '',
+            'Alle nicht urspruenglichen DIP-Positionen bleiben Metadaten-Hinweise. '
+              'Keine Aenderung bestaetigter Zaehler.'
+          ]
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+            f.write('\n'.join(lines)+'\n')
+          PY
+      - name: Weitere DIP-Ursprungshinweise ausserhalb der 18 verankerten Eltern-IDs suchen
+        timeout-minutes: 25
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--days 45)
+          # First Monday of each month: complete term refresh catches
+          # old, backdated DIP updates missing from the 45-day PR/week window.
+          # First Monday of each month: full-term reconciliation.
+          # Ordinary PR and weekly checks use a bounded 45-day update window;
+          # first Monday monthly rechecks the entire term for backdated changes.
+          # Ordinary PRs/weekdays: 45-day overlap. First Monday monthly:
+          # full-term metadata refresh for late or backdated changes.
+          if [[ "${{ github.event_name }}" == "schedule" && "$(date -u +%d)" -le 7 ]] ||
+             [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.full_term_discovery }}" == "true" ]]; then
+            args=(--full-term)
+          fi
+          python wp21_new_dip_candidates.py "${args[@]}" \
+            --output-dir .audit/wp21_dip_discovery
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          report=json.loads(Path('.audit/wp21_dip_discovery/outside_pins.json').read_text(encoding='utf-8'))
+          assert (report['schema']=='wp21-dip-outside-pins-discovery-v1'
+                  and report['status']=='source_discovery_only_no_effectiveness_decision'
+                  and report['api_pages_completely_fetched']>=1
+                  and report['automatically_confirmed_new_sanctions']==0
+                  and report['automatically_rescinded_sanctions']==0
+                  and report['protected_counters_changed'] is False
+                  and report['unfiltered_source_scope']==
+                      'all_paginated_21wp_DIP_parents_name_plus_legal_term_without_ordnungsruf_keyword'
+                  and report['unfiltered_source_count_does_not_prove_exhaustive_appeal_search'] is True
+                  and report['unfiltered_priority_procedure_parent_count']==
+                      len(report['unfiltered_priority_procedure_parents'])
+                  and all(x['automatically_approved_effective_sanctions']==0
+                          and x['appeal_or_legal_outcome_decided'] is False
+                          for x in report['unfiltered_priority_procedure_parents'])
+                  and report['original_position_enrichment_status']=='all_possible_parents_positions_refreshed'
+                  and report['fully_refreshed_possible_parent_count']==report['possible_original_parent_ids_outside_18_pins']
+                  and report['candidates_matched_to_existing_positive_sample']+
+                      report['candidates_without_positive_sample_original_match']==
+                      report['possible_original_parent_ids_outside_18_pins']
+                  and report['possible_original_parent_ids_outside_18_pins']
+                      ==len(report['possible_originals_for_individual_review']))
+          queue=json.loads(Path('.audit/wp21_dip_discovery/review_queue.json').read_text(encoding='utf-8'))
+          assert (queue['schema']=='wp21-dip-unmatched-manual-review-queue-v1'
+                  and queue['pending_parent_review_tasks']==
+                      report['candidates_without_positive_sample_original_match']
+                  and queue['automatic_counted_new_sanctions']==0
+                  and queue['protected_ledgers_changed'] is False
+                  and sum(len(b) for b in queue['batches'])==
+                      queue['pending_parent_review_tasks'])
+          lines=['## WP21: weitere DIP-Quellen ausserhalb der 18 festen Eltern-IDs', '',
+                 'Vollstaendige Ergebnispaginierung im gewaehlten Aenderungsfenster; '
+                 '**keine WP21-Vollerhebung oder automatisch bestaetigten Sanktionen**.',
+                 '', '| DIP-Dokumente | Seiten | Moegliche Originalvorgaenge ausserhalb Pins | '
+                 'Weitere Metadaten |', '|---:|---:|---:|---:|',
+                 f"| {report['total_dip_documents_in_update_window']} "
+                 f"| {report['api_pages_completely_fetched']} "
+                 f"| {report['possible_original_parent_ids_outside_18_pins']} "
+                 f"| {report['other_relevant_parent_ids_outside_18_pins']} |",
+                 '', 'Mit exakter Originalprotokoll-Position bereits in datierter Stichprobe: '
+                 +str(report['candidates_matched_to_existing_positive_sample'])+
+                 '; noch ohne solche Zuordnung: '
+                 +str(report['candidates_without_positive_sample_original_match']),
+                 'Neue Verfahrensquellen-Hinweise ohne Ordnungsruf-Wort aus '
+                 'der gesamten paginierten DIP-Abfrage: '
+                 +str(report['unfiltered_priority_procedure_parent_count'])
+                 +' (nur namentliche/rechtliche Worttreffer, **keine Einspruchsentscheidungen**).',
+                 'Ungeklaerte Original-Elternakten in rein manuellen Arbeitsbuendeln: '
+                 +str(queue['pending_parent_review_tasks'])+
+                 ' (Bündel '+str(len(queue['batches']))+').',
+                 '', 'Die DIP-Datumsanzeige kann den letzten Verfahrensschritt statt '
+                 'der urspruenglichen Erteilung bezeichnen.',
+                 '', 'Detailquellen: nichtzaehlendes Archiv outside_pins.json/md; '
+                 'keine Zaehlungsfreigabe.']
+          for case in report['possible_originals_for_individual_review'][:12]:
+              linked=case['matched_dated_positive_sample_by_original_position']
+              label=(', '.join('21/'+str(m['session'])+' '+m['person'] for m in linked)
+                     if linked else 'weitere manuelle Originalquellenpruefung offen')
+              lines.append('- [DIP '+case['official_dip_parent_id']+']('+case['official_dip_parent_url']+') – '+label)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as handle:
+              handle.write('\n'.join(lines)+'\n')
+          PY
+      - name: Neue DIP-Pruefaufgaben mit zehn historischen Einzelfallakten abgleichen
+        run: |
+          python wp21_existing_2025_crosswalk.py \
+            --discovery .audit/wp21_dip_discovery/outside_pins.json \
+            --review-queue .audit/wp21_dip_discovery/review_queue.json \
+            --output-dir .audit/wp21_dip_discovery/existing_2025_dossiers
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path('.audit/wp21_dip_discovery')
+          r=json.loads((root/'existing_2025_dossiers/dossier_overlap.json').read_text(encoding='utf-8'))
+          q=json.loads((root/'review_queue.json').read_text(encoding='utf-8'))
+          assert (r['schema']=='wp21-2025-dip-dossier-overlap-v1'
+                  and r['all_unmatched_dip_parent_tasks']==q['pending_parent_review_tasks']
+                  and r['previously_curated_ten_parent_dossier_matches']+
+                      r['remaining_outside_ten_parent_dossier_tasks']==
+                      r['all_unmatched_dip_parent_tasks']
+                  and r['automatically_confirmed_new_measures']==0
+                  and r['automatically_rescinded_measures']==0
+                  and r['protected_counter_changes']==0
+                  and len(r['previously_curated_parent_cases'])==
+                      r['previously_curated_ten_parent_dossier_matches']
+                  and len(r['remaining_parent_cases_for_individual_review'])==
+                      r['remaining_outside_ten_parent_dossier_tasks'])
+          next_queue=json.loads((root/'existing_2025_dossiers/next_review_queue.json').read_text(encoding='utf-8'))
+          assert (next_queue['schema']=='wp21-2025-after-dossier-noncounting-queue-v1'
+                  and next_queue['total_parent_tasks']==
+                      r['remaining_outside_ten_parent_dossier_tasks']
+                  and next_queue['automatic_counter_change']==0
+                  and next_queue['previous_ten_parent_dossiers_are_not_repeated_as_new_tasks'] is True
+                  and sum(len(b) for b in next_queue['batches'])==
+                      next_queue['total_parent_tasks']
+                  and all(1<=len(b)<=5 for b in next_queue['batches'])
+                  and r['parents_needing_collision_review']==
+                      sum(bool(c['other_dip_parents_same_original_context'])
+                          for c in r['remaining_parent_cases_for_individual_review']))
+          lines=['## WP21: historische zehn Originalakten bereits vorgeprüft', '',
+                 '| Offene DIP-Eltern in Zeitfenster | Im dokumentierten Zehnerdossier | '
+                 'Andere weiterhin zu recherchierende Eltern |',
+                 '|---:|---:|---:|',
+                 f"| {r['all_unmatched_dip_parent_tasks']} "
+                 f"| {r['previously_curated_ten_parent_dossier_matches']} "
+                 f"| {r['remaining_outside_ten_parent_dossier_tasks']} |",
+                 'Bereinigte nächste Prüfbündel: '+str(len(next_queue['batches']))+
+                 ', hohe Priorität: '+str(next_queue['high_priority_parent_tasks'])+
+                 ', mögliche elternübergreifende Originalkontexte: '
+                 +str(len(r['possible_cross_parent_original_context_collisions'])),
+                 '', 'Historisch separat belegte ursprüngliche Erteilungen und Einspruchs-'
+                 'abstimmungen sind **keine rechtswirksame Gesamtzaehlung**.',
+                 'Janichs erste wortgetreue Erteilung und Gottschalks '
+                 'zweite unabhaengige Rechtsfolge bleiben offen.',
+                 'Audit-Artefakte: existing_2025_dossiers/dossier_overlap.json und .md.']
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as stream:
+              stream.write('\n'.join(lines)+'\n')
+          PY
+      - name: Originale Plenar-XMLs 21/014 und 21/043 fuer die drei priorisierten DIP-Eltern sichten
+        timeout-minutes: 8
+        run: |
+          python wp21_priority_xml_scout.py \
+            --output-dir .audit/wp21_priority_originals
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path('.audit/wp21_priority_originals/original_contexts.json')
+          r=json.loads(p.read_text(encoding='utf-8'))
+          assert (r['schema']=='wp21-reichardt-keuter-official-xml-scout-v1'
+                  and r['official_positions_expected']==4
+                  and len(r['sessions'])==2
+                  and [s['session'] for s in r['sessions']]==[14,43]
+                  and all(s['source_is_full_original_spoken_xml'] is True
+                          and s['position_to_specific_spoken_paragraph_conclusively_verified'] is False
+                          and s['person_context_candidates']>0
+                          for s in r['sessions'])
+                  and r['confirmed_independent_new_grants']==0
+                  and r['automatically_confirmed_effective_sanctions']==0
+                  and r['protected_statistics_changed'] is False)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as h:
+              h.write('\n## WP21 21/014 Reichardt und 21/043 Keuter – echte Plenar-XML-Kontexte\n')
+              for s in r['sessions']:
+                  h.write(f"- 21/{s['session']:03d}: "
+                          f"{s['spoken_paragraphs_checked']} gesprochene Absätze, "
+                          f"{s['person_context_candidates']} Namenskontexte. "
+                          'Keine ursprüngliche wirksame Sanktion automatisch bestätigt.\n')
+          PY
+      - name: Originalwortlaute und DIP-Empfaengerkonflikt individuell kontrollieren
+        run: |
+          python wp21_priority_xml_verify.py \
+            --input .audit/wp21_priority_originals/original_contexts.json \
+            --output-dir .audit/wp21_priority_originals
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path('.audit/wp21_priority_originals')
+          r=json.loads((root/'verified_wordings.json').read_text(encoding='utf-8'))
+          assert (r['schema']=='wp21-014-043-individual-spoken-source-audit-v1'
+                  and r['official_sessions']==[14,43]
+                  and r['source_utterances_located_for_individual_review']==3
+                  and len(r['source_utterance_loci'])==3
+                  and len(r['sources_with_explicit_identified_recipient_not_reichardt'])==1
+                  and r['sources_with_explicit_identified_recipient_not_reichardt'][0]
+                      ['recipient_clarified_on_next_pdf_page']=='Stefan Keuter'
+                  and r['automatic_verified_sanction_count_delta']==0
+                  and r['protected_statistical_ledgers_changed'] is False)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as out:
+              out.write('\n## WP21: Original-XML-Belege mit Empfaengerkorrektur\n')
+              out.write('3 wörtliche Original-Erteilungsstellen geprüft (Reichardt 21/014, '
+                        'Keuter 21/043 zweimal); DIP-Elternvorgang 322921 mit '
+                        'Reichardt-Titel verweist auf Keuter-Zuordnung im '
+                        'Plenarprotokoll. Keine automatische neue Zählung, '
+                        'spätere Rechtsfolgen offen.\n')
+          PY
+      - name: Drei priorisierte Eltern-DIP-Rechtsfolgen vollstaendig und nichtzaehlend abgleichen
+        timeout-minutes: 12
+        env:
+          DIP_API_KEY: ${{ secrets.DIP_API_KEY }}
+        run: |
+          python wp21_priority_later_effects.py \
+            --original-scout .audit/wp21_priority_originals/original_contexts.json \
+            --discovery .audit/wp21_dip_discovery/outside_pins.json \
+            --output-dir .audit/wp21_priority_later_effects
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          r=json.loads(Path('.audit/wp21_priority_later_effects/priority_later_effects.json')
+                       .read_text(encoding='utf-8'))
+          parents=r['pinned_parent_cases']
+          assert (r['schema']=='wp21-2025-three-priority-legal-followups-v1'
+                  and r['official_parents_refreshed']==3
+                  and r['official_original_position_refs']==4
+                  and r['individually_spoken_source_loci_previously_checked']==3
+                  and r['person_conflict_reichardt_title_vs_keuter_original'] is True
+                  and [p['official_dip_parent_id'] for p in parents]==
+                      ['322921','322922','328596']
+                  and [p['original_dip_position_count'] for p in parents]==[1,1,2]
+                  and all(p['all_parent_positions_fetched'] is True
+                          and p['automatic_approved_effective_sanctions']==0
+                          and p['legal_effect_of_each_grant_conclusively_verified'] is False
+                          and len(p['later_parent_positions_for_individual_review'])==
+                              p['additional_parent_procedure_position_count']
+                          for p in parents)
+                  and r['automatically_approved_new_sanctions']==0
+                  and r['automatically_rescinded_sanctions']==0
+                  and r['protected_counter_files_modified'] is False
+                  and r['no_complete_cross_document_legal_exhaustiveness_claim'] is True
+                  and r['possible_other_parent_sources']['unfiltered_legal_shadow_evaluated'] is True
+                  and r['possible_other_parent_sources']['unfiltered_procedure_keyword_parent_hints']==
+                      len([p for p in r['possible_other_parent_sources']
+                           ['named_other_parent_metadata_candidates']
+                           if p['source_class']=='other_dip_parent_possible_procedure_without_ordnungsruf_keyword']))
+          alerts=json.loads(Path('.audit/wp21_priority_later_effects/priority_review_alerts.json')
+                            .read_text(encoding='utf-8'))
+          assert (alerts['schema']=='wp21-priority-legal-review-alerts-v1'
+                  and alerts['status']=='review_hints_not_verified_appeals'
+                  and alerts['current_parent_sources_completely_refreshed'] is True
+                  and alerts['other_source_window_is_bounded'] is True
+                  and alerts['hint_count']==len(alerts['hints'])
+                  and alerts['automatically_approved_sanctions']==0
+                  and alerts['protected_counters_modified'] is False
+                  and alerts['absence_of_hints_means_no_appeal'] is False
+                  and all(x['case_link_and_legal_outcome_still_require_manual_review'] is True
+                          and x['automatic_count_delta']==0
+                          for x in alerts['hints']))
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as f:
+              f.write('\n## WP21: Reichardt/Keuter individuelle Rechtsfolgen-Metadaten\n')
+              f.write('Die drei amtlichen DIP-Elternvorgänge sind einzeln '
+                      'und vollständig paginiert; **kein** Negativbeweis '
+                      'über spätere externe Rechtsfolgen oder Rechtswirksamkeit.\n\n')
+              for p in parents:
+                  f.write('- DIP '+p['official_dip_parent_id']+': '+
+                          str(p['original_dip_position_count'])+
+                          ' Ursprungsschritt(e), '+
+                          str(p['additional_parent_procedure_position_count'])+
+                          ' weitere Verfahrenspositionen innerhalb der Elternakte; '
+                          'keine automatische Maßnahmenfreigabe.\n')
+              f.write('Ungefilterte weitere DIP-Verfahrensquellen-Kandidaten: '
+                      +str(r['possible_other_parent_sources']
+                           ['unfiltered_procedure_keyword_parent_hints'])
+                      +'; **keine** automatisch zugeordnete Rechtsfolge.\\n')
+              f.write('Andere namentliche Elternakten und frühere '
+                      'Einspruchsquellen nur getrennte manuelle Hinweise.\n')
+          PY
+      - name: Bytegleichheit der bestaetigten Statistiken nach dem Report
+        if: always()
+        run: sha256sum --check "$RUNNER_TEMP/confirmed.sha256"
+      - name: Archiviere reine Quellen-Pruefauftraege
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: wp21-vier-manuelle-review-buendel
+          path: |
+            .audit/wp21_batch_review/
+            .audit/wp21_three_decisions/
+            .audit/wp21_five_origins/
+            .audit/wp21_five_later_offline/
+            .audit/wp21_five_later_live/
+            .audit/wp21_all17_offline/
+            .audit/wp21_all17_live/
+            .audit/wp21_dip_discovery/
+            .audit/wp21_priority_originals/
+            .audit/wp21_priority_later_effects/
+          include-hidden-files: true
+          retention-days: 30
+          if-no-files-found: error
+
+
+  # A narrowly scoped reminder only after a later approved merge, when the
+  # weekly job on main finds extra official position steps. NEVER on PR runs.
+  # Human review is required; the task never modifies sanction counters.
+  new-procedure-alert:
+    name: Neue DIP-Rechtsfolgenpositionen als Pruefhinweis melden
+    needs: review
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: wp21-vier-manuelle-review-buendel
+          path: .audit
+      - name: Reine Metadaten-Neuigkeiten ohne Doppelmeldungen beobachten
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs');
+            const crypto=require('crypto');
+            const data=JSON.parse(fs.readFileSync(
+              '.audit/wp21_all17_live/all17.json','utf8'));
+            if(data.schema!=='wp21-pinned-other-12-dip-sources-v1' ||
+               data.live_status!=='all_17_pinned_parents_refreshed' ||
+               data.all_17_pinned_parents_refreshed!==true ||
+               data.total_dip_parent_originals_covered!==17 ||
+               data.automatically_approved_new_sanctions!==0 ||
+               data.protected_public_counter_changes!==0 ||
+               !Array.isArray(data.all_additional_procedure_positions) ||
+               data.total_additional_position_review_hints!==
+                 data.all_additional_procedure_positions.length ||
+               data.total_additional_position_review_hints!==
+                 data.already_curated_vote_metadata_positions+
+                 data.new_uncurated_procedure_position_hints){
+              throw new Error('DIP-Folgequellenbericht fuer 17 Ursprungsfaelle unsicher');
+            }
+            // Four explicitly curated historical vote positions are NOT
+            // new alerts. No legal consequence or automatic counter writes.
+            const hints=data.all_additional_procedure_positions.filter(p=>
+              p.needs_new_manual_source_review===true &&
+              p.already_independently_curated_vote_metadata===false &&
+              p.legal_effect_decided_by_this_classifier===false);
+            if(hints.length!==data.new_uncurated_procedure_position_hints)
+              throw new Error('Nicht zugeordnete Hinweise fehlerhaft klassifiziert');
+            if(hints.length===0){
+              core.info('Keine neuen unzugeordneten DIP-Verfahrenspositionen: kein Issue.');
+              return;
+            }
+            const observed=hints.map(p=>({
+              parent:p.official_dip_parent_id,
+              position_id:p.official_position_id,
+              date:p.date,role:p.role_for_review
+            })).sort((a,b)=>a.parent.localeCompare(b.parent)||
+              a.position_id.localeCompare(b.position_id));
+            const digest=crypto.createHash('sha256')
+              .update(JSON.stringify(observed)).digest('hex').slice(0,20);
+            // Stable marker retained for backward compatible regression tests.
+            const marker='<!-- wp21-five-procedure-digest:'+digest+' -->';
+            const title='WP21: offene neue DIP-Verfahrenshinweise zu 17 Ursprungsfaellen';
+            const lines=[
+              marker,
+              'Automatisch entdeckte, **noch nicht individuell zugeordnete** '
+                +'amtliche DIP-Verfahrenspositions-Metadaten. Keine '
+                +'neue oder endgültig wirksame Sanktion.',
+              '',
+              'Vier bekannte und bereits unabhängig dokumentierte '
+                +'Einspruchsabstimmungspositionen werden nicht erneut als '
+                +'neue Ereignisse gemeldet.',
+              '',
+              ...hints.map(p=>' - '+p.person+' / 21/'+
+                String(p.session).padStart(3,'0')+
+                ' – [amtliche Position]('+p.official_position_api+') ('+
+                p.role_for_review+', '+p.date+'); genaue Rechtsfolge offen'),
+              '',
+              'Beobachtungsdaten: GitHub Actions '+context.runId+
+                '; **kein** automatischer Eingriff in CSV-/JSON-Zähler.'
+            ];
+            const body=lines.join('\n');
+            const {owner,repo}=context.repo;
+            const issues=await github.paginate(github.rest.issues.listForRepo,{
+              owner,repo,state:'open',per_page:100
+            });
+            const existing=issues.find(issue=>
+              !issue.pull_request && issue.title===title);
+            if(!existing){
+              await github.rest.issues.create({owner,repo,title,body});
+              core.info('Neue amtliche Positionen zur manuellen Prüfung gemeldet');
+            }else if(!(existing.body||'').includes(marker)){
+              await github.rest.issues.update({
+                owner,repo,issue_number:existing.number,body
+              });
+              core.info('Prüfhinweis auf neue amtliche Positionen aktualisiert');
+            }else{
+              core.info('Identische Hinweise bereits gemeldet, kein Duplikat');
+            }
+
+      - name: Zusätzliche Rechtsfolgen-Hinweise zu drei Prioritätsakten ohne Dopplung melden
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs=require('fs');
+            const crypto=require('crypto');
+            const source=JSON.parse(fs.readFileSync(
+              '.audit/wp21_priority_later_effects/priority_review_alerts.json','utf8'));
+            if(source.schema!=='wp21-priority-legal-review-alerts-v1' ||
+               source.status!=='review_hints_not_verified_appeals' ||
+               source.current_parent_sources_completely_refreshed!==true ||
+               source.other_source_window_is_bounded!==true ||
+               source.hint_count!==source.hints?.length ||
+               source.automatically_approved_sanctions!==0 ||
+               source.protected_counters_modified!==false ||
+               source.absence_of_hints_means_no_appeal!==false ||
+               !source.hints.every(h=>
+                 h.case_link_and_legal_outcome_still_require_manual_review===true &&
+                 h.automatic_count_delta===0 &&
+                 /^https:\/\/search\.dip\.bundestag\.de\/api\/v1\/vorgangsposition\/\d+$|^https:\/\/dip\.bundestag\.de\/vorgang\/\d+$/.test(h.source_url))){
+              throw new Error('Unzulässiger DIP-Rechtsfolgenalarm für Prioritätsakten');
+            }
+            if(source.hints.length===0){
+              core.info('Keine neuen amtlichen Hinweisquellen für die drei Prioritätsakten.');
+              return;
+            }
+            const ids=source.hints.map(h=>({
+              kind:h.kind,
+              parent:h.official_parent_id,
+              position:h.official_position_id,
+              date:h.source_date,
+              source:h.source_url
+            })).sort((a,b)=>a.parent.localeCompare(b.parent) ||
+                            String(a.position||'').localeCompare(String(b.position||'')) ||
+                            a.kind.localeCompare(b.kind));
+            const digest=crypto.createHash('sha256')
+              .update(JSON.stringify(ids)).digest('hex').slice(0,20);
+            const marker='<!-- wp21-three-priority-followup-digest:'+digest+' -->';
+            const title='WP21: offene neue DIP-Rechtsfolgenhinweise zu Reichardt/Keuter';
+            const details=source.hints.map(h=>
+              '- [Amtliche DIP-Quelle]('+h.source_url+') – Elternvorgang '+
+              h.official_parent_id+
+              (h.official_position_id ? ', Position '+h.official_position_id : '')+
+              ', '+h.kind+' (Datum '+h.source_date+'). **Nur manuelle Prüfung.**');
+            const body=[
+              marker,
+              'Neue amtliche Quellenmetadaten zu drei ausgewählten WP21-DIP-Elternakten.',
+              '**Kein** bestätigter zusätzlicher Ordnungsruf und **keine** '+
+              'zugeordnete Einspruchsentscheidung oder Rechtswirksamkeit.',
+              '',
+              ...details,
+              '',
+              'DIP-Aktualisierungsfilter ist begrenzt; ein leerer Suchlauf '+
+              'beweist nicht, dass keine anderen Rechtsfolgen existieren.',
+              'Quelle: GitHub Actions '+context.runId+
+              '. **Keine Änderung bestätigter CSV-/JSON-Zähler.**',
+            ].join('\n');
+            const {owner,repo}=context.repo;
+            const open=await github.paginate(github.rest.issues.listForRepo,{
+              owner,repo,state:'open',per_page:100
+            });
+            const previous=open.find(item=>
+              !item.pull_request && item.title===title);
+            if(!previous){
+              await github.rest.issues.create({owner,repo,title,body});
+              core.info('Neue DIP-Quellen nur als manuellen Prüfhinsweis angelegt.');
+            }else if(!(previous.body||'').includes(marker)){
+              await github.rest.issues.update({
+                owner,repo,issue_number:previous.number,body
+              });
+              core.info('Neue Quellenliste im vorhandenen Prüfhinsweis aktualisiert.');
+            }else{
+              core.info('Identischer Quellensatz bereits gemeldet, kein Duplikat.');
+            }
