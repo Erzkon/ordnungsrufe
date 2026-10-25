@@ -37,15 +37,15 @@ FOLLOWUP = re.compile(
 # Neither keyword + full name nor parent date proves a legal link.
 PRIORITY_LEGAL_PEOPLE=('Martin Reichardt','Stefan Keuter')
 PRIORITY_PEOPLE_PATTERNS={
-    name:re.compile(r'(?<!\\w)'+re.escape(norm(name))+r'(?!\\w)')
+    name:re.compile(r'(?<!\w)'+re.escape(norm(name))+r'(?!\w)')
     for name in PRIORITY_LEGAL_PEOPLE
 }
 UNFILTERED_LEGAL_SIGNAL=re.compile(
-    r'\\b(?:einspr[uü]ch\\w*|widerspruch\\w*|beschwerde\\w*|'
-    r'zur[uü]cknahm\\w*|zur[uü]ckgenommen\\w*|zur[uü]ckweisung\\w*|'
-    r'aufhebung\\w*|aufgehoben\\w*|widerruf\\w*|'
-    r'rechtsmittel\\w*|gerichtliche\\w*\\s+entscheid\\w*|'
-    r'stattgegeben\\w*|anfechtung\\w*)\\b',re.I
+    r'\b(?:einspr[uü]ch\w*|widerspruch\w*|beschwerde\w*|'
+    r'zur[uü]cknahm\w*|zur[uü]ckgenommen\w*|zur[uü]ckweisung\w*|'
+    r'aufhebung\w*|aufgehoben\w*|widerruf\w*|'
+    r'rechtsmittel\w*|gerichtliche\w*\s+entscheid\w*|'
+    r'stattgegeben\w*|anfechtung\w*)\b',re.I
 )
 
 WARNING = (
