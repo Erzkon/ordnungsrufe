@@ -17,7 +17,7 @@ from wp21_autopruefung import norm, read_reviewed
 from wp21_dip_positionen import fetch_positions, normalize_position
 from wp21_dip_kontrolle import reference
 from wp21_dip_monitor import (
-    PUBLIC_KEY, START, iso, paginate, relevant_item, request_page,
+    PUBLIC_KEY, START, iso, paginate, relevant_item, request_page, utc,
 )
 
 ROOT = Path(__file__).resolve().parent
@@ -31,6 +31,23 @@ ORIGINAL = re.compile(
 FOLLOWUP = re.compile(
     r'\b(?:einspruch\w*|beschwerde\w*|zurückgenomm\w*|aufheb\w*|'
     r'zurückgewiesen\w*|ordnungsgeld\w*)', re.I)
+# Independent review shadow for official parliamentary/legal records that
+# do NOT mention Ordnungsruf/Ordnungsgeld at all. This screens every document
+# already returned by the full official pagination, not just RELEVANT matches.
+# Neither keyword + full name nor parent date proves a legal link.
+PRIORITY_LEGAL_PEOPLE=('Martin Reichardt','Stefan Keuter')
+PRIORITY_PEOPLE_PATTERNS={
+    name:re.compile(r'(?<!\\w)'+re.escape(norm(name))+r'(?!\\w)')
+    for name in PRIORITY_LEGAL_PEOPLE
+}
+UNFILTERED_LEGAL_SIGNAL=re.compile(
+    r'\\b(?:einspr[uü]ch\\w*|widerspruch\\w*|beschwerde\\w*|'
+    r'zur[uü]cknahm\\w*|zur[uü]ckgenommen\\w*|zur[uü]ckweisung\\w*|'
+    r'aufhebung\\w*|aufgehoben\\w*|widerruf\\w*|'
+    r'rechtsmittel\\w*|gerichtliche\\w*\\s+entscheid\\w*|'
+    r'stattgegeben\\w*|anfechtung\\w*)\\b',re.I
+)
+
 WARNING = (
     'DIP-Vorgangstitel/Abstract und ein vollständiger Abruf innerhalb des '
     'angegebenen Aktualisierungsfensters beweisen weder ursprüngliche '
@@ -67,6 +84,46 @@ def classify(doc):
     return 'other_ordnungsruf_metadata_review'
 
 
+def unfiltered_priority_legal_hint(doc, ident):
+    """Potential legal-source item without the Ordnungsruf lexical filter.
+
+    Restrict to an exact full public-person name plus a procedural keyword.
+    This is only the source title/abstract, not an established appeal.
+    """
+    title=doc.get('titel') or ''
+    abstract=doc.get('abstract') or ''
+    if (not isinstance(title,str) or not isinstance(abstract,str)
+            or len(title)>1500 or len(abstract)>5000):
+        raise ValueError('Ungefilterte DIP-Quellbeschreibung ungültig')
+    description=norm(title+' '+abstract)
+    matched=[
+        person for person,pattern in PRIORITY_PEOPLE_PATTERNS.items()
+        if pattern.search(description)
+    ]
+    if not matched or not UNFILTERED_LEGAL_SIGNAL.search(description):
+        return None
+    changed=utc(doc['aktualisiert'])
+    if changed<START:
+        raise ValueError('DIP-Rechtsfolgenhinweis vor Wahlperiodenbeginn aktualisiert')
+    day=doc.get('datum') or ''
+    if day:
+        datetime.strptime(day,'%Y-%m-%d')
+    return {
+        'official_dip_parent_id':ident,
+        'official_dip_parent_url':'https://dip.bundestag.de/vorgang/'+ident,
+        'title':title[:300],
+        'abstract_excerpt':' '.join(abstract.split())[:420],
+        'source_date':day,
+        'updated_utc':iso(changed),
+        'matched_full_person_names_metadata_only':matched,
+        'matched_procedural_text_not_full_legal_decision':True,
+        'ordnungsruf_keyword_present_in_title_or_abstract':False,
+        'original_measure_identity_verified':False,
+        'appeal_or_legal_outcome_decided':False,
+        'automatically_approved_effective_sanctions':0,
+    }
+
+
 def build(documents, *, since, now, pages, snapshot=None):
     snapshot = reference() if snapshot is None else snapshot
     if (snapshot.get('$schema') != 'ordnungsruf-dip-positive-control-v1'
@@ -84,6 +141,7 @@ def build(documents, *, since, now, pages, snapshot=None):
     pinned_seen = []
     possible = []
     related = []
+    legal_shadow = []
     for doc in documents:
         if not isinstance(doc, dict):
             raise ValueError('DIP-Vorgang ohne Rohdaten')
@@ -94,6 +152,11 @@ def build(documents, *, since, now, pages, snapshot=None):
         seen.add(ident)
         item = relevant_item(doc)
         if item is None:
+            shadow=unfiltered_priority_legal_hint(doc,ident)
+            if shadow:
+                legal_shadow.append(shadow)
+                if len(legal_shadow)>500:
+                    raise ValueError('DIP-Rechtsfolgen-Schattenprobe zu groß')
             continue
         if ident in pinned_ids:
             pinned_seen.append(ident)
@@ -116,6 +179,7 @@ def build(documents, *, since, now, pages, snapshot=None):
             possible.append(entry)
         else:
             related.append(entry)
+    legal_shadow.sort(key=lambda row:(row['updated_utc'],int(row['official_dip_parent_id'])),reverse=True)
     for group in (possible, related):
         group.sort(key=lambda row:(row['updated_utc'], int(row['official_dip_parent_id'])),
                    reverse=True)
@@ -129,6 +193,11 @@ def build(documents, *, since, now, pages, snapshot=None):
         'pinned_18_parents_seen_in_window':len(pinned_seen),
         'possible_original_parent_ids_outside_18_pins':len(possible),
         'other_relevant_parent_ids_outside_18_pins':len(related),
+        'unfiltered_priority_procedure_parent_count':len(legal_shadow),
+        'unfiltered_priority_procedure_parents':legal_shadow,
+        'unfiltered_source_scope':
+            'all_paginated_21wp_DIP_parents_name_plus_legal_term_without_ordnungsruf_keyword',
+        'unfiltered_source_count_does_not_prove_exhaustive_appeal_search':True,
         'possible_originals_for_individual_review':possible,
         'other_metadata_for_individual_review':related,
         'automatically_confirmed_new_sanctions':0,
