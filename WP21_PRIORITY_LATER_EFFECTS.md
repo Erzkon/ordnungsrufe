@@ -160,3 +160,62 @@ keine Issues und verändern keine bestätigten Zähler.
 
 Auch ein leerer Quellenalarm bleibt im Schema als
 `absence_of_hints_means_no_appeal=false` kodiert.
+
+
+## Zweite Suchlinie ohne den Begriff Ordnungsruf (25.10.2026)
+
+Die bisherige DIP-Ursprungsprüfung hatte eine lexikalische
+**Blindstelle**: `relevant_item()` berücksichtigt nur Titel und
+Kurzbeschreibungen mit „Ordnungsruf“, „Ordnungsgeld“ oder
+„Ordnungsmaßnahme“. Separat veröffentlichte Rechtsmittelverfahren
+ohne diese Wörter fielen deshalb durch das Raster.
+
+Der bestehende vollständig paginierte DIP-Abruf wird nun ein
+**zweites Mal ohne diesen Wortfilter** auf die Kombination aus
+*vollständigem Namen* (**Martin Reichardt**, **Stefan Keuter**) und
+einem **Rechtsfolgen-/Verfahrensbegriff** geprüft, u.a. Einspruch,
+Beschwerde, Widerspruch, Rücknahme, Zurückweisung und Aufhebung.
+Es erfolgt **kein zusätzlicher amtlicher API-Abruf**, sondern die
+bereits vollständig heruntergeladenen DIP-Datensätze werden
+quellenkritisch erneut ausgewertet.
+
+Die daraus resultierenden, gesondert gezählten Quellenhinweise
+liegen unter
+`outside_pins.json → unfiltered_priority_procedure_parents`,
+inklusive amtlicher Eltern-ID, unveränderter Quellen-URL,
+Aktualisierungsdatum und Titel/Auszug. Im Quellenbericht
+`priority_later_effects.json` werden sie **zusätzlich**, ohne die
+ursprünglichen 18/43/37 Erteilungs-IDs oder frühere
+Zähldaten zu verändern, als manuelle potenzielle
+Rechtsfolgenhinweise ausgegeben.
+
+**Grenzen:** Ein gleichlautender Personenname mit dem Wort
+„Einspruch“ im selben DIP-Vorgang ist weder ein Beweis, dass die
+hier untersuchte Erteilung angegriffen wurde, noch ein Beweis
+über das Ergebnis. Fälle ohne ausgeschriebenen vollständigen Namen,
+außerhalb des DIP, ohne Rechtsfolgenvokabular oder ohne Bezug zum
+Aktualisierungsfenster bleiben in dieser Suche unentdeckt.
+Leere Trefferlisten bedeuten ausdrücklich nicht Einspruchsfreiheit.
+
+### Erstes echtes Zeitfenster
+
+[Liveprüfung 40207457951](https://github.com/Erzkon/ordnungsrufe/actions/runs/40207457951):
+**6.184 vollständig paginierte DIP-Datensätze auf 62 Seiten** im
+45-Tage-Aktualisierungsfenster, **null** zusätzliche
+vollnamige Verfahrensquellen ohne Ordnungsruf-Wort.
+**101 spezialisierte Regressionstests bestanden.**
+Der vollständige historische Gegenlauf wird gesondert berichtet.
+
+### Zusätzlicher amtlicher Vergleichsfall außerhalb der Prioritätsakten
+
+Der [Bundestagsbericht vom 20.03.2026](https://www.bundestag.de/dokumente/textarchiv/2026/kw12-de-einspruch-ordnungsruf-1156828)
+und das
+[amtliche Protokoll 21/066](https://www.bundestag.de/resource/blob/1155780/amtpr21066.pdf)
+belegen eine Einspruchszurückweisung gegen einen **Reichardt-Ordnungsruf
+vom 19.03.2026**. Dieser geprüfte weitere Fall ist
+**nicht** identisch mit Reichardts ursprünglicher Erteilung vom
+**26.06.2025**. Das zusätzliche amtliche Dokument ist im
+Rechtsfolgenbericht als eigene unabhängige Negativkontrolle
+hinterlegt und gehört **nicht** zu einer automatischen Erhöhung
+der zwölf älteren Erteilungen oder zu den geschützten Zählern.
+
