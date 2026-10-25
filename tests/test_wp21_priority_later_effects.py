@@ -291,6 +291,15 @@ class PriorityLegalFollowupTests(unittest.TestCase):
         self.assertTrue(r['separately_curated_reichardt_ordnungsGELD_negative_control']
                         ['not_an_ordnungsruf'])
         self.assertFalse(r['no_bounded_objection_match_proves_no_appeal'])
+        extra=[x for x in r['known_official_objections_to_other_originals_excluded']
+               if x.get('source_collected_outside_fixed_thirteen_article_corpus')]
+        self.assertEqual(len(extra),1)
+        self.assertEqual(extra[0]['different_original_day'],'2026-03-19')
+        self.assertEqual(extra[0]['decision_day'],'2026-03-20')
+        self.assertEqual(extra[0]['independent_official_decision_protocol'],
+                         'https://www.bundestag.de/resource/blob/1155780/amtpr21066.pdf')
+        self.assertTrue(extra[0]['original_cannot_be_one_of_three_checked_parents'])
+
 
     def test_malformed_discovery_is_never_exhaustive_evidence(self):
         d=inventory()
