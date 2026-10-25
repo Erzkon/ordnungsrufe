@@ -274,3 +274,46 @@ Einspruchs-/Rücknahmeentscheidungen eindeutig auf die
 Keuter 21/043 (zweimal) beziehen. Insbesondere die falsch mit
 Reichardt beschriftete DIP-Elternakte **322921** darf niemals
 ohne Originalpersonenprüfung freigegeben werden.
+
+
+## DIP-Rechtsfolgenblindsuche ohne Ordnungsruf-Wort
+
+**25.10.2026:** Die bisherige ursprünglich nur
+„Ordnungsruf/Ordnungsgeld/Ordnungsmaßnahme“-gefilterte
+DIP-Vorgangssuche wurde um einen **zweiten nichtzählenden
+Prüfpfad für alle vollständig paginierten DIP-Dokumente** erweitert.
+Damit können auch Titel/Abstracts ohne diese Schlüsselwörter
+einen manuellen Rechtsfolgenhinweis erzeugen, wenn sie
+den vollständigen Namen **Martin Reichardt** oder
+**Stefan Keuter** und ein prozessbezogenes Rechtsmittelwort nennen.
+
+Die zusätzlichen Hinweise stehen als gesonderte Liste in
+`.audit/wp21_dip_discovery/outside_pins.json`, werden in den
+Prioritäts-Rechtsfolgenabgleich und die (erst nach gesondert
+genehmigtem Merge aktive) entdoppelte GitHub-Issue-Warnung
+übernommen. Der neue Pfad zählt **weder Erteilungen noch
+Einsprüche noch wirksame Ordnungsrufe**. Ein Namens-/Worttreffer
+ist kein personenscharf bewiesener Rechtsfolgenbeschluss; fehlende
+Treffer sind ebenfalls kein abschließender Negativbeweis.
+
+Die erste 45-Tage-Liveprüfung vom 25.10.2026 erfasste
+**6.184 DIP-Datensätze auf 62 Seiten** und fand **keinen**
+zusätzlichen solchen Rechtsfolgenkandidaten;
+**101 spezialisierte Regressionstests bestanden**.
+Ein einmaliger historischer Vollzeitraum-Gegenlauf prüft
+dieselbe Logik ohne den kurzen Aktualisierungsfilter.
+
+Zusätzlich wurde eine vom 2025er Ursprung abzugrenzende
+[Reichardt-Einspruchszurückweisung zu einem Original vom
+19.03.2026](https://www.bundestag.de/dokumente/textarchiv/2026/kw12-de-einspruch-ordnungsruf-1156828)
+mit amtlichem [Entscheidungsprotokoll
+21/066](https://www.bundestag.de/resource/blob/1155780/amtpr21066.pdf)
+als **eigener amtlicher Negativabgleich** dokumentiert.
+Die Entscheidung darf nicht Reichardts Ursprung in
+**21/014 vom 26.06.2025** zugeschlagen werden.
+
+**Nächster Schritt:** In der historischen Schattensuche
+gefundene *wirklich weitere* Vorgänge einzeln prüfen und
+anschließend die bereits bekannten 27 Elternakten außerhalb
+des älteren 2025er Zehnerdossiers weiter auflösen, ohne
+Statistikdaten vor individueller Freigabe zu verändern.
