@@ -64,7 +64,7 @@ class OutsidePinsDiscoveryTests(unittest.TestCase):
             doc(348101,'Einspruch des Abgeordneten Martin Reichardt gegen eine Entscheidung'),
             doc(348102,'Beschwerde des Abgeordneten Stefan Keuter zur Plenarsitzung'),
             doc(348103,'Mitteilung über eine Abstimmung'),
-            doc(348104,'Martin Reichardt: schriftliche Erklärung ohne Rechtsmittel'),
+            doc(348104,'Martin Reichardt: schriftliche Erklärung im Plenum'),
             doc(348105,'Ordnungsgeld gegen Martin Reichardt'),
             doc(348106,'Einspruch ohne Abgeordnetennamen'),
         ]
