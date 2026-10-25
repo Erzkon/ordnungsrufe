@@ -214,8 +214,49 @@ def bounded_other_parent_hints(discovery):
             'appeal_outcome_or_current_effectiveness_verified':False,
             'automatically_confirmed_sanctions':0,
         })
+    # This second stream scans the complete already-fetched DIP result set,
+    # including documents where neither title nor abstract says Ordnungsruf.
+    # It is still only a full-name + procedural-keyword hint.
+    shadow=discovery.get('unfiltered_priority_procedure_parents',[])
+    if (not isinstance(shadow,list) or len(shadow)>500 or
+            len(shadow)!=discovery.get('unfiltered_priority_procedure_parent_count',len(shadow))):
+        raise ValueError('Ungefilterte DIP-Rechtsfolgenquelle unvollständig')
+    shadow_hits=0
+    for row in shadow:
+        ident=row['official_dip_parent_id']
+        title=row['title']
+        names=row['matched_full_person_names_metadata_only']
+        if (ident in seen or not re.fullmatch(r'[1-9]\\d{0,11}',ident)
+                or ident in EXPECTED or
+                row['official_dip_parent_url']!='https://dip.bundestag.de/vorgang/'+ident
+                or not isinstance(title,str) or not isinstance(names,list)
+                or not names or not set(names)<=set(NAME_RE)
+                or not all(NAME_RE[name].search(norm(title+' '+row['abstract_excerpt']))
+                           for name in names)
+                or row['matched_procedural_text_not_full_legal_decision'] is not True
+                or row['ordnungsruf_keyword_present_in_title_or_abstract'] is not False
+                or row['original_measure_identity_verified'] is not False
+                or row['appeal_or_legal_outcome_decided'] is not False
+                or row['automatically_approved_effective_sanctions']!=0):
+            raise ValueError('Ungefilterte fremde DIP-Quelle ohne sichere Prüfgrenze')
+        seen.add(ident)
+        shadow_hits+=1
+        hits.append({
+            'official_parent_id':ident,
+            'source':row['official_dip_parent_url'],
+            'source_date':row['source_date'],
+            'title':title,
+            'named_person_metadata_only':names,
+            'source_class':'other_dip_parent_possible_procedure_without_ordnungsruf_keyword',
+            'exact_original_case_link_verified':False,
+            'appeal_outcome_or_current_effectiveness_verified':False,
+            'automatically_confirmed_sanctions':0,
+        })
     hits.sort(key=lambda x:int(x['official_parent_id']))
     return {
+        'unfiltered_legal_shadow_evaluated':(
+            'unfiltered_priority_procedure_parents' in discovery),
+        'unfiltered_procedure_keyword_parent_hints':shadow_hits,
         'update_window_since_utc':discovery['since_utc'],
         'update_window_until_utc':discovery['observed_until_utc'],
         'full_term_update_filter_used':discovery['full_legislative_period_update_window'],
@@ -345,6 +386,15 @@ def render(report):
     for hint in report['possible_other_parent_sources']['named_other_parent_metadata_candidates']:
         lines.append('- [DIP '+hint['official_parent_id']+']('+hint['source']+') – '+
                      hint['source_class']+' – '+hint['title'])
+    lines.append('')
+    lines.append('Zusätzliche **ohne Ordnungsruf-Wort** gefundene potentielle '
+                 'Verfahrensquellen im gesamten DIP-Suchergebnis: '+
+                 str(report['possible_other_parent_sources'][
+                     'unfiltered_procedure_keyword_parent_hints'])+
+                 ' – **ohne fallbezogene Rechtsfolgenzuordnung**.')
+    lines.append('')
+    lines.append('**Selbst der vollständige DIP-Zeitraum ersetzt keine '
+                 'personen- und maßnahmenbezogene Prüfung anderer Verfahren.**')
     lines.extend(['','## Unabhängig belegte Einsprüche zu ANDEREN Originalen',''])
     for x in report['independent_existing_articles'][
             'known_official_objections_to_other_originals_excluded']:
@@ -401,7 +451,9 @@ def review_alerts(report):
         # Do NOT turn an unrelated grant or separately regulated fine into
         # an appeal alert. Even a literal "Einspruch" with the same name is
         # only a source candidate, not necessarily the same original grant.
-        if item['source_class']!='procedure_keyword_possible_related_metadata':
+        if item['source_class'] not in (
+                'procedure_keyword_possible_related_metadata',
+                'other_dip_parent_possible_procedure_without_ordnungsruf_keyword'):
             continue
         ident=item['official_parent_id']
         key=('parent',ident)
