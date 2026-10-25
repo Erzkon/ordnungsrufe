@@ -204,6 +204,75 @@ class PriorityLegalFollowupTests(unittest.TestCase):
         self.assertEqual(hints['matched_to_any_of_four_individual_grants_automatically'],0)
         self.assertFalse(hints['absence_of_other_relevant_sources_proven'])
 
+    def test_unfiltered_dip_procedure_without_ordnungsruf_word_flows_to_alerts(self):
+        data=inventory()
+        data['unfiltered_priority_procedure_parents']=[{
+            'official_dip_parent_id':'348999',
+            'official_dip_parent_url':'https://dip.bundestag.de/vorgang/348999',
+            'title':'Einspruch des Abgeordneten Stefan Keuter gegen eine Entscheidung',
+            'abstract_excerpt':'',
+            'source_date':'2026-10-25',
+            'updated_utc':'2026-10-25T08:00:00+00:00',
+            'matched_full_person_names_metadata_only':['Stefan Keuter'],
+            'matched_procedural_text_not_full_legal_decision':True,
+            'ordnungsruf_keyword_present_in_title_or_abstract':False,
+            'original_measure_identity_verified':False,
+            'appeal_or_legal_outcome_decided':False,
+            'automatically_approved_effective_sanctions':0,
+        }]
+        data['unfiltered_priority_procedure_parent_count']=1
+        info=bounded_other_parent_hints(data)
+        self.assertTrue(info['unfiltered_legal_shadow_evaluated'])
+        self.assertEqual(info['unfiltered_procedure_keyword_parent_hints'],1)
+        source=next(c for c in info['named_other_parent_metadata_candidates']
+                    if c['official_parent_id']=='348999')
+        self.assertEqual(source['source_class'],
+                         'other_dip_parent_possible_procedure_without_ordnungsruf_keyword')
+        self.assertFalse(source['exact_original_case_link_verified'])
+        report=consolidate(pinned(),original_scout(),data)
+        alerts=review_alerts(report)
+        self.assertEqual(alerts['hint_count'],2)
+        alert=next(a for a in alerts['hints'] if a['official_parent_id']=='348999')
+        self.assertTrue(alert['case_link_and_legal_outcome_still_require_manual_review'])
+        self.assertEqual(alert['automatic_count_delta'],0)
+        self.assertFalse(alerts['absence_of_hints_means_no_appeal'])
+
+    def test_shadow_wrong_full_name_or_duplicate_parent_refused(self):
+        data=inventory(False)
+        shadow={
+            'official_dip_parent_id':'348998',
+            'official_dip_parent_url':'https://dip.bundestag.de/vorgang/348998',
+            'title':'Widerspruch von Martin Reichardt',
+            'abstract_excerpt':'',
+            'matched_full_person_names_metadata_only':['Martin Reichardt'],
+            'matched_procedural_text_not_full_legal_decision':True,
+            'ordnungsruf_keyword_present_in_title_or_abstract':False,
+            'original_measure_identity_verified':False,
+            'appeal_or_legal_outcome_decided':False,
+            'automatically_approved_effective_sanctions':0,
+            'source_date':'2026-10-25',
+            'updated_utc':'2026-10-25T09:00:00+00:00',
+        }
+        data['unfiltered_priority_procedure_parents']=[shadow]
+        data['unfiltered_priority_procedure_parent_count']=1
+        self.assertEqual(bounded_other_parent_hints(data)
+                         ['unfiltered_procedure_keyword_parent_hints'],1)
+        for change in (
+            {'matched_full_person_names_metadata_only':['Stefan Keuter']},
+            {'official_dip_parent_url':'https://untrusted.example/348998'},
+            {'appeal_or_legal_outcome_decided':True},
+            {'automatically_approved_effective_sanctions':1},
+        ):
+            altered=copy.deepcopy(data)
+            altered['unfiltered_priority_procedure_parents'][0].update(change)
+            with self.subTest(change=change),self.assertRaises(ValueError):
+                bounded_other_parent_hints(altered)
+        dup=copy.deepcopy(data)
+        dup['unfiltered_priority_procedure_parents']=[shadow,copy.deepcopy(shadow)]
+        dup['unfiltered_priority_procedure_parent_count']=2
+        with self.assertRaises(ValueError):
+            bounded_other_parent_hints(dup)
+
     def test_empty_bounded_other_parent_sources_is_not_negated_effects(self):
         data=inventory(False)
         data['full_legislative_period_update_window']=False
