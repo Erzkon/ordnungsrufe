@@ -449,6 +449,23 @@ def markdown(report):
             c['official_dip_parent_url'] + ') | ' + title + ' | ' +
             c['classification_for_manual_review'] + ' | ' + original + ' | ' +
             previous + ' |')
+    shadow=report.get('unfiltered_priority_procedure_parents',[])
+    if (len(shadow)!=report.get('unfiltered_priority_procedure_parent_count',len(shadow))
+            or any(c['automatically_approved_effective_sanctions']!=0
+                   or c['appeal_or_legal_outcome_decided'] is not False
+                   for c in shadow)):
+        raise ValueError('Ungefilterte Rechtsfolgenhinweise dürfen keine Sanktionen bestätigen')
+    lines.extend(['','## Separate DIP-Schattenprobe ohne Ordnungsruf-Schlüsselwort','',
+                  '**Nur voller Name und Verfahrensbegriff in Titel oder Kurztext. '
+                  'Kein individueller Einspruchs-/Rechtsfolgenbeleg.**',
+                  'Quellenkandidaten: '+str(len(shadow)), '',
+                  '| DIP-Vorgang | Angeführte Person(en) | Metadatentitel |',
+                  '|---|---|---|'])
+    for c in shadow:
+        lines.append('| ['+c['official_dip_parent_id']+']('+
+                     c['official_dip_parent_url']+') | '+
+                     ', '.join(c['matched_full_person_names_metadata_only'])+
+                     ' | '+c['title'].replace('|','\\|').replace('\n',' ')[:160]+' |')
     lines.extend(['', report['warning'], '',
                   '**Keine Änderungen bestätigter CSV-/JSON-Daten.**', ''])
     return '\n'.join(lines)
