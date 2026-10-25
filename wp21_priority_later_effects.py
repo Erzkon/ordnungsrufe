@@ -50,6 +50,23 @@ EXPECTED={
         'metadata_recipient_conflict':False,
     },
 }
+# Independently verified Bundestag article and official 21/066 decision
+# protocol. Separate from the fixed 13-article audit corpus: the original
+# grant was 19 March 2026, NOT Reichardt's 26 June 2025 original.
+EXTRA_OFFICIAL_APPEAL_EXCLUSION={
+    'original_person':'Martin Reichardt',
+    'original_date':'2026-03-19',
+    'decision_date':'2026-03-20',
+    'decision_session':66,
+    'individual_original_in_our_priority_set':False,
+    'source_article':
+        'https://www.bundestag.de/dokumente/textarchiv/2026/'
+        'kw12-de-einspruch-ordnungsruf-1156828',
+    'official_decision_protocol':
+        'https://www.bundestag.de/resource/blob/1155780/amtpr21066.pdf',
+    'legal_effect_on_june_2025_reichardt_or_keuter_not_assessed':True,
+}
+
 WARNING=(
     'Die drei amtlichen DIP-Elternvorgänge und ihr vollständiger aktueller '
     'Verfahrenspositionsstand erfassen NICHT automatisch alle anderen '
@@ -301,6 +318,29 @@ def historical_appeal_exclusions():
             'independent_official_bundestag_article':entry['source'],
             'original_cannot_be_one_of_three_checked_parents':True,
         })
+    extra=EXTRA_OFFICIAL_APPEAL_EXCLUSION
+    if (extra['original_person']!='Martin Reichardt'
+            or extra['original_date']!='2026-03-19'
+            or extra['decision_date']!='2026-03-20'
+            or extra['decision_session']!=66
+            or extra['individual_original_in_our_priority_set'] is not False
+            or extra['legal_effect_on_june_2025_reichardt_or_keuter_not_assessed'] is not True
+            or not extra['source_article'].startswith(
+                'https://www.bundestag.de/dokumente/textarchiv/2026/')
+            or extra['official_decision_protocol']!=
+                'https://www.bundestag.de/resource/blob/1155780/amtpr21066.pdf'):
+        raise ValueError('Unabhängige March-2026-Einspruchsquelle manipuliert')
+    if (extra['original_date'],norm(extra['original_person'])) in expected_originals:
+        raise ValueError('Unabhängige Einspruchsquelle fälschlich einem Prioritätsoriginal zugeordnet')
+    historical.append({
+        'person':extra['original_person'],
+        'different_original_day':extra['original_date'],
+        'decision_day':extra['decision_date'],
+        'independent_official_bundestag_article':extra['source_article'],
+        'independent_official_decision_protocol':extra['official_decision_protocol'],
+        'source_collected_outside_fixed_thirteen_article_corpus':True,
+        'original_cannot_be_one_of_three_checked_parents':True,
+    })
     historical.sort(key=lambda x:(x['person'],x.get('different_original_day') or ''))
     return {
         'known_official_objections_to_other_originals_excluded':historical,
