@@ -226,7 +226,7 @@ def bounded_other_parent_hints(discovery):
         ident=row['official_dip_parent_id']
         title=row['title']
         names=row['matched_full_person_names_metadata_only']
-        if (ident in seen or not re.fullmatch(r'[1-9]\\d{0,11}',ident)
+        if (ident in seen or not re.fullmatch(r'[1-9]\d{0,11}',ident)
                 or ident in EXPECTED or
                 row['official_dip_parent_url']!='https://dip.bundestag.de/vorgang/'+ident
                 or not isinstance(title,str) or not isinstance(names,list)
