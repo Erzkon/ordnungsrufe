@@ -240,10 +240,9 @@ jobs:
           # First Monday of each month: full-term reconciliation.
           # Ordinary PR and weekly checks use a bounded 45-day update window;
           # first Monday monthly rechecks the entire term for backdated changes.
-          # One-time PR validation of the unfiltered legal-source shadow
-          # against the entire known WP21 DIP update interval.
-          if [[ "${{ github.event_name }}" == "pull_request" ]] ||
-             [[ "${{ github.event_name }}" == "schedule" && "$(date -u +%d)" -le 7 ]] ||
+          # Ordinary PRs/weekdays: 45-day overlap. First Monday monthly:
+          # full-term metadata refresh for late or backdated changes.
+          if [[ "${{ github.event_name }}" == "schedule" && "$(date -u +%d)" -le 7 ]] ||
              [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.full_term_discovery }}" == "true" ]]; then
             args=(--full-term)
           fi
