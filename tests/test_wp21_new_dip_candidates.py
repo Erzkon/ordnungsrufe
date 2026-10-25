@@ -59,6 +59,62 @@ class OutsidePinsDiscoveryTests(unittest.TestCase):
         self.assertEqual(report['automatically_confirmed_new_sanctions'],0)
         self.assertFalse(report['protected_counters_changed'])
 
+    def test_full_dip_shadow_scans_procedures_without_ordnungsruf_vocabulary(self):
+        records=[
+            doc(348101,'Einspruch des Abgeordneten Martin Reichardt gegen eine Entscheidung'),
+            doc(348102,'Beschwerde des Abgeordneten Stefan Keuter zur Plenarsitzung'),
+            doc(348103,'Mitteilung über eine Abstimmung'),
+            doc(348104,'Martin Reichardt: schriftliche Erklärung ohne Rechtsmittel'),
+            doc(348105,'Ordnungsgeld gegen Martin Reichardt'),
+            doc(348106,'Einspruch ohne Abgeordnetennamen'),
+        ]
+        report=build(records,since=SINCE,now=NOW,pages=2)
+        self.assertEqual(report['total_dip_documents_in_update_window'],6)
+        self.assertEqual(report['unfiltered_priority_procedure_parent_count'],2)
+        self.assertEqual(
+            {c['official_dip_parent_id'] for c in
+             report['unfiltered_priority_procedure_parents']},
+            {'348101','348102'})
+        self.assertEqual(report['other_relevant_parent_ids_outside_18_pins'],1)
+        self.assertTrue(all(not c['ordnungsruf_keyword_present_in_title_or_abstract']
+                            and not c['original_measure_identity_verified']
+                            and not c['appeal_or_legal_outcome_decided']
+                            and c['automatically_approved_effective_sanctions']==0
+                            for c in report['unfiltered_priority_procedure_parents']))
+        self.assertIn('348102',markdown(report))
+
+    def test_shadow_catches_description_only_procedure_not_surname_or_unrelated_topics(self):
+        records=[
+            {**doc(348201,'Nicht zugeordneter Vorgang'),
+             'abstract':'Der Abgeordnete Stefan Keuter legt Einspruch ein'},
+            doc(348202,'Widerspruch von Peter Reichardt zu einer Änderung'),
+            doc(348203,'Einspruch einer anderen Person'),
+            doc(348204,'Martin Reichardt beim Sportverein'),
+            doc(348205,'Einspruch gegen einen Ordnungsruf an Martin Reichardt'),
+        ]
+        report=build(records,since=SINCE,now=NOW,pages=1)
+        self.assertEqual(report['unfiltered_priority_procedure_parent_count'],1)
+        self.assertEqual(
+            report['unfiltered_priority_procedure_parents'][0]['official_dip_parent_id'],
+            '348201')
+        self.assertEqual(report['other_relevant_parent_ids_outside_18_pins'],1)
+
+    def test_shadow_rejects_invalid_metadata_before_claiming_complete_report(self):
+        item=doc(348301,'Einspruch des Abg Martin Reichardt')
+        item['aktualisiert']='2024-01-01T00:00:00+00:00'
+        with self.assertRaises(ValueError):
+            build([item],since=SINCE,now=NOW,pages=1)
+        item=doc(348302,'Beschwerde Stefan Keuter')
+        item['datum']='not-a-day'
+        with self.assertRaises(ValueError):
+            build([item],since=SINCE,now=NOW,pages=1)
+        item=doc(348303,'Einspruch Stefan Keuter')
+        item['abstract']=None
+        # None is a permissible empty optional field.
+        self.assertEqual(
+            build([item],since=SINCE,now=NOW,pages=1)
+            ['unfiltered_priority_procedure_parent_count'],1)
+
     def test_appeal_and_penalty_not_confused_with_original(self):
         rows=[
             doc(345100,'Einspruch gegen die Erteilung eines Ordnungsrufes'),
