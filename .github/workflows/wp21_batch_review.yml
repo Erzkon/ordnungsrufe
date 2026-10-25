@@ -256,6 +256,14 @@ jobs:
                   and report['automatically_confirmed_new_sanctions']==0
                   and report['automatically_rescinded_sanctions']==0
                   and report['protected_counters_changed'] is False
+                  and report['unfiltered_source_scope']==
+                      'all_paginated_21wp_DIP_parents_name_plus_legal_term_without_ordnungsruf_keyword'
+                  and report['unfiltered_source_count_does_not_prove_exhaustive_appeal_search'] is True
+                  and report['unfiltered_priority_procedure_parent_count']==
+                      len(report['unfiltered_priority_procedure_parents'])
+                  and all(x['automatically_approved_effective_sanctions']==0
+                          and x['appeal_or_legal_outcome_decided'] is False
+                          for x in report['unfiltered_priority_procedure_parents'])
                   and report['original_position_enrichment_status']=='all_possible_parents_positions_refreshed'
                   and report['fully_refreshed_possible_parent_count']==report['possible_original_parent_ids_outside_18_pins']
                   and report['candidates_matched_to_existing_positive_sample']+
@@ -284,6 +292,10 @@ jobs:
                  +str(report['candidates_matched_to_existing_positive_sample'])+
                  '; noch ohne solche Zuordnung: '
                  +str(report['candidates_without_positive_sample_original_match']),
+                 'Neue Verfahrensquellen-Hinweise ohne Ordnungsruf-Wort aus '
+                 'der gesamten paginierten DIP-Abfrage: '
+                 +str(report['unfiltered_priority_procedure_parent_count'])
+                 +' (nur namentliche/rechtliche Worttreffer, **keine Einspruchsentscheidungen**).',
                  'Ungeklaerte Original-Elternakten in rein manuellen Arbeitsbuendeln: '
                  +str(queue['pending_parent_review_tasks'])+
                  ' (Bündel '+str(len(queue['batches']))+').',
@@ -442,7 +454,12 @@ jobs:
                   and r['automatically_approved_new_sanctions']==0
                   and r['automatically_rescinded_sanctions']==0
                   and r['protected_counter_files_modified'] is False
-                  and r['no_complete_cross_document_legal_exhaustiveness_claim'] is True)
+                  and r['no_complete_cross_document_legal_exhaustiveness_claim'] is True
+                  and r['possible_other_parent_sources']['unfiltered_legal_shadow_evaluated'] is True
+                  and r['possible_other_parent_sources']['unfiltered_procedure_keyword_parent_hints']==
+                      len([p for p in r['possible_other_parent_sources']
+                           ['named_other_parent_metadata_candidates']
+                           if p['source_class']=='other_dip_parent_possible_procedure_without_ordnungsruf_keyword']))
           alerts=json.loads(Path('.audit/wp21_priority_later_effects/priority_review_alerts.json')
                             .read_text(encoding='utf-8'))
           assert (alerts['schema']=='wp21-priority-legal-review-alerts-v1'
@@ -468,6 +485,10 @@ jobs:
                           str(p['additional_parent_procedure_position_count'])+
                           ' weitere Verfahrenspositionen innerhalb der Elternakte; '
                           'keine automatische Maßnahmenfreigabe.\n')
+              f.write('Ungefilterte weitere DIP-Verfahrensquellen-Kandidaten: '
+                      +str(r['possible_other_parent_sources']
+                           ['unfiltered_procedure_keyword_parent_hints'])
+                      +'; **keine** automatisch zugeordnete Rechtsfolge.\\n')
               f.write('Andere namentliche Elternakten und frühere '
                       'Einspruchsquellen nur getrennte manuelle Hinweise.\n')
           PY
